@@ -229,16 +229,12 @@ const isGoodCondition = (isGood, required) => {
 }
 
 const checkGoodCondition = (isGood, required) => {
-  if (Array.isArray(required)) {
-    
-    for (let i = 0; i < required.length; i++) {
-      if (isGoodCondition(isGood, required[i])) {
-        return true;
-      }
+  for (let i = 0; i < required.length; i++) {
+    if (isGoodCondition(isGood, required[i])) {
+      return true;
     }
-    return false;
   }
-  return isGoodCondition(isGood, required);
+  return false;
 }
 
 const checkLevelUpgrade = async (required) => {
