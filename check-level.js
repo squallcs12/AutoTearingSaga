@@ -1,6 +1,5 @@
 const sharp = require('sharp');
 const _ = require('lodash');
-const fs = require('fs');
 const { exec } = require("child_process");
 
 const { goodCondition, syncGithub } = require('./test/specs/levelup');
@@ -18,17 +17,32 @@ const findColor = (color, colors) => {
   return false;
 }
 
-const colorSampleFile = fs.readFileSync('sample-color.json');
-let sampleColors = JSON.parse(colorSampleFile);
-sampleColors = sampleColors.map((x) => parseInt(x, 10));
 const totalStat = 9;
+
+const loadSampleColors = async () => {
+  const raw = await sharp('example/level-up/level-up.jpg').greyscale().raw().toBuffer();
+  const colorCount = {};
+  for (let i = 0; i < raw.length; i++) {
+    colorCount[raw[i]] = (colorCount[raw[i]] || 0) + 1;
+  }
+  const sorted = Object.entries(colorCount).sort((a, b) => b[1] - a[1]);
+  let sum = 0;
+  const sampleColors = [];
+  for (const [color, count] of sorted) {
+    sum += count;
+    sampleColors.push(parseInt(color, 10));
+    if (sum / raw.length > 0.8) break;
+  }
+  return sampleColors;
+}
+
+const sampleColorsPromise = loadSampleColors();
 
 
 const checkIsLevelUp = async (newImage) => {
+  const sampleColors = await sampleColorsPromise;
   newImage = await newImage.clone().greyscale().raw().toBuffer();
-  // console.log(colors);
   let count = 0;
-  // r g b s
   for (let j = 0; j < newImage.length; j++) {
     const color = newImage[j];
     if (sampleColors.includes(color)) {
@@ -36,7 +50,7 @@ const checkIsLevelUp = async (newImage) => {
     }
   }
   const percentage = count / newImage.length;
-  return percentage >= 0.5; // examinate existing image
+  return percentage >= 0.5;
 }
 
 // real
@@ -229,16 +243,12 @@ const isGoodCondition = (isGood, required) => {
 }
 
 const checkGoodCondition = (isGood, required) => {
-  if (Array.isArray(required)) {
-    
-    for (let i = 0; i < required.length; i++) {
-      if (isGoodCondition(isGood, required[i])) {
-        return true;
-      }
+  for (let i = 0; i < required.length; i++) {
+    if (isGoodCondition(isGood, required[i])) {
+      return true;
     }
-    return false;
   }
-  return isGoodCondition(isGood, required);
+  return false;
 }
 
 const checkLevelUpgrade = async (required) => {

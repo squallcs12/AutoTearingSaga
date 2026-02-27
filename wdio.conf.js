@@ -61,6 +61,7 @@ exports.config = {
         autoGrantPermissions: 'true',
         appPackage: 'com.github.stenzek.duckstation',
         appActivity: '.EmulationActivity',
+        optionalIntentArguments: '--es bootPath /sdcard/Android/data/com.github.stenzek.duckstation/files/games/TearRingSaga.cue',
         noReset: true,
         fullReset: false,
       }],

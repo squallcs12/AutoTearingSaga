@@ -6,6 +6,7 @@
         "@wdio/spec-reporter": "^7.25.1",
         "appium": "^1.22.3",
         "lodash": "^4.17.21",
+        "play-sound": "^1.1.6",
         "sharp": "^0.31.1"
     },
     "devDependencies": {
@@ -13,8 +14,8 @@
     },
     "scripts": {
         "wdio": "wdio run wdio.conf.js",
-        "run4": "((npx wdio --spec test/specs/levelup.e2e.js > /dev/null || npx wdio --spec test/specs/levelup.e2e.js > /dev/null || npx wdio --spec test/specs/levelup.e2e.js > /dev/null || npx wdio --spec test/specs/levelup.e2e.js > /dev/null) && play ~/Downloads/happy.mp3 -q repeat 1) || play ~/Downloads/sad.mp3 -q repeat 1",
-        "level": "(npx wdio --spec test/specs/levelup.e2e.js > /dev/null && play ~/Downloads/happy.mp3 -q repeat 1) || play ~/Downloads/sad.mp3 -q repeat 1",
-        "arena": "(npx wdio --spec test/specs/arena.e2e.js > /dev/null && play ~/Downloads/happy.mp3 -q repeat 1) || play ~/Downloads/sad.mp3 -q repeat 1"
+        "run": "bash scripts/run.sh",
+        "level": "npx wdio --spec test/specs/levelup.e2e.js > /dev/null && node scripts/notify.js success || node scripts/notify.js fail",
+        "arena": "npx wdio --spec test/specs/arena.e2e.js > /dev/null && node scripts/notify.js success || node scripts/notify.js fail"
     }
 }
