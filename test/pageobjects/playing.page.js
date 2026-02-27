@@ -127,8 +127,8 @@ class PlayingPage extends Page {
     await sleep(500);
     if (index === 0) {
       await $('android=new UiSelector().text("Quick Save")').touchAction({action: 'tap', x: 10, y: 10});
-    } else if (index === 1) {
-      await $('android=new UiSelector().text("Save Slot 1")').touchAction({action: 'tap', x: 10, y: 10});
+    } else{
+      await $(`android=new UiSelector().text("Save Slot ${index}")`).touchAction({action: 'tap', x: 10, y: 10});
     }
     await sleep(500);
   }
@@ -223,6 +223,10 @@ class PlayingPage extends Page {
           break;
         case 'save1':
           await this.quicksave(1)
+          await sleep(1000);
+          break;
+        case 'save1':
+          await this.quicksave(2)
           await sleep(1000);
           break;
         case 'up-left':
