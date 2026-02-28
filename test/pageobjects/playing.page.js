@@ -5,6 +5,7 @@ const Page = require('./page');
 sharp.cache(false);
 
 
+
 /**
  * sub page containing specific selectors and methods for a specific page
  */
@@ -111,12 +112,16 @@ class PlayingPage extends Page {
   }
 
 
-  async reload() {
+  async reload(index = 0) {
     await this.buttonPause.touchAction({action: 'tap', x: 10, y: 10});
     await sleep(500);
     await this.buttonLoadState.touchAction({action: 'tap', x: 10, y: 10});
     await sleep(500);
-    await $('android=new UiSelector().text("Quick Save")').touchAction({action: 'tap', x: 10, y: 10});
+    if (index === 0) {
+      await $('android=new UiSelector().text("Quick Save")').touchAction({action: 'tap', x: 10, y: 10});
+    } else {
+      await $(`android=new UiSelector().text("Save Slot ${index}")`).touchAction({action: 'tap', x: 10, y: 10});
+    }
     await sleep(500);
   }
 
@@ -225,8 +230,12 @@ class PlayingPage extends Page {
           await this.quicksave(1)
           await sleep(1000);
           break;
-        case 'save1':
+        case 'save2':
           await this.quicksave(2)
+          await sleep(1000);
+          break;
+        case 'save3':
+          await this.quicksave(3)
           await sleep(1000);
           break;
         case 'up-left':

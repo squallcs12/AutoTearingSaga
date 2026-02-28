@@ -89,7 +89,7 @@ describe('Run auto', () => {
       await PlayingPage.perform('wait'); // wait for fully show
       await PlayingPage.perform('wait'); // wait for fully show
 
-      await PlayingPage.perform('save'); // quick save at arena confirm screen
+      await PlayingPage.perform('save3'); // save slot 3 at arena confirm screen
 
       await PlayingPage.perform('left');  // select yes
       await PlayingPage.perform('O'); // confirm
@@ -146,7 +146,7 @@ describe('Run auto', () => {
       }
 
       if (changeOpponent) {
-        await PlayingPage.reload(); // back to arena confirm screen
+        await PlayingPage.reload(3); // back to arena confirm screen (slot 3)
         await PlayingPage.perform('O'); // choose No
         await PlayingPage.perform('X'); // skip dialog
         await PlayingPage.perform('X'); // skip dialog

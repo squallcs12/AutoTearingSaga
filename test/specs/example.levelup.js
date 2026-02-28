@@ -17,16 +17,12 @@ const fight = `
 // Set to true if the current enemy is a boss (uses longer post-battle wait).
 const isBoss = false;
 
-// Stat numbers:
-//   1: strength  2: skill  3: speed  4: luck   5: def
-//   6: magic     7: mastery  8: hp   9: move
-//
 // goodCondition is an array of objects (any match = success).
 // In each object:
-//   count  — minimum number of stats that must increase
-//   1..9   — 1 means stat MUST increase, -1 means stat must NOT increase
+//   count      — minimum number of stats that must increase
+//   str/skill/spd/luck/def/mag/mst/hp/move — 1 means MUST increase, -1 means must NOT increase
 const goodCondition = [
-  { count: 5, 1: 1 },   // at least 5 stats, strength required
+  { count: 5, str: 1 },  // at least 5 stats, strength required
   { count: 6 },          // at least 6 stats (any combination)
 ];
 

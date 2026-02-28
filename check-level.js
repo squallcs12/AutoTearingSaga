@@ -17,7 +17,7 @@ const findColor = (color, colors) => {
   return false;
 }
 
-const totalStat = 9;
+const statOrder = ['str', 'skill', 'spd', 'luck', 'def', 'mag', 'mst', 'hp', 'move'];
 
 const loadSampleColors = async () => {
   const raw = await sharp('example/level-up/level-up.jpg').greyscale().raw().toBuffer();
@@ -73,54 +73,34 @@ const stat2Begin = [700]
 const statSize = [200, 30]
 const statHeight = 40;
 
-const findTotalStatIncrease = async (newImage, start) => {
-  let increase = {
-    1: 0,
-    2: 0,
-    3: 0,
-    4: 0,
-    5: 0,
-    6: 0,
-    7: 0,
-    8: 0,
-    9: 0,
-  }
+const findTotalStatIncrease = async (newImage, startIdx) => {
+  let increase = {};
+  for (const s of statOrder) increase[s] = 0;
+
   for (let i = 0; i < 5; i++) {
-    if (i + 1 <= start) {
-      continue
-    }
+    if (i < startIdx) continue;
     const statImage = await newImage.clone().extract({
       left: statBegin[0] - panelStart[0],
       top: statBegin[1] + i * statHeight - panelStart[1],
       width: statSize[0],
       height: statSize[1],
-    })
-    
-    if (debug) {
-      await statImage.toFormat('jpg').toFile(`xxx1-${i}.jpg`)
-    }
-
+    });
+    if (debug) await statImage.toFormat('jpg').toFile(`xxx1-${i}.jpg`);
     if (await hasIncrease(statImage)) {
-      increase[i + 1] = 1;
+      increase[statOrder[i]] = 1;
     }
   }
   for (let i = 0; i < 4; i++) {
-    if (i + 6 <= start) {
-      continue
-    }
+    if (i + 5 < startIdx) continue;
     const statImage = await newImage.clone().extract({
       left: stat2Begin[0] - panelStart[0],
       top: statBegin[1] + i * statHeight - panelStart[1],
       width: statSize[0],
       height: statSize[1],
     });
-
-    if (debug) {
-      await statImage.toFormat('jpg').toFile(`xxx2-${i}.jpg`)
-    }
-
+    if (debug) await statImage.toFormat('jpg').toFile(`xxx2-${i}.jpg`);
     if (await hasIncrease(statImage)) {
-      increase[i + 6] = 1;
+      increase[statOrder[i + 5]] = 1;
     }
   }
   return increase;
@@ -162,28 +142,22 @@ const checkIsGoodLevelUpImg = async (i, startStat) => {
 }
 
 const getStatIncreased = async (total) => {
-  let increased = {count: 0};
-  let lastStatIncreased = 0;
+  let increased = { count: 0 };
+  let lastStatIdx = 0;
   for (let i = 1; i <= total; i++) {
-    // console.error({i});
-    const findIncreased = await checkIsGoodLevelUpImg(i, lastStatIncreased);
-    if (!findIncreased) {
-      continue;
-    }
-    for (let k = lastStatIncreased + 1; k <= totalStat; k++) {
-      if (findIncreased[k]) {
-        increased[k] = 1;
-        lastStatIncreased = k;
+    const findIncreased = await checkIsGoodLevelUpImg(i, lastStatIdx);
+    if (!findIncreased) continue;
+    for (let k = lastStatIdx; k < statOrder.length; k++) {
+      const name = statOrder[k];
+      if (findIncreased[name]) {
+        increased[name] = 1;
+        lastStatIdx = k + 1;
       }
     }
-    if (lastStatIncreased === totalStat) {
-      break;
-    }
+    if (lastStatIdx >= statOrder.length) break;
   }
-  for (let k = 1; k <= totalStat; k++) {
-    if (increased[k]) {
-      increased.count += 1;
-    }
+  for (const name of statOrder) {
+    if (increased[name]) increased.count += 1;
   }
   return increased;
 }
@@ -197,28 +171,11 @@ const checkIsGoodLevelUp = async (total, required) => {
 
 
 
-const statName = {
-  1: 'strength',
-  2: 'skill',
-  3: 'speed',
-  4: 'luck',
-  5: 'def',
-  6: 'magic',
-  7: 'mastery',
-  8: 'hp',
-  9: 'move',
-  count: 'Count',
-}
-
 const statSummary = (stats) => {
-  if (debug) {
-    console.log({stats})
-  }
+  if (debug) console.log({stats});
   const summary = [stats.count];
-  for (let i = 1; i <= totalStat; i++) {
-    if(stats[i]) {
-      summary.push(statName[i])
-    }
+  for (const name of statOrder) {
+    if (stats[name]) summary.push(name);
   }
   return summary;
 }
