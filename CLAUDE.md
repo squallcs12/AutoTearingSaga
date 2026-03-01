@@ -2,9 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
+## What This Project Does
 
-This is an automation tool for the PS1 game **Tear Ring Saga** (SLPS-03177), targeting the DuckStation emulator running on an Android device/emulator. It uses WebdriverIO + Appium to automate controller inputs, capture screenshots, and use image analysis (via `sharp`) to detect level-up screens and evaluate whether stat gains meet desired conditions. The goal is to automate RNG manipulation for optimal level-up stat rolls.
+AutoTearingSaga is a game automation tool that farms stat upgrades in a PS1 game (SLPS-03177) running inside the DuckStation emulator on an Android emulator. It uses WebdriverIO + Appium to automate controller inputs, capture screenshots, and use image analysis (via `sharp`) to detect level-up screens and evaluate whether stat gains meet desired conditions. The goal is to automate RNG manipulation for optimal level-up stat rolls.
 
 ## Commands
 
@@ -13,18 +13,18 @@ This is an automation tool for the PS1 game **Tear Ring Saga** (SLPS-03177), tar
 yarn install
 
 # Run all tests (uses wdio.conf.js)
-yarn wdio
+npm run wdio
 
 # Run level-up farming automation
-yarn level
+npm run level
 # or: npx wdio --spec test/specs/levelup.e2e.js
 
 # Run arena automation
-yarn arena
+npm run arena
 # or: npx wdio --spec test/specs/arena.e2e.js
 
 # Run level-up with 4 retries before playing audio
-yarn run4
+npm run run4
 
 # Sync save file from physical phone to emulator
 node sync-phone.js
@@ -36,48 +36,25 @@ node pull-phone.js
 node restore-phone.js
 ```
 
-## Architecture
+## Prerequisites
 
-### Setup Requirements
-- Android emulator running at `emulator-5554` (or physical device `R3CN203BDKN`)
-- DuckStation app (`com.github.stenzek.duckstation`) installed with the game loaded
-- Appium server (started automatically by wdio via `services: ['appium']`) on port 4723
-- Save state must be pre-loaded at the correct game point before running automation
+Before running, ensure:
+1. Android emulator is running at `emulator-5554` (or physical device `R3CN203BDKN`) on Android 12
+2. DuckStation app (`com.github.stenzek.duckstation`) is installed and the game loaded
+3. Appium server is accessible on `localhost:4723` (started automatically by wdio via `services: ['appium']`)
+4. Save state must be pre-loaded at the correct game point before running automation
+5. `test/specs/levelup.js` exists (it is gitignored — must be created locally)
 
-### Data Flow
+## Local Config File (gitignored)
 
-1. **`test/specs/levelup.js`** (gitignored, must be created manually) — exports the run configuration:
-   - `forceRandom`: sequence of input steps to trigger RNG manipulation before the fight
-   - `fight`: sequence of input steps to navigate to/through the battle
-   - `isBoss`: boolean flag for boss vs normal enemy finish timing
-   - `goodCondition`: condition object(s) specifying which stat increases are acceptable
+`test/specs/levelup.js` must be created manually and exports:
+- `forceRandom` — string of movement steps for RNG manipulation before battle
+- `fight` — string of battle action steps
+- `isBoss` — boolean, whether the enemy is a boss (longer finish wait)
+- `goodCondition` — object or array of objects defining required stat increases
+- `syncGithub` — boolean, whether to auto-commit+push the save file on success
 
-2. **`test/specs/levelup.e2e.js` / `arena.e2e.js`** — main test loops that:
-   - Reload save state via pause menu
-   - Execute input sequences using `PlayingPage.perform()`
-   - Wait for level-up screen detection
-   - Save to slot 1 if level-up occurs
-   - Evaluate whether the stat gains are "good" via `checkLevelUpgrade()`
-   - Break loop and play audio notification on success; else repeat indefinitely
-
-3. **`test/pageobjects/playing.page.js`** — `PlayingPage` class wrapping DuckStation UI elements. The `perform(step)` method parses string commands (e.g. `'O'`, `'X'`, `'right'`, `'wait'`, `'save'`, `'wait-level-up'`). Supports optional count prefix: `'O 3'` presses O three times.
-
-4. **`check-level.js`** — image analysis logic:
-   - `checkIsLevelUp()`: detects level-up panel by greyscale pixel matching against `sample-color.json`
-   - `findTotalStatIncrease()`: scans 9 stat regions for green pixel indicators of stat gains
-   - `checkGoodCondition()`: evaluates stat gains against `goodCondition` (supports array of OR conditions; `count` for total stats gained; `1` = must have, `-1` = must not have)
-   - On success + `syncGithub=true`: auto-pulls save file via adb and git commits/pushes
-
-5. **`check-arena.js`** — detects the arena confirmation screen by comparing pixel colors against `arena-color.json` reference data (98% similarity threshold).
-
-### Configuration Files
-- **`wdio.conf.js`**: Target device is `emulator-5554`, Android 12, DuckStation package. Jasmine framework with 60s default timeout.
-- **`sample-color.json`**: Reference greyscale pixel values for level-up screen detection.
-- **`arena-color.json`**: Reference pixel color array for arena confirmation screen detection.
-- **`SLPS-03177_0.sav`**: The committed save state file, synced via git when a good level-up is found.
-
-### The Missing `test/specs/levelup.js` File
-This file is gitignored and must be created per-session. It configures what the automation does:
+Example:
 ```js
 const forceRandom = `up\ndown\n...`; // input sequence for RNG manipulation
 const fight = `O\nO\n...`;           // input sequence through battle menus
@@ -87,3 +64,62 @@ const goodCondition = { count: 3, 1: 1, 3: 1 }; // e.g. need strength+speed + 1 
 const syncGithub = false;             // set true to auto-commit save on success
 module.exports = { forceRandom, fight, isBoss, goodCondition, syncGithub };
 ```
+
+## Architecture
+
+### Core Loop (`test/specs/levelup.e2e.js`)
+
+The main loop:
+1. Reload from save state (`PlayingPage.reload()`)
+2. Execute steps from `forceRandom` + `fight` via `PlayingPage.perform(step)`
+3. Wait for level-up screen (`wait-level-up`)
+4. Save to slot 1
+5. Analyze screenshots to check if stat increases meet `goodCondition`
+6. If good: break and optionally commit save; otherwise repeat indefinitely
+
+### Step DSL (`test/pageobjects/playing.page.js`)
+
+`PlayingPage.perform(step)` parses string commands like:
+- Movement: `up`, `down`, `left`, `right`, `up-left`, `up-right`, `down-left`, `down-right`
+- Buttons: `O`, `X`, `2O` (double O), `square`, `triangle`
+- Actions: `confirm` (spam O), `save`, `save1`, `finish`, `boss`, `wait`, `pic`, `wait-level-up`
+- Steps can include a repeat count: `"down 3"` moves down 3 times
+
+### Level-Up Detection (`check-level.js`)
+
+1. Takes 7 screenshots during the level-up screen
+2. Crops the level-up panel region (pixels `[140,227]` to `[920,657]`)
+3. Converts to grayscale, matches pixel colors against `sample-color.json` palette — if ≥50% match, it's a level-up screen
+4. Scans specific pixel regions for green pixels (RGB thresholds) to detect which of 9 stats increased
+5. Stats 1–5 are in the left column (starting at x=420), stats 6–9 in the right column (x=700)
+6. Evaluates result against `goodCondition`: `count` sets minimum total increases; individual stat keys use `1` (must increase) or `-1` (must NOT increase)
+7. On success + `syncGithub=true`: auto-pulls save file via adb and git commits/pushes
+
+### Arena Detection (`check-arena.js`)
+
+Compares screenshot colors against `arena-color.png` reference image with a 98%+ match threshold to detect the arena confirmation screen.
+
+### Save File Sync Scripts
+
+- `pull-phone.js` — ADB pull save from physical phone
+- `sync-phone.js` — Sync save between phone and emulator
+- `restore-phone.js` — Push emulator save back to phone
+
+### Calibration Scripts (`example/`)
+
+- `example/level-up/level-up-examinate.js` — Generates `sample-color.json` by sampling the level-up panel
+
+## Key Files
+
+| File | Purpose |
+|------|---------|
+| `test/specs/levelup.e2e.js` | Main level-up automation loop |
+| `test/specs/arena.e2e.js` | Arena battle automation loop |
+| `test/specs/levelup.js` | **Local config** (gitignored) — battle steps and win conditions |
+| `test/pageobjects/playing.page.js` | Game controller abstraction (Page Object) |
+| `check-level.js` | Screenshot analysis for level-up stat detection |
+| `check-arena.js` | Screenshot analysis for arena screen detection |
+| `wdio.conf.js` | WebdriverIO/Appium config (port 4723, emulator-5554, Android 12) |
+| `sample-color.json` | Grayscale color palette for level-up UI detection |
+| `arena-color.png` | Arena screen reference image for detection |
+| `SLPS-03177_0.sav` | Game save file (committed to git on good results) |

@@ -1,37 +1,33 @@
 const sharp = require('sharp');
-const _ = require('lodash');
-const fs = require('fs');
 sharp.cache(false);
 
-const areaColorsJson = fs.readFileSync('arena-color.json');
-const areaColors = JSON.parse(areaColorsJson.toString());
+const refBuffer = sharp('example/arena/img.png').raw().toBuffer();
+const winRefBuffer = sharp('example/arena/win.png').raw().toBuffer();
 
 const isArenaConfirm = async (filename) => {
-  const image = sharp(filename);
-  const panel = await image.extract({
-    left: 0,
-    top: 510,
-    width: 1073,
-    height: 300,
-  });
-  const buffer = await image.toFormat('jpg').raw().toBuffer()
-  const colors = [];
-  for (let i = 0; i < buffer.length; i+=4) {
-    colors.push([buffer[i], buffer[i+1], buffer[i+2]]);
-  }
+  const [resolvedRefBuffer, currentBuffer] = await Promise.all([
+    refBuffer,
+    sharp(filename).extract({ left: 15, top: 470, width: 1050, height: 280 }).raw().toBuffer(),
+  ]);
 
   let same = 0;
-
-  for (let i = 0; i < colors.length; i++) {
-    const newColor = (
-      areaColors[i][0] - colors[i][0] + areaColors[i][1] - colors[i][1] + areaColors[i][2] - colors[i][2]
-    );
-    if (newColor < 1) {
-      same += 1;
-    }
+  for (let i = 0; i < resolvedRefBuffer.length; i++) {
+    if (Math.abs(resolvedRefBuffer[i] - currentBuffer[i]) < 10) same++;
   }
-  const percentage = same / colors.length;
-  return percentage > 0.98;
+  return same / resolvedRefBuffer.length > 0.9;
+}
+
+const isArenaWin = async (filename) => {
+  const [resolvedRefBuffer, currentBuffer] = await Promise.all([
+    winRefBuffer,
+    sharp(filename).extract({ left: 0, top: 525, width: 1080, height: 150 }).raw().toBuffer(),
+  ]);
+
+  let same = 0;
+  for (let i = 0; i < resolvedRefBuffer.length; i++) {
+    if (Math.abs(resolvedRefBuffer[i] - currentBuffer[i]) < 10) same++;
+  }
+  return same / resolvedRefBuffer.length > 0.9;
 }
 
 const test = async () => {
@@ -40,4 +36,4 @@ const test = async () => {
   console.log(await isArenaConfirm('example/arena/Screenshot_1666965174.png'));
 }
 
-module.exports = {isArenaConfirm}
+module.exports = { isArenaConfirm, isArenaWin }

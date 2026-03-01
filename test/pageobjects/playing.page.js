@@ -5,6 +5,7 @@ const Page = require('./page');
 sharp.cache(false);
 
 
+
 /**
  * sub page containing specific selectors and methods for a specific page
  */
@@ -29,11 +30,19 @@ class PlayingPage extends Page {
   }
 
   get pad() {
-    return $('id=com.github.stenzek.duckstation:id/controller_dpad')
+    return $('id=com.github.stenzek.duckstation:id/controller_axis_left')
   }
 
   get buttonPause () {
     return $('id=com.github.stenzek.duckstation:id/controller_button_pause')
+  }
+
+  get gameTitle() {
+    return $('android=new UiSelector().textContains("TearRingSaga")');
+  }
+
+  get buttonLoadStateFromList() {
+    return $('android=new UiSelector().text("Load State")');
   }
 
   get buttonLoadState () {
@@ -102,22 +111,31 @@ class PlayingPage extends Page {
 
   }
 
-  async reload() {
-    this.buttonPause.touchAction({action: 'tap', x: 10, y:10});
-    this.buttonLoadState.touchAction({action: 'tap', x: 10, y:10});
-    this.buttonQuickSave.touchAction({action: 'tap', x: 10, y:10});
-    sleep(500)
+
+  async reload(index = 0) {
+    await this.buttonPause.touchAction({action: 'tap', x: 10, y: 10});
+    await sleep(500);
+    await this.buttonLoadState.touchAction({action: 'tap', x: 10, y: 10});
+    await sleep(500);
+    if (index === 0) {
+      await $('android=new UiSelector().text("Quick Save")').touchAction({action: 'tap', x: 10, y: 10});
+    } else {
+      await $(`android=new UiSelector().text("Save Slot ${index}")`).touchAction({action: 'tap', x: 10, y: 10});
+    }
+    await sleep(500);
   }
 
   async quicksave(index = 0) {
-    this.buttonPause.touchAction({action: 'tap', x: 10, y:10});
-    this.buttonSaveState.touchAction({action: 'tap', x: 10, y:10});
+    await this.buttonPause.touchAction({action: 'tap', x: 10, y: 10});
+    await sleep(500);
+    await this.buttonSaveState.touchAction({action: 'tap', x: 10, y: 10});
+    await sleep(500);
     if (index === 0) {
-      this.buttonQuickSave.touchAction({action: 'tap', x: 10, y:10});
-    } else if (index === 1) {
-      this.buttonSaveSlot1.touchAction({action: 'tap', x: 10, y:10});
+      await $('android=new UiSelector().text("Quick Save")').touchAction({action: 'tap', x: 10, y: 10});
+    } else{
+      await $(`android=new UiSelector().text("Save Slot ${index}")`).touchAction({action: 'tap', x: 10, y: 10});
     }
-    sleep(500)
+    await sleep(500);
   }
 
   async spamO () {
@@ -150,13 +168,15 @@ class PlayingPage extends Page {
       const image = sharp(`current.png`);
       const cropImage = await extractLevelUpPanel(image);
       if (await checkIsLevelUp(cropImage)) {
-        return;
+        return true;
       }
       await sleep(1000)
     }
+    return false;
   }
- 
+
   async perform(step) {
+    console.log(`[perform] ${step}`);
     const parts = step.split(' ');
     let count = 1;
     if (parts[1]) {
@@ -208,6 +228,14 @@ class PlayingPage extends Page {
           break;
         case 'save1':
           await this.quicksave(1)
+          await sleep(1000);
+          break;
+        case 'save2':
+          await this.quicksave(2)
+          await sleep(1000);
+          break;
+        case 'save3':
+          await this.quicksave(3)
           await sleep(1000);
           break;
         case 'up-left':
