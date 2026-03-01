@@ -113,7 +113,7 @@ async function takeScreenshot(destPath) {
       }
       console.log(`[screenshot] found ${newFile} after ${i * 100}ms`);
       fs.copyFileSync(fullPath, destPath);
-      // fs.unlinkSync(fullPath);
+      fs.unlinkSync(fullPath);
       return;
     }
   }
