@@ -18,6 +18,7 @@
         "arena": "bash scripts/arena.sh",
     "desktop-level": "node desktop/levelup.js",
     "desktop-arena": "node desktop/arena.js",
+    "pull-desktop": "node desktop/pull-desktop.js",
     "pull-phone": "node android/pull-phone.js",
     "restore-phone": "node android/restore-phone.js",
     "sync-phone": "node android/sync-phone.js"
