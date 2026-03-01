@@ -1,0 +1,31 @@
+// Desktop version of checkLevelUpgrade — replaces driver.saveScreenshot with takeScreenshot.
+const { checkIsGoodLevelUp } = require('../check-level');
+const { sleep, takeScreenshot } = require('./common');
+const { exec } = require('child_process');
+
+let syncGithub = false;
+try {
+  ({ syncGithub } = require('../android/specs/levelup'));
+} catch (_) {}
+
+async function checkLevelUpgrade(required) {
+  const total = 7;
+  for (let i = 1; i <= total; i++) {
+    await sleep(400);
+    await takeScreenshot(`level-up-${i}.png`);
+  }
+  const good = await checkIsGoodLevelUp(total, required);
+  if (good) {
+    console.error('Goooooooooooooodddddddddddddddddd');
+    if (syncGithub) {
+      exec('git add .', () => {
+        exec('git cm -m "update save file"', () => {
+          exec('git push', () => {});
+        });
+      });
+    }
+  }
+  return good;
+}
+
+module.exports = { checkLevelUpgrade };

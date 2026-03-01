@@ -15,7 +15,8 @@
     "scripts": {
         "wdio": "wdio run wdio.conf.js",
         "run": "bash scripts/run.sh",
-        "level": "npx wdio --spec test/specs/levelup.e2e.js > /dev/null && node scripts/notify.js success || node scripts/notify.js fail",
-        "arena": "bash scripts/arena.sh"
+        "arena": "bash scripts/arena.sh",
+    "desktop-level": "node desktop/levelup.js",
+    "desktop-arena": "node desktop/arena.js"
     }
 }

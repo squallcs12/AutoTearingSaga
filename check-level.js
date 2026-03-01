@@ -2,8 +2,9 @@ const sharp = require('sharp');
 const _ = require('lodash');
 const { exec } = require("child_process");
 
-const { goodCondition, syncGithub } = require('./test/specs/levelup');
-const { sleep } = require('./test/specs/common');
+const { goodCondition, syncGithub } = require('./android/specs/levelup');
+const { sleep } = require('./android/specs/common');
+const { getScale } = require('./calib');
 sharp.cache(false);
 
 const debug = false;
@@ -73,35 +74,28 @@ const stat2Begin = [700]
 const statSize = [200, 30]
 const statHeight = 40;
 
-const findTotalStatIncrease = async (newImage, startIdx) => {
+const findTotalStatIncrease = async (newImage, startIdx, s = 1) => {
   let increase = {};
-  for (const s of statOrder) increase[s] = 0;
+  for (const st of statOrder) increase[st] = 0;
+
+  const x1 = Math.round((statBegin[0]  - panelStart[0]) * s);
+  const x2 = Math.round((stat2Begin[0] - panelStart[0]) * s);
+  const y0 = Math.round((statBegin[1]  - panelStart[1]) * s);
+  const dh = Math.round(statHeight * s);
+  const sw = Math.round(statSize[0] * s);
+  const sh = Math.max(1, Math.round(statSize[1] * s));
 
   for (let i = 0; i < 5; i++) {
     if (i < startIdx) continue;
-    const statImage = await newImage.clone().extract({
-      left: statBegin[0] - panelStart[0],
-      top: statBegin[1] + i * statHeight - panelStart[1],
-      width: statSize[0],
-      height: statSize[1],
-    });
+    const statImage = await newImage.clone().extract({ left: x1, top: y0 + i * dh, width: sw, height: sh });
     if (debug) await statImage.toFormat('jpg').toFile(`xxx1-${i}.jpg`);
-    if (await hasIncrease(statImage)) {
-      increase[statOrder[i]] = 1;
-    }
+    if (await hasIncrease(statImage)) increase[statOrder[i]] = 1;
   }
   for (let i = 0; i < 4; i++) {
     if (i + 5 < startIdx) continue;
-    const statImage = await newImage.clone().extract({
-      left: stat2Begin[0] - panelStart[0],
-      top: statBegin[1] + i * statHeight - panelStart[1],
-      width: statSize[0],
-      height: statSize[1],
-    });
+    const statImage = await newImage.clone().extract({ left: x2, top: y0 + i * dh, width: sw, height: sh });
     if (debug) await statImage.toFormat('jpg').toFile(`xxx2-${i}.jpg`);
-    if (await hasIncrease(statImage)) {
-      increase[statOrder[i + 5]] = 1;
-    }
+    if (await hasIncrease(statImage)) increase[statOrder[i + 5]] = 1;
   }
   return increase;
 }
@@ -117,26 +111,28 @@ const hasIncrease = async (image) => {
 }
 
 
-const extractLevelUpPanel = async (image) => {
+const extractLevelUpPanel = async (image, s = 1) => {
   return image.extract({
-    left: panelStart[0],
-    top: panelStart[1],
-    width: panelStop[0] - panelStart[0],
-    height: panelStop[1] - panelStart[1],
+    left:   Math.round(panelStart[0] * s),
+    top:    Math.round(panelStart[1] * s),
+    width:  Math.round((panelStop[0] - panelStart[0]) * s),
+    height: Math.round((panelStop[1] - panelStart[1]) * s),
   });
 }
 
 const checkIsGoodLevelUpImg = async (i, startStat) => {
   const image = sharp(`level-up-${i}.png`);
-  
-  const newImage = await extractLevelUpPanel(image);
+  const { width } = await image.metadata();
+  const s = getScale(width);
+
+  const newImage = await extractLevelUpPanel(image, s);
 
   if (debug) {
     await newImage.toFormat('jpg').toFile(`crop-level-up-${i}.jpg`)
   }
   const isLevelUp = await checkIsLevelUp(newImage);
   if (isLevelUp) {
-    const totalStatIncrease = await findTotalStatIncrease(image, startStat);
+    const totalStatIncrease = await findTotalStatIncrease(newImage, startStat, s);
     return totalStatIncrease;
   }
 }
