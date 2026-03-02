@@ -5,8 +5,8 @@
 //   - saveScreenshot(path)
 //   - checkLevelUpgrade(condition)
 
-const { isArenaConfirm, isArenaWin } = require('../check-arena');
-const { checkHp } = require('../check-hp');
+const { isArenaConfirm, isArenaWin } = require('../scene-detection/check-arena');
+const { checkHp } = require('../scene-detection/check-hp');
 
 async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, goodCondition, levelsToGain) {
 

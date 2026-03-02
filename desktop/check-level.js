@@ -1,5 +1,5 @@
 // Desktop version of checkLevelUpgrade — replaces driver.saveScreenshot with takeScreenshot.
-const { checkIsGoodLevelUp } = require('../check-level');
+const { checkIsGoodLevelUp } = require('../scene-detection/check-level');
 const { sleep, takeScreenshot } = require('./common');
 const { exec } = require('child_process');
 
@@ -12,7 +12,7 @@ async function checkLevelUpgrade(required) {
   const total = 7;
   for (let i = 1; i <= total; i++) {
     await sleep(400);
-    await takeScreenshot(`level-up-${i}.png`);
+    await takeScreenshot(`tmp/level-up-${i}.png`);
   }
   const { isGood, statIncreased } = await checkIsGoodLevelUp(total, required);
   if (isGood) {

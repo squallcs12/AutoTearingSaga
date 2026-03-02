@@ -1,8 +1,8 @@
 const { arenaLoop } = require('../../game-logic/arena-loop');
-const { checkLevelUpgrade } = require('../../check-level');
+const { checkLevelUpgrade } = require('../../scene-detection/check-level');
 const PlayingPage = require('../pageobjects/playing.page');
 const { sleep } = require('./common');
-const { goodCondition, levelsToGain } = require('./levelup');
+const { goodCondition, levelsToGain } = require('../../config');
 
 describe('Run auto', () => {
   it('arena level up', async () => {

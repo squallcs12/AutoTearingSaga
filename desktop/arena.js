@@ -5,7 +5,7 @@ const { arenaLoop } = require('../game-logic/arena-loop');
 const { checkLevelUpgrade } = require('./check-level');
 const PlayingPage = require('./playing');
 const { sleep, takeScreenshot } = require('./common');
-const { goodCondition, levelsToGain } = require('../android/specs/levelup');
+const { goodCondition, levelsToGain } = require('../config');
 
 arenaLoop(PlayingPage, sleep, takeScreenshot, checkLevelUpgrade, goodCondition, levelsToGain).catch(err => {
   console.error('[fatal]', err);

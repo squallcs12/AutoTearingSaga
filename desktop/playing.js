@@ -1,6 +1,6 @@
 const sharp = require('sharp');
-const { checkIsLevelUp, extractLevelUpPanel } = require('../check-level');
-const { getScale } = require('../calib');
+const { checkIsLevelUp, extractLevelUpPanel } = require('../scene-detection/check-level');
+const { getScale } = require('../scene-detection/calib');
 const { sleep, sendKey, takeScreenshot } = require('./common');
 
 sharp.cache(false);
@@ -58,15 +58,15 @@ class PlayingDesktop {
   async finishBoss() { await sleep(12000); await this.spamO(); await sleep(6000); }
 
   async takePic() {
-    await takeScreenshot('current.png');
+    await takeScreenshot('tmp/current.png');
     await sleep(400);
   }
 
   async waitLevelUp() {
     for (let i = 0; i < 30; i++) {
       this.pressO();
-      await takeScreenshot('current.png');
-      const image = sharp('current.png');
+      await takeScreenshot('tmp/current.png');
+      const image = sharp('tmp/current.png');
       const { width } = await image.metadata();
       const s = getScale(width);
       const cropImage = await extractLevelUpPanel(image, s);

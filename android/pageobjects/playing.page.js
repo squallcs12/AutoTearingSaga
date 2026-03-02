@@ -1,4 +1,4 @@
-const { checkIsLevelUp, extractLevelUpPanel } = require('../../check-level');
+const { checkIsLevelUp, extractLevelUpPanel } = require('../../scene-detection/check-level');
 const { sleep } = require('../specs/common');
 const sharp = require('sharp')
 const Page = require('./page');
@@ -158,14 +158,14 @@ class PlayingPage extends Page {
   }
 
   async takePic (num) {
-    await driver.saveScreenshot(`current.png`);
+    await driver.saveScreenshot(`tmp/current.png`);
     await sleep(400);
   }
 
   async waitLevelUp() {
     for (let i = 0; i < 30; i++) {
-      await driver.saveScreenshot(`current.png`);
-      const image = sharp(`current.png`);
+      await driver.saveScreenshot(`tmp/current.png`);
+      const image = sharp(`tmp/current.png`);
       const cropImage = await extractLevelUpPanel(image);
       if (await checkIsLevelUp(cropImage)) {
         return true;

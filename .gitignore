@@ -1,7 +1,5 @@
 node_modules/
-*level-up-*.png
-*level-up-*.jpg
+tmp/*.png
+tmp/*.jpg
 xxx*-*.jpg
 android/specs/levelup.js
-current*.png
-current-crop*.jpg

@@ -121,7 +121,7 @@ const extractLevelUpPanel = async (image, s = 1) => {
 }
 
 const checkIsGoodLevelUpImg = async (i, startStat) => {
-  const image = sharp(`level-up-${i}.png`);
+  const image = sharp(`tmp/level-up-${i}.png`);
   const { width } = await image.metadata();
   const s = getScale(width);
 
@@ -208,7 +208,7 @@ const checkLevelUpgrade = async (required) => {
   const total = 7;
   for (let i = 1; i <= total; i++) {
     await sleep(400);
-    await driver.saveScreenshot(`level-up-${i}.png`);
+    await driver.saveScreenshot(`tmp/level-up-${i}.png`);
   }
   const { isGood, statIncreased } = await checkIsGoodLevelUp(total, required);
   if (isGood) {

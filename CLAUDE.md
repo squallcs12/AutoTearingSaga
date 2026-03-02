@@ -85,7 +85,7 @@ The main loop:
 - Actions: `confirm` (spam O), `save`, `save1`, `finish`, `boss`, `wait`, `pic`, `wait-level-up`
 - Steps can include a repeat count: `"down 3"` moves down 3 times
 
-### Level-Up Detection (`check-level.js`)
+### Level-Up Detection (`scene-detection/check-level.js`)
 
 1. Takes 7 screenshots during the level-up screen
 2. Crops the level-up panel region (pixels `[140,227]` to `[920,657]`)
@@ -95,7 +95,7 @@ The main loop:
 6. Evaluates result against `goodCondition`: `count` sets minimum total increases; individual stat keys use `1` (must increase) or `-1` (must NOT increase)
 7. On success + `syncGithub=true`: auto-pulls save file via adb and git commits/pushes
 
-### Arena Detection (`check-arena.js`)
+### Arena Detection (`scene-detection/check-arena.js`)
 
 Compares screenshot colors against `arena-color.png` reference image with a 98%+ match threshold to detect the arena confirmation screen.
 
@@ -117,8 +117,9 @@ Compares screenshot colors against `arena-color.png` reference image with a 98%+
 | `test/specs/arena.e2e.js` | Arena battle automation loop |
 | `test/specs/levelup.js` | **Local config** (gitignored) — battle steps and win conditions |
 | `test/pageobjects/playing.page.js` | Game controller abstraction (Page Object) |
-| `check-level.js` | Screenshot analysis for level-up stat detection |
-| `check-arena.js` | Screenshot analysis for arena screen detection |
+| `scene-detection/check-level.js` | Screenshot analysis for level-up stat detection |
+| `scene-detection/check-arena.js` | Screenshot analysis for arena screen detection |
+| `scene-detection/check-hp.js` | Screenshot analysis for HP detection |
 | `wdio.conf.js` | WebdriverIO/Appium config (port 4723, emulator-5554, Android 12) |
 | `sample-color.json` | Grayscale color palette for level-up UI detection |
 | `arena-color.png` | Arena screen reference image for detection |

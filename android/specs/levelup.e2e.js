@@ -1,7 +1,7 @@
 const { levelupLoop } = require('../../game-logic/levelup-loop');
-const { checkLevelUpgrade } = require('../../check-level');
+const { checkLevelUpgrade } = require('../../scene-detection/check-level');
 const PlayingPage = require('../pageobjects/playing.page');
-const { fight, isBoss, goodCondition } = require('./levelup');
+const { fight, isBoss, goodCondition } = require('../../config');
 
 describe('Run auto', () => {
   it('level up', async () => {
