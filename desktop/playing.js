@@ -7,9 +7,9 @@ sharp.cache(false);
 
 // Keyboard mappings — update these to match your DuckStation bindings
 const KEYS = {
-  circle:    'z',       // PS1 Circle (O)
+  circle:    'c',       // PS1 Circle (O)
   cross:     'x',       // PS1 Cross (X)
-  square:    'a',       // PS1 Square  — UPDATE if needed
+  square:    'z',       // PS1 Square  — UPDATE if needed
   triangle:  's',       // PS1 Triangle — UPDATE if needed
   up:        'up',
   down:      'down',
@@ -64,6 +64,7 @@ class PlayingDesktop {
 
   async waitLevelUp() {
     for (let i = 0; i < 30; i++) {
+      this.pressO();
       await takeScreenshot('current.png');
       const image = sharp('current.png');
       const { width } = await image.metadata();
@@ -82,14 +83,14 @@ class PlayingDesktop {
 
     for (let i = 0; i < count; i++) {
       switch (parts[0]) {
-        case 'left':       await this.moveLeft();  await sleep(300); break;
-        case 'right':      await this.moveRight(); await sleep(300); break;
-        case 'up':         await this.moveUp();    await sleep(300); break;
-        case 'down':       await this.moveDown();  await sleep(300); break;
-        case 'up-left':    await this.moveUpLeft();    await sleep(300); break;
-        case 'up-right':   await this.moveUpRight();   await sleep(300); break;
-        case 'down-left':  await this.moveDownLeft();  await sleep(300); break;
-        case 'down-right': await this.moveDownRight(); await sleep(300); break;
+        case 'left':       await this.moveLeft();  await sleep(1000); break;
+        case 'right':      await this.moveRight(); await sleep(1000); break;
+        case 'up':         await this.moveUp();    await sleep(1000); break;
+        case 'down':       await this.moveDown();  await sleep(1000); break;
+        case 'up-left':    await this.moveUpLeft();    await sleep(1000); break;
+        case 'up-right':   await this.moveUpRight();   await sleep(1000); break;
+        case 'down-left':  await this.moveDownLeft();  await sleep(1000); break;
+        case 'down-right': await this.moveDownRight(); await sleep(1000); break;
         case 'X':          await this.pressX();    await sleep(1000); break;
         case 'O':          await this.pressO();    await sleep(1000); break;
         case '2O':

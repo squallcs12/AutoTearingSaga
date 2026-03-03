@@ -14,8 +14,8 @@ async function checkLevelUpgrade(required) {
     await sleep(400);
     await takeScreenshot(`level-up-${i}.png`);
   }
-  const good = await checkIsGoodLevelUp(total, required);
-  if (good) {
+  const { isGood, statIncreased } = await checkIsGoodLevelUp(total, required);
+  if (isGood) {
     console.error('Goooooooooooooodddddddddddddddddd');
     if (syncGithub) {
       exec('git add .', () => {
@@ -25,7 +25,7 @@ async function checkLevelUpgrade(required) {
       });
     }
   }
-  return good;
+  return { isGood, statIncreased };
 }
 
 module.exports = { checkLevelUpgrade };

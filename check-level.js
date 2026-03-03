@@ -162,7 +162,7 @@ const checkIsGoodLevelUp = async (total, required) => {
   const statIncreased = await getStatIncreased(total);
   console.error(statSummary(statIncreased));
   const isGood = checkGoodCondition(statIncreased, required);
-  return isGood;
+  return { isGood, statIncreased };
 }
 
 
@@ -210,11 +210,11 @@ const checkLevelUpgrade = async (required) => {
     await sleep(400);
     await driver.saveScreenshot(`level-up-${i}.png`);
   }
-  const good = await checkIsGoodLevelUp(total, required);
-  if (good) {
+  const { isGood, statIncreased } = await checkIsGoodLevelUp(total, required);
+  if (isGood) {
     console.error('Goooooooooooooodddddddddddddddddd')
   }
-  if (good && syncGithub) {
+  if (isGood && syncGithub) {
     exec('adb -s emulator-5554 pull storage/self/primary/duckstation/savestates/SLPS-03177_1.sav SLPS-03177_0.sav', (err1, stdout, stderr) => {
       exec('git add .', (err1, stdout, stderr) => {
         exec('git cm -m "update save file"', (err1, stdout, stderr) => {
@@ -224,15 +224,15 @@ const checkLevelUpgrade = async (required) => {
       })
     });
   }
-  return good;
+  return { isGood, statIncreased };
 }
 
 
 module.exports = { checkIsGoodLevelUp, statSummary, checkGoodCondition, checkIsLevelUp, findColor, extractLevelUpPanel, checkLevelUpgrade }
 
 const func = async () => {
-  const good = await checkIsGoodLevelUp(7, goodCondition);
-  console.log({good})
+  const { isGood, statIncreased } = await checkIsGoodLevelUp(7, goodCondition);
+  console.log({ isGood, statIncreased })
 }
 if (debug) {
   func();
