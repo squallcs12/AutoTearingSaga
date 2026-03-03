@@ -1,0 +1,14 @@
+{
+  "name": "Plum",
+  "growthRates": {
+    "hp": 20,
+    "str": 0,
+    "mag": 35,
+    "skl": 0,
+    "agl": 20,
+    "lck": 60,
+    "wlv": 20,
+    "def": 0,
+    "mov": 0
+  }
+}

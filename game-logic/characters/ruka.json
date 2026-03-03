@@ -1,0 +1,14 @@
+{
+  "name": "Ruka",
+  "growthRates": {
+    "hp": 60,
+    "str": 25,
+    "mag": 5,
+    "skl": 50,
+    "agl": 40,
+    "lck": 40,
+    "wlv": 25,
+    "def": 15,
+    "mov": 0
+  }
+}

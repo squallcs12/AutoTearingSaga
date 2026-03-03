@@ -1,0 +1,14 @@
+{
+  "name": "Rennie",
+  "growthRates": {
+    "hp": 55,
+    "str": 40,
+    "mag": 10,
+    "skl": 30,
+    "agl": 55,
+    "lck": 35,
+    "wlv": 40,
+    "def": 18,
+    "mov": 10
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "Raquel",
+  "growthRates": {
+    "hp": 40,
+    "str": 20,
+    "mag": 25,
+    "skl": 35,
+    "agl": 35,
+    "lck": 55,
+    "wlv": 30,
+    "def": 15,
+    "mov": 0
+  }
+}

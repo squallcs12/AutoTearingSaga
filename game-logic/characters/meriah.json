@@ -1,0 +1,14 @@
+{
+  "name": "Meriah",
+  "growthRates": {
+    "hp": 35,
+    "str": 0,
+    "mag": 30,
+    "skl": 35,
+    "agl": 45,
+    "lck": 30,
+    "wlv": 35,
+    "def": 10,
+    "mov": 0
+  }
+}

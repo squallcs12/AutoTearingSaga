@@ -1,0 +1,14 @@
+{
+  "name": "Shirou",
+  "growthRates": {
+    "hp": 70,
+    "str": 35,
+    "mag": 10,
+    "skl": 25,
+    "agl": 35,
+    "lck": 45,
+    "wlv": 35,
+    "def": 22,
+    "mov": 0
+  }
+}

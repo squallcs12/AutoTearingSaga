@@ -1,0 +1,14 @@
+{
+  "name": "Garo",
+  "growthRates": {
+    "hp": 85,
+    "str": 40,
+    "mag": 0,
+    "skl": 25,
+    "agl": 30,
+    "lck": 10,
+    "wlv": 30,
+    "def": 20,
+    "mov": 0
+  }
+}

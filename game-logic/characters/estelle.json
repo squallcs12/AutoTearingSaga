@@ -1,0 +1,14 @@
+{
+  "name": "Estelle",
+  "growthRates": {
+    "hp": 50,
+    "str": 30,
+    "mag": 15,
+    "skl": 30,
+    "agl": 35,
+    "lck": 45,
+    "wlv": 25,
+    "def": 18,
+    "mov": 0
+  }
+}

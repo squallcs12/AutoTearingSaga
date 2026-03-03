@@ -1,0 +1,14 @@
+{
+  "name": "Thomas",
+  "growthRates": {
+    "hp": 30,
+    "str": 10,
+    "mag": 0,
+    "skl": 35,
+    "agl": 45,
+    "lck": 20,
+    "wlv": 40,
+    "def": 10,
+    "mov": 0
+  }
+}

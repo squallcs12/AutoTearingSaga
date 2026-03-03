@@ -1,0 +1,14 @@
+{
+  "name": "Mintz",
+  "growthRates": {
+    "hp": 85,
+    "str": 30,
+    "mag": 5,
+    "skl": 25,
+    "agl": 20,
+    "lck": 20,
+    "wlv": 15,
+    "def": 30,
+    "mov": 0
+  }
+}

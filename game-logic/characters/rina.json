@@ -1,0 +1,14 @@
+{
+  "name": "Rina",
+  "growthRates": {
+    "hp": 40,
+    "str": 10,
+    "mag": 40,
+    "skl": 35,
+    "agl": 55,
+    "lck": 60,
+    "wlv": 35,
+    "def": 10,
+    "mov": 10
+  }
+}

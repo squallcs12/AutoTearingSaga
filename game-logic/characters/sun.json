@@ -1,0 +1,14 @@
+{
+  "name": "Sun",
+  "growthRates": {
+    "hp": 55,
+    "str": 30,
+    "mag": 20,
+    "skl": 55,
+    "agl": 35,
+    "lck": 25,
+    "wlv": 40,
+    "def": 24,
+    "mov": 0
+  }
+}

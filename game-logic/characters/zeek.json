@@ -1,0 +1,14 @@
+{
+  "name": "Zeek",
+  "growthRates": {
+    "hp": 80,
+    "str": 55,
+    "mag": 35,
+    "skl": 55,
+    "agl": 55,
+    "lck": 30,
+    "wlv": 35,
+    "def": 35,
+    "mov": 0
+  }
+}

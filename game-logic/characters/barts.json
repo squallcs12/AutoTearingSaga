@@ -1,0 +1,14 @@
+{
+  "name": "Barts",
+  "growthRates": {
+    "hp": 90,
+    "str": 30,
+    "mag": 0,
+    "skl": 15,
+    "agl": 35,
+    "lck": 15,
+    "wlv": 15,
+    "def": 18,
+    "mov": 0
+  }
+}

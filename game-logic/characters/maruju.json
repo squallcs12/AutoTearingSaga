@@ -1,0 +1,14 @@
+{
+  "name": "Maruju",
+  "growthRates": {
+    "hp": 45,
+    "str": 0,
+    "mag": 20,
+    "skl": 30,
+    "agl": 35,
+    "lck": 35,
+    "wlv": 30,
+    "def": 10,
+    "mov": 0
+  }
+}

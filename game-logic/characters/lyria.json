@@ -1,0 +1,14 @@
+{
+  "name": "Lyria",
+  "growthRates": {
+    "hp": 25,
+    "str": 0,
+    "mag": 15,
+    "skl": 5,
+    "agl": 35,
+    "lck": 50,
+    "wlv": 15,
+    "def": 5,
+    "mov": 0
+  }
+}

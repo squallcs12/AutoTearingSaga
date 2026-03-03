@@ -1,0 +1,14 @@
+{
+  "name": "Enteh",
+  "growthRates": {
+    "hp": 30,
+    "str": 0,
+    "mag": 30,
+    "skl": 20,
+    "agl": 25,
+    "lck": 30,
+    "wlv": 50,
+    "def": 5,
+    "mov": 0
+  }
+}

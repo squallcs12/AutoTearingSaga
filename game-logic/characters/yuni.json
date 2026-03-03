@@ -1,0 +1,14 @@
+{
+  "name": "Yuni",
+  "growthRates": {
+    "hp": 35,
+    "str": 0,
+    "mag": 20,
+    "skl": 45,
+    "agl": 40,
+    "lck": 35,
+    "wlv": 25,
+    "def": 5,
+    "mov": 0
+  }
+}

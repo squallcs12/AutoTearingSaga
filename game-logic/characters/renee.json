@@ -1,0 +1,14 @@
+{
+  "name": "Renee",
+  "growthRates": {
+    "hp": 30,
+    "str": 0,
+    "mag": 30,
+    "skl": 35,
+    "agl": 40,
+    "lck": 40,
+    "wlv": 35,
+    "def": 5,
+    "mov": 0
+  }
+}

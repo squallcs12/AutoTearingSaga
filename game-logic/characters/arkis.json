@@ -1,0 +1,14 @@
+{
+  "name": "Arkis",
+  "growthRates": {
+    "hp": 60,
+    "str": 25,
+    "mag": 5,
+    "skl": 25,
+    "agl": 30,
+    "lck": 35,
+    "wlv": 35,
+    "def": 22,
+    "mov": 0
+  }
+}

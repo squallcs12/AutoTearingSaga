@@ -1,0 +1,14 @@
+{
+  "name": "Yoda",
+  "growthRates": {
+    "hp": 40,
+    "str": 15,
+    "mag": 0,
+    "skl": 15,
+    "agl": 10,
+    "lck": 20,
+    "wlv": 10,
+    "def": 10,
+    "mov": 0
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "Ezekiel",
+  "growthRates": {
+    "hp": 75,
+    "str": 25,
+    "mag": 5,
+    "skl": 25,
+    "agl": 20,
+    "lck": 25,
+    "wlv": 30,
+    "def": 28,
+    "mov": 0
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "Krisheenu",
+  "growthRates": {
+    "hp": 40,
+    "str": 15,
+    "mag": 10,
+    "skl": 15,
+    "agl": 25,
+    "lck": 25,
+    "wlv": 20,
+    "def": 14,
+    "mov": 0
+  }
+}

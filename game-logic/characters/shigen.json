@@ -1,0 +1,14 @@
+{
+  "name": "Shigen",
+  "growthRates": {
+    "hp": 60,
+    "str": 30,
+    "mag": 5,
+    "skl": 45,
+    "agl": 40,
+    "lck": 30,
+    "wlv": 30,
+    "def": 22,
+    "mov": 0
+  }
+}

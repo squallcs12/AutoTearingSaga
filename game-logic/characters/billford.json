@@ -1,0 +1,14 @@
+{
+  "name": "Billford",
+  "growthRates": {
+    "hp": 90,
+    "str": 35,
+    "mag": 5,
+    "skl": 30,
+    "agl": 35,
+    "lck": 35,
+    "wlv": 20,
+    "def": 30,
+    "mov": 5
+  }
+}

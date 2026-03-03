@@ -1,0 +1,14 @@
+{
+  "name": "Narcus",
+  "growthRates": {
+    "hp": 50,
+    "str": 20,
+    "mag": 5,
+    "skl": 15,
+    "agl": 25,
+    "lck": 25,
+    "wlv": 25,
+    "def": 15,
+    "mov": 0
+  }
+}

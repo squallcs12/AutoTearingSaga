@@ -1,0 +1,14 @@
+{
+  "name": "Tia",
+  "growthRates": {
+    "hp": 65,
+    "str": 50,
+    "mag": 65,
+    "skl": 55,
+    "agl": 50,
+    "lck": 60,
+    "wlv": 40,
+    "def": 30,
+    "mov": 0
+  }
+}
