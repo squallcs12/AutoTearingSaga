@@ -2,8 +2,8 @@ const sharp = require('sharp');
 const _ = require('lodash');
 const { exec } = require("child_process");
 
-const { goodCondition, syncGithub } = require('./android/specs/levelup');
-const { sleep } = require('./android/specs/common');
+const { goodCondition, syncGithub } = require('../config');
+const { sleep } = require('../utils');
 const { getScale } = require('./calib');
 sharp.cache(false);
 

@@ -2,4 +2,4 @@ node_modules/
 tmp/*.png
 tmp/*.jpg
 xxx*-*.jpg
-android/specs/levelup.js
+config.js

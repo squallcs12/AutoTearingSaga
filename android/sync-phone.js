@@ -3,8 +3,8 @@ const { getPhoneDevice } = require('./adb-device');
 
 const device = getPhoneDevice();
 console.log(`Using device: ${device}`);
-exec(`adb -s ${device} pull storage/self/primary/duckstation/savestates/SLPS-03177_0.sav /tmp/`, (err1) => {
-  exec(`adb -s emulator-5554 push /tmp/SLPS-03177_0.sav storage/self/primary/duckstation/savestates/SLPS-03177_0.sav`, (err2) => {
+exec(`adb -s ${device} pull /storage/emulated/0/Android/data/com.github.stenzek.duckstation/files/savestates/SLPS-03177_0.sav /tmp/`, (err1) => {
+  exec(`adb -s emulator-5554 push /tmp/SLPS-03177_0.sav /storage/emulated/0/Android/data/com.github.stenzek.duckstation/files/savestates/SLPS-03177_0.sav`, (err2) => {
     if (err1 || err2) console.log(err1, err2);
     else console.log('Sync from phone to emulator');
   });

@@ -3,8 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const speed = parseFloat(process.env.EMULATOR_SPEED || 1);
-const sleep = (ms) => new Promise(r => setTimeout(r, ms / speed));
+const { sleep } = require('../utils');
 
 const SCREENSHOT_DIR = 'C:\\Users\\daotr\\AppData\\Local\\DuckStation\\screenshots';
 const PROCESS_NAME = 'duckstation-qt-x64-ReleaseLTCG';

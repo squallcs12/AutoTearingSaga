@@ -5,7 +5,7 @@ const { levelupLoop } = require('../game-logic/levelup-loop');
 const { checkLevelUpgrade } = require('./check-level');
 const PlayingPage = require('./playing');
 const { takeScreenshot } = require('./common');
-const { fight, isBoss, goodCondition } = require('../android/specs/levelup');
+const { fight, isBoss, goodCondition } = require('../config');
 
 levelupLoop(PlayingPage, takeScreenshot, checkLevelUpgrade, fight, isBoss, goodCondition).catch(err => {
   console.error('[fatal]', err);

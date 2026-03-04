@@ -5,7 +5,7 @@ const { exec } = require('child_process');
 
 let syncGithub = false;
 try {
-  ({ syncGithub } = require('../android/specs/levelup'));
+  ({ syncGithub } = require('../config'));
 } catch (_) {}
 
 async function checkLevelUpgrade(required) {
