@@ -1,6 +1,6 @@
 const sharp = require('sharp');
 const _ = require('lodash');
-const { exec } = require("child_process");
+const { exec } = require('child_process');
 
 const { goodCondition, syncGithub } = require('../config');
 const { sleep } = require('../utils');
@@ -16,7 +16,7 @@ const findColor = (color, colors) => {
     }
   }
   return false;
-}
+};
 
 const statOrder = ['str', 'skill', 'spd', 'luck', 'def', 'mag', 'mst', 'hp', 'move'];
 
@@ -35,47 +35,51 @@ const loadSampleColors = async () => {
     if (sum / raw.length > 0.8) break;
   }
   return sampleColors;
-}
+};
 
 const sampleColorsPromise = loadSampleColors();
-
 
 const checkIsLevelUp = async (newImage) => {
   const sampleColors = await sampleColorsPromise;
   newImage = await newImage.clone().greyscale().raw().toBuffer();
   let count = 0;
   for (let j = 0; j < newImage.length; j++) {
-    const color = newImage[j];
-    if (sampleColors.includes(color)) {
-      count += 1;
-    }
+    if (sampleColors.includes(newImage[j])) count += 1;
   }
-  const percentage = count / newImage.length;
-  return percentage >= 0.5;
-}
-
-// real
-// [260, ]
-// [220, 30]
-
-// stat
-// const panelStart = [145, 290];
-// const panelStop = [930, 750];
-
+  return count / newImage.length >= 0.5;
+};
 
 // avd
 const panelStart = [140, 227];
-const panelStop = [920, 657];
+const panelStop  = [920, 657];
 
-
-// stat
-const statBegin = [420, 270];
-const stat2Begin = [700]
-const statSize = [200, 30]
+// stat regions
+const statBegin  = [420, 270];
+const stat2Begin = [700];
+const statSize   = [200, 30];
 const statHeight = 40;
 
+const extractLevelUpPanel = async (image, s = 1) => {
+  return image.extract({
+    left:   Math.round(panelStart[0] * s),
+    top:    Math.round(panelStart[1] * s),
+    width:  Math.round((panelStop[0] - panelStart[0]) * s),
+    height: Math.round((panelStop[1] - panelStart[1]) * s),
+  });
+};
+
+const hasIncrease = async (image) => {
+  image = await image.raw().toBuffer({ resolveWithObject: true });
+  for (let k = 0; k < image.data.length; k += 4) {
+    const [r, g, b] = [image.data[k], image.data[k + 1], image.data[k + 2]];
+    if ((g >= 220 && r <= 100 && b <= 100) || (g >= 180 && r <= 60 && b <= 60) || (g >= 150 && r <= 10 && b <= 60)) {
+      return true;
+    }
+  }
+};
+
 const findTotalStatIncrease = async (newImage, startIdx, s = 1) => {
-  let increase = {};
+  const increase = {};
   for (const st of statOrder) increase[st] = 0;
 
   const x1 = Math.round((statBegin[0]  - panelStart[0]) * s);
@@ -98,47 +102,20 @@ const findTotalStatIncrease = async (newImage, startIdx, s = 1) => {
     if (await hasIncrease(statImage)) increase[statOrder[i + 5]] = 1;
   }
   return increase;
-}
-
-const hasIncrease = async (image) => {
-  image = await image.raw().toBuffer({ resolveWithObject: true });
-  for (let k = 0; k < image.data.length; k += 4) {
-    const [r, g, b] = [image.data[k], image.data[k + 1], image.data[k + 2]];
-    if ((g >= 220 && r <= 100 && b <= 100) || (g >= 180 && r <= 60 && b <= 60) || (g >= 150 && r <= 10 && b <= 60))  {
-      return true;
-    }
-  }
-}
-
-
-const extractLevelUpPanel = async (image, s = 1) => {
-  return image.extract({
-    left:   Math.round(panelStart[0] * s),
-    top:    Math.round(panelStart[1] * s),
-    width:  Math.round((panelStop[0] - panelStart[0]) * s),
-    height: Math.round((panelStop[1] - panelStart[1]) * s),
-  });
-}
+};
 
 const checkIsGoodLevelUpImg = async (i, startStat) => {
   const image = sharp(`tmp/level-up-${i}.png`);
   const { width } = await image.metadata();
   const s = getScale(width);
-
   const newImage = await extractLevelUpPanel(image, s);
-
-  if (debug) {
-    await newImage.toFormat('jpg').toFile(`crop-level-up-${i}.jpg`)
-  }
+  if (debug) await newImage.toFormat('jpg').toFile(`crop-level-up-${i}.jpg`);
   const isLevelUp = await checkIsLevelUp(newImage);
-  if (isLevelUp) {
-    const totalStatIncrease = await findTotalStatIncrease(newImage, startStat, s);
-    return totalStatIncrease;
-  }
-}
+  if (isLevelUp) return findTotalStatIncrease(newImage, startStat, s);
+};
 
 const getStatIncreased = async (total) => {
-  let increased = { count: 0 };
+  const increased = { count: 0 };
   let lastStatIdx = 0;
   for (let i = 1; i <= total; i++) {
     const findIncreased = await checkIsGoodLevelUpImg(i, lastStatIdx);
@@ -156,51 +133,52 @@ const getStatIncreased = async (total) => {
     if (increased[name]) increased.count += 1;
   }
   return increased;
-}
+};
+
+const statSummary = (stats) => {
+  if (debug) console.log({ stats });
+  const summary = [stats.count];
+  for (const name of statOrder) {
+    if (stats[name]) summary.push(name);
+  }
+  return summary;
+};
+
+const isGoodCondition = (isGood, required) => {
+  if (required.count && isGood.count > required.count) return true; // more than expect
+  if (isGood.count < required.count) return false;
+  for (const k in required) { // equal expect
+    if (required[k] === -1 && isGood[k]) return false;
+    if (required[k] === 1 && !isGood[k]) return false;
+  }
+  return true;
+};
+
+const checkGoodCondition = (isGood, required) => {
+  for (let i = 0; i < required.length; i++) {
+    if (isGoodCondition(isGood, required[i])) return true;
+  }
+  return false;
+};
 
 const checkIsGoodLevelUp = async (total, required) => {
   const statIncreased = await getStatIncreased(total);
   console.error(statSummary(statIncreased));
   const isGood = checkGoodCondition(statIncreased, required);
   return { isGood, statIncreased };
-}
+};
 
-const statSummary = (stats) => {
-  if (debug) console.log({stats});
-  const summary = [stats.count];
-  for (const name of statOrder) {
-    if (stats[name]) summary.push(name);
-  }
-  return summary;
-}
-
-const isGoodCondition = (isGood, required) => {
-  if (required.count && isGood.count > required.count) {  // more than expect
-    return true;
-  }
-  if (isGood.count < required.count) {
-    return false;
-  }
-
-  for (const k in required) { // equal expect
-    if (required[k] === -1 && isGood[k]) {
-      return false;
-    }
-    if (required[k] === 1 && !isGood[k]) {
-      return false;
-    }
-  }
-  return true;
-}
-
-const checkGoodCondition = (isGood, required) => {
-  for (let i = 0; i < required.length; i++) {
-    if (isGoodCondition(isGood, required[i])) {
-      return true;
-    }
-  }
-  return false;
-}
+const syncSave = (message) => {
+  exec('git pull', () => {
+    exec('yarn pull-emulator', () => {
+      exec('git add .', () => {
+        exec(`git cm -m "${message}"`, () => {
+          exec('git push', () => {});
+        });
+      });
+    });
+  });
+};
 
 const checkLevelUpgrade = async (required, saveScreenshot) => {
   const total = 7;
@@ -209,21 +187,11 @@ const checkLevelUpgrade = async (required, saveScreenshot) => {
   }
   const { isGood, statIncreased } = await checkIsGoodLevelUp(total, required);
   if (isGood) {
-    console.error('Goooooooooooooodddddddddddddddddd')
-  }
-  if (isGood && syncGithub) {
-    exec('adb -s emulator-5554 pull storage/self/primary/duckstation/savestates/SLPS-03177_1.sav SLPS-03177_0.sav', (err1, stdout, stderr) => {
-      exec('git add .', (err1, stdout, stderr) => {
-        exec('git cm -m "update save file"', (err1, stdout, stderr) => {
-          exec('git push', (err1, stdout, stderr) => {
-          })
-        })
-      })
-    });
+    console.error('Goooooooooooooodddddddddddddddddd');
+    if (syncGithub) syncSave(`Level up: ${statSummary(statIncreased).join(' ')}`);
   }
   return { isGood, statIncreased };
-}
-
+};
 
 const waitLevelUp = async (playing, { sleepMs = 500 } = {}) => {
   const start = Date.now();
@@ -244,13 +212,11 @@ const waitLevelUp = async (playing, { sleepMs = 500 } = {}) => {
   return false;
 };
 
-module.exports = { checkIsGoodLevelUp, statSummary, checkGoodCondition, checkIsLevelUp, findColor, extractLevelUpPanel, checkLevelUpgrade, waitLevelUp }
+module.exports = { checkIsGoodLevelUp, statSummary, checkGoodCondition, checkIsLevelUp, findColor, extractLevelUpPanel, checkLevelUpgrade, waitLevelUp };
 
-const func = async () => {
-  const { isGood, statIncreased } = await checkIsGoodLevelUp(7, goodCondition);
-  console.log({ isGood, statIncreased })
-}
 if (debug) {
-  func();
+  (async () => {
+    const { isGood, statIncreased } = await checkIsGoodLevelUp(7, goodCondition);
+    console.log({ isGood, statIncreased });
+  })();
 }
-
