@@ -12,7 +12,7 @@ async function checkLevelUpgrade(required) {
   const total = 7;
   for (let i = 1; i <= total; i++) {
     await sleep(400);
-    await takeScreenshot(`tmp/level-up-${i}.png`);
+    await takeScreenshot(`level-up-${i}.png`);
   }
   const { isGood, statIncreased } = await checkIsGoodLevelUp(total, required);
   if (isGood) {

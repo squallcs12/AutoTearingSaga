@@ -58,14 +58,14 @@ class PlayingDesktop {
   async finishBoss() { await sleep(12000); await this.spamO(); await sleep(6000); }
 
   async takePic() {
-    await takeScreenshot('tmp/current.png');
+    await takeScreenshot('current.png');
     await sleep(400);
   }
 
   async waitLevelUp() {
     for (let i = 0; i < 30; i++) {
       this.pressO();
-      await takeScreenshot('tmp/current.png');
+      await takeScreenshot('current.png');
       const image = sharp('tmp/current.png');
       const { width } = await image.metadata();
       const s = getScale(width);

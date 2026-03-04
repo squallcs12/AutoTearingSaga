@@ -5,6 +5,6 @@ const { fight, isBoss, goodCondition } = require('../../config');
 
 describe('Run auto', () => {
   it('level up', async () => {
-    await levelupLoop(PlayingPage, checkLevelUpgrade, fight, isBoss, goodCondition);
+    await levelupLoop(PlayingPage, (filename) => PlayingPage.saveScreenshot(filename), checkLevelUpgrade, fight, isBoss, goodCondition);
   }, 9999999);
 });

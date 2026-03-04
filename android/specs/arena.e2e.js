@@ -7,6 +7,6 @@ const { goodCondition, levelsToGain } = require('../../config');
 
 describe('Run auto', () => {
   it('arena level up', async () => {
-    await arenaLoop(PlayingPage, sleep, (path) => driver.saveScreenshot(path), checkLevelUpgrade, goodCondition, levelsToGain);
+    await arenaLoop(PlayingPage, sleep, (filename) => PlayingPage.saveScreenshot(filename), checkLevelUpgrade, goodCondition, levelsToGain);
   }, 9999999);
 });

@@ -2,7 +2,7 @@
 // Accepts a deps object with platform-specific functions:
 //   - PlayingPage: { perform, reload, waitLevelUp }
 //   - sleep(ms)
-//   - saveScreenshot(path)
+//   - saveScreenshot(filename)  — filename only, tmp/ is added automatically
 //   - checkLevelUpgrade(condition)
 
 const { isArenaConfirm, isArenaWin } = require('../scene-detection/check-arena');
@@ -33,7 +33,7 @@ async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, 
     skipNav = false;
 
     await saveScreenshot('current.png');
-    const hp = await checkHp('current.png');
+    const hp = await checkHp('tmp/current.png');
     console.log(`[arena] hp=${hp}`);
 
     if (hp < 0.3 || consecutiveLosses >= 10) {
@@ -76,7 +76,7 @@ async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, 
     for (let i = 0; i < 30; i++) {
       await PlayingPage.perform('O');
       await saveScreenshot('current.png');
-      const confirmed = await isArenaConfirm('current.png');
+      const confirmed = await isArenaConfirm('tmp/current.png');
       console.log(`[arena] arenaConfirm attempt ${i}: ${confirmed}`);
       if (confirmed) {
         isAtArenaConfirm = true;
@@ -129,7 +129,7 @@ async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, 
       console.log('[arena] no level up, ending turn');
 
       await saveScreenshot('current.png');
-      const won = await isArenaWin('current.png');
+      const won = await isArenaWin('tmp/current.png');
       console.log(`[arena] won=${won}`);
       if (!won) {
         consecutiveLosses++;

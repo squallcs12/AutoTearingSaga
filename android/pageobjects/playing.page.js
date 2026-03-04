@@ -1,6 +1,7 @@
 const { checkIsLevelUp, extractLevelUpPanel } = require('../../scene-detection/check-level');
 const { sleep } = require('../specs/common');
-const sharp = require('sharp')
+const sharp = require('sharp');
+const path = require('path');
 const Page = require('./page');
 sharp.cache(false);
 
@@ -122,7 +123,7 @@ class PlayingPage extends Page {
     } else {
       await $(`android=new UiSelector().text("Save Slot ${index}")`).touchAction({action: 'tap', x: 10, y: 10});
     }
-    await sleep(500);
+    await sleep(2000);
   }
 
   async quicksave(index = 0) {
@@ -135,7 +136,7 @@ class PlayingPage extends Page {
     } else{
       await $(`android=new UiSelector().text("Save Slot ${index}")`).touchAction({action: 'tap', x: 10, y: 10});
     }
-    await sleep(500);
+    await sleep(2000);
   }
 
   async spamO () {
@@ -157,15 +158,19 @@ class PlayingPage extends Page {
     await sleep(6000);
   }
 
-  async takePic (num) {
-    await driver.saveScreenshot(`tmp/current.png`);
+  async saveScreenshot(filename) {
+    await driver.saveScreenshot(path.join('tmp', filename));
+  }
+
+  async takePic() {
+    await this.saveScreenshot('current.png');
     await sleep(400);
   }
 
   async waitLevelUp() {
     for (let i = 0; i < 30; i++) {
-      await driver.saveScreenshot(`tmp/current.png`);
-      const image = sharp(`tmp/current.png`);
+      await this.saveScreenshot('current.png');
+      const image = sharp('tmp/current.png');
       const cropImage = await extractLevelUpPanel(image);
       if (await checkIsLevelUp(cropImage)) {
         return true;

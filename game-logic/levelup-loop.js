@@ -1,5 +1,20 @@
 const sharp = require('sharp');
+const { getScale } = require('../scene-detection/calib');
 const parse = (str) => str.split('\n').map(x => x.trim()).filter(x => x.length > 0);
+
+const CHAR_NAME_BOX = { left: 35, top: 95, width: 245, height: 50 };
+
+async function extractCharName(imagePath) {
+  const image = sharp(imagePath);
+  const { width } = await image.metadata();
+  const s = getScale(width);
+  return image.extract({
+    left:   Math.round(CHAR_NAME_BOX.left   * s),
+    top:    Math.round(CHAR_NAME_BOX.top    * s),
+    width:  Math.round(CHAR_NAME_BOX.width  * s),
+    height: Math.round(CHAR_NAME_BOX.height * s),
+  }).resize(CHAR_NAME_BOX.width, CHAR_NAME_BOX.height);
+}
 
 function buildForceRandom(attempt) {
   const steps = [];
@@ -41,9 +56,7 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
   await PlayingPage.perform('save2');
 
   await saveScreenshot('current-char-raw.png');
-  await sharp('current-char-raw.png')
-    .extract({ left: 35, top: 95, width: 245, height: 50 })
-    .toFile('current-char-name.png');
+  await (await extractCharName('tmp/current-char-raw.png')).toFile('tmp/current-char-name.png');
 
   while (true) {
     await PlayingPage.reload();
@@ -61,8 +74,8 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
 
     await saveScreenshot('current-char-raw.png');
     const [refBuf, curBuf] = await Promise.all([
-      sharp('current-char-name.png').raw().toBuffer(),
-      sharp('current-char-raw.png').extract({ left: 35, top: 95, width: 245, height: 50 }).resize(245, 50).raw().toBuffer(),
+      sharp('tmp/current-char-name.png').raw().toBuffer(),
+      (await extractCharName('tmp/current-char-raw.png')).raw().toBuffer(),
     ]);
     let same = 0;
     for (let i = 0; i < refBuf.length; i++) {

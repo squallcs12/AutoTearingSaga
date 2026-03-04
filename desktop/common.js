@@ -91,7 +91,8 @@ function sendKey(key) {
   _psProc.stdin.write(key + '\n');
 }
 
-async function takeScreenshot(destPath) {
+async function takeScreenshot(filename) {
+  const destPath = path.join('tmp', filename);
   const before = new Set(fs.readdirSync(SCREENSHOT_DIR));
   console.log(`[screenshot] dir=${SCREENSHOT_DIR} before=${before.size} files`);
   sendKey('f10');
