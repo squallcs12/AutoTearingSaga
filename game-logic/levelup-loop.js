@@ -98,7 +98,7 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
     const { isGood, statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot);
     console.log('[levelup] stats:', statIncreased);
     if (isGood) {
-        await PlayingPage.perform('save1');
+        await PlayingPage.perform('save');
         break;
     }
   }
