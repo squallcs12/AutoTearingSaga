@@ -1,9 +1,5 @@
-const sharp = require('sharp');
-const { checkIsLevelUp, extractLevelUpPanel } = require('../scene-detection/check-level');
-const { getScale } = require('../scene-detection/calib');
+const { waitLevelUp } = require('../scene-detection/check-level');
 const { sleep, sendKey, takeScreenshot } = require('./common');
-
-sharp.cache(false);
 
 // Keyboard mappings — update these to match your DuckStation bindings
 const KEYS = {
@@ -55,7 +51,11 @@ class PlayingDesktop {
   }
 
   async finish()     { await sleep(6000); }
-  async finishBoss() { await sleep(12000); await this.spamO(); await sleep(6000); }
+  async finishBoss() { await sleep(12000); }
+
+  async saveScreenshot(filename) {
+    await takeScreenshot(filename);
+  }
 
   async takePic() {
     await takeScreenshot('current.png');
@@ -63,17 +63,10 @@ class PlayingDesktop {
   }
 
   async waitLevelUp() {
-    for (let i = 0; i < 30; i++) {
-      this.pressO();
-      await takeScreenshot('current.png');
-      const image = sharp('tmp/current.png');
-      const { width } = await image.metadata();
-      const s = getScale(width);
-      const cropImage = await extractLevelUpPanel(image, s);
-      if (await checkIsLevelUp(cropImage)) return true;
-      await sleep(1000);
-    }
-    return false;
+    return waitLevelUp(this, { sleepMs: 1000 });
+  }
+
+  async waitNotificationHide() {
   }
 
   async perform(step) {

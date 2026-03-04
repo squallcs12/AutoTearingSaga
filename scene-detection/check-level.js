@@ -165,8 +165,6 @@ const checkIsGoodLevelUp = async (total, required) => {
   return { isGood, statIncreased };
 }
 
-
-
 const statSummary = (stats) => {
   if (debug) console.log({stats});
   const summary = [stats.count];
@@ -204,11 +202,10 @@ const checkGoodCondition = (isGood, required) => {
   return false;
 }
 
-const checkLevelUpgrade = async (required) => {
+const checkLevelUpgrade = async (required, saveScreenshot) => {
   const total = 7;
   for (let i = 1; i <= total; i++) {
-    await sleep(400);
-    await driver.saveScreenshot(`tmp/level-up-${i}.png`);
+    await saveScreenshot(`level-up-${i}.png`);
   }
   const { isGood, statIncreased } = await checkIsGoodLevelUp(total, required);
   if (isGood) {
@@ -228,7 +225,26 @@ const checkLevelUpgrade = async (required) => {
 }
 
 
-module.exports = { checkIsGoodLevelUp, statSummary, checkGoodCondition, checkIsLevelUp, findColor, extractLevelUpPanel, checkLevelUpgrade }
+const waitLevelUp = async (playing, { sleepMs = 500 } = {}) => {
+  const start = Date.now();
+  for (let i = 0; i < 30; i++) {
+    await playing.saveScreenshot('current.png');
+    const image = sharp('tmp/current.png');
+    const { width } = await image.metadata();
+    const s = getScale(width);
+    const cropImage = await extractLevelUpPanel(image, s);
+    if (await checkIsLevelUp(cropImage)) {
+      console.log(`[waitLevelUp] detected at i=${i} +${Date.now() - start}ms`);
+      return true;
+    }
+    await sleep(sleepMs);
+    await playing.pressO();
+  }
+  console.log(`[waitLevelUp] gave up after ${Date.now() - start}ms`);
+  return false;
+};
+
+module.exports = { checkIsGoodLevelUp, statSummary, checkGoodCondition, checkIsLevelUp, findColor, extractLevelUpPanel, checkLevelUpgrade, waitLevelUp }
 
 const func = async () => {
   const { isGood, statIncreased } = await checkIsGoodLevelUp(7, goodCondition);

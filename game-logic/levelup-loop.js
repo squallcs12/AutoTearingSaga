@@ -40,7 +40,6 @@ async function performFight(PlayingPage, battle, isBoss) {
     await PlayingPage.perform('finish');
   }
   await PlayingPage.perform('wait-level-up');
-  await PlayingPage.perform('save1');
 }
 
 async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight, isBoss, goodCondition) {
@@ -55,6 +54,7 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
   await PlayingPage.perform('save');
   await PlayingPage.perform('save2');
 
+  await PlayingPage.waitNotificationHide();
   await saveScreenshot('current-char-raw.png');
   await (await extractCharName('tmp/current-char-raw.png')).toFile('tmp/current-char-name.png');
 
@@ -72,6 +72,7 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
       'wait',
     ]);
 
+    await PlayingPage.waitNotificationHide();
     await saveScreenshot('current-char-raw.png');
     const [refBuf, curBuf] = await Promise.all([
       sharp('tmp/current-char-name.png').raw().toBuffer(),
@@ -94,9 +95,12 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
 
     await performFight(PlayingPage, battle, isBoss);
 
-    const { isGood, statIncreased } = await checkLevelUpgrade(goodCondition);
+    const { isGood, statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot);
     console.log('[levelup] stats:', statIncreased);
-    if (isGood) break;
+    if (isGood) {
+        await PlayingPage.perform('save1');
+        break;
+    }
   }
 
   console.log('Done! Good level-up stats found.');

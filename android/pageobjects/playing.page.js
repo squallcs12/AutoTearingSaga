@@ -1,9 +1,7 @@
-const { checkIsLevelUp, extractLevelUpPanel } = require('../../scene-detection/check-level');
+const { waitLevelUp } = require('../../scene-detection/check-level');
 const { sleep } = require('../specs/common');
-const sharp = require('sharp');
 const path = require('path');
 const Page = require('./page');
-sharp.cache(false);
 
 
 
@@ -123,7 +121,7 @@ class PlayingPage extends Page {
     } else {
       await $(`android=new UiSelector().text("Save Slot ${index}")`).touchAction({action: 'tap', x: 10, y: 10});
     }
-    await sleep(2000);
+    await sleep(500);
   }
 
   async quicksave(index = 0) {
@@ -136,6 +134,10 @@ class PlayingPage extends Page {
     } else{
       await $(`android=new UiSelector().text("Save Slot ${index}")`).touchAction({action: 'tap', x: 10, y: 10});
     }
+    await sleep(500);
+  }
+
+  async waitNotificationHide() {
     await sleep(2000);
   }
 
@@ -150,12 +152,8 @@ class PlayingPage extends Page {
     await this.pressO();
   }
   async finish() {
-    await sleep(6000);
   }
   async finishBoss () {
-    await sleep(12000);
-    await this.spamO();
-    await sleep(6000);
   }
 
   async saveScreenshot(filename) {
@@ -168,16 +166,7 @@ class PlayingPage extends Page {
   }
 
   async waitLevelUp() {
-    for (let i = 0; i < 30; i++) {
-      await this.saveScreenshot('current.png');
-      const image = sharp('tmp/current.png');
-      const cropImage = await extractLevelUpPanel(image);
-      if (await checkIsLevelUp(cropImage)) {
-        return true;
-      }
-      await sleep(1000)
-    }
-    return false;
+    return waitLevelUp(this, { sleepMs: 500 });
   }
 
   async perform(step) {
