@@ -44,9 +44,10 @@ async function performFight(PlayingPage, battle, isBoss) {
   await PlayingPage.perform('wait-level-up');
 }
 
-async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight, isBoss, characterName) {
+async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, forceRandom, fight, isBoss, characterName) {
   const goodCondition = getGoodCondition(characterName);
   console.error('[levelup] goodCondition:', JSON.stringify(goodCondition));
+  const randomSteps = parse(forceRandom);
   const battle = parse(fight);
   await PlayingPage.loadGameAndLoadQuickSave();
   await PlayingPage.perform('X');
@@ -68,15 +69,7 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
     await PlayingPage.reload();
     await PlayingPage.perform('save2');
 
-    await performSteps(PlayingPage, [
-      'left',
-      'left',
-      'left',
-      'O',
-      'wait',
-      'X',
-      'wait',
-    ]);
+    await performSteps(PlayingPage, randomSteps);
 
     await PlayingPage.waitNotificationHide();
     await saveScreenshot('current-char-raw.png');
