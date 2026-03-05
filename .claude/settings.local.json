@@ -5,7 +5,8 @@
       "WebFetch(domain:serenesforest.net)",
       "Bash(cmd.exe:*)",
       "Bash(powershell.exe:*)",
-      "Bash(adb:*)"
+      "Bash(adb:*)",
+      "Bash(node:*)"
     ]
   }
 }
