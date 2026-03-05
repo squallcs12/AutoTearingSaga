@@ -3,3 +3,4 @@ tmp/*.png
 tmp/*.jpg
 xxx*-*.jpg
 config.js
+logs/*.log

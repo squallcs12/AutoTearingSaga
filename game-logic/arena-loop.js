@@ -5,6 +5,7 @@
 //   - saveScreenshot(filename)  — filename only, tmp/ is added automatically
 //   - checkLevelUpgrade(condition)
 
+const fs = require('fs');
 const { isArenaConfirm, isArenaWin } = require('../scene-detection/check-arena');
 const { checkHp } = require('../scene-detection/check-hp');
 const { getGoodCondition } = require('./characters/good-condition');
@@ -117,7 +118,10 @@ async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, 
       if (levelAttempts >= 1000) console.log('[arena] over 1000 attempts, reducing goodCondition count by 1');
 
       const { isGood, statIncreased } = await checkLevelUpgrade(effectiveCondition);
-      console.log(`[arena] isGood=${isGood}`, statIncreased);
+      const stats = [statIncreased.count, ...Object.keys(statIncreased).filter(k => k !== 'count' && statIncreased[k])];
+      const logLine = `turn=${levelAttempts} isGood=${isGood} stats=${stats.join(',')}\n`;
+      fs.appendFileSync('logs/arena.log', logLine);
+      console.error(logLine.trim());
       if (isGood) {
         await PlayingPage.perform('save1');
         levelCount++;

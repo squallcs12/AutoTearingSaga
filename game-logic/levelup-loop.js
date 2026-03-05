@@ -1,4 +1,5 @@
 const sharp = require('sharp');
+const fs = require('fs');
 const { getScale } = require('../scene-detection/calib');
 const { getGoodCondition } = require('./characters/good-condition');
 const parse = (str) => str.split('\n').map(x => x.trim()).filter(x => x.length > 0);
@@ -61,7 +62,9 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
   await saveScreenshot('current-char-raw.png');
   await (await extractCharName('tmp/current-char-raw.png')).toFile('tmp/current-char-name.png');
 
+  let turn = 0;
   while (true) {
+    turn++;
     await PlayingPage.reload();
     await PlayingPage.perform('save2');
 
@@ -99,7 +102,10 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
     await performFight(PlayingPage, battle, isBoss);
 
     const { isGood, statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot);
-    console.log('[levelup] stats:', statIncreased);
+    const stats = [statIncreased.count, ...Object.keys(statIncreased).filter(k => k !== 'count' && statIncreased[k])];
+    const logLine = `turn=${turn} isGood=${isGood} stats=${stats.join(',')}\n`;
+    fs.appendFileSync('logs/levelup.log', logLine);
+    console.error(logLine.trim());
     if (isGood) {
         await PlayingPage.perform('save');
         await PlayingPage.perform('save1');
