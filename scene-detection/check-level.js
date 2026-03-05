@@ -1,6 +1,7 @@
 const sharp = require('sharp');
 const _ = require('lodash');
-const { exec } = require('child_process');
+const { exec, execSync } = require('child_process');
+const { exportSave } = require('../android/specs/transfer-save');
 
 const { goodCondition, syncGithub } = require('../config');
 const { sleep } = require('../utils');
@@ -168,16 +169,16 @@ const checkIsGoodLevelUp = async (total, required) => {
   return { isGood, statIncreased };
 };
 
-const syncSave = (message) => {
-//  exec('git pull', () => {
-//    exec('yarn pull-emulator', () => {
-//      exec('git add .', () => {
-//        exec(`git cm -m "${message}"`, () => {
-//          exec('git push', () => {});
-//        });
-//      });
-//    });
-//  });
+const syncSave = async (message) => {
+  execSync('git pull');
+  await $('id=com.github.stenzek.duckstation:id/controller_button_pause').touchAction({ action: 'tap', x: 10, y: 10 });
+  await sleep(500);
+  await $('android=new UiSelector().text("Exit Game")').click();
+  await exportSave();
+  execSync('adb -s emulator-5554 pull /sdcard/Download/duckstation/savestates/SLPS-03177_0.sav SLPS-03177_0.sav');
+  execSync('git add .');
+  execSync(`git cm -m "${message}"`);
+  execSync('git push');
 };
 
 const checkLevelUpgrade = async (required, saveScreenshot) => {
@@ -188,7 +189,7 @@ const checkLevelUpgrade = async (required, saveScreenshot) => {
   const { isGood, statIncreased } = await checkIsGoodLevelUp(total, required);
   if (isGood) {
     console.error('Goooooooooooooodddddddddddddddddd');
-    if (syncGithub) syncSave(`Level up: ${statSummary(statIncreased).join(' ')}`);
+    if (syncGithub) await syncSave(`Level up: ${statSummary(statIncreased).join(' ')}`);
   }
   return { isGood, statIncreased };
 };
