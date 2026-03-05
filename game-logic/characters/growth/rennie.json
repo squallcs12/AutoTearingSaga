@@ -1,0 +1,15 @@
+{
+  "name": "Rennie",
+  "growthRates": {
+    "hp": 55,
+    "str": 40,
+    "mag": 10,
+    "skill": 30,
+    "spd": 55,
+    "luck": 35,
+    "mst": 40,
+    "def": 18,
+    "move": 10
+  },
+  "tier": "good"
+}

@@ -1,0 +1,15 @@
+{
+  "name": "Billford",
+  "growthRates": {
+    "hp": 90,
+    "str": 35,
+    "mag": 5,
+    "skill": 30,
+    "spd": 35,
+    "luck": 35,
+    "mst": 20,
+    "def": 30,
+    "move": 5
+  },
+  "tier": "good"
+}

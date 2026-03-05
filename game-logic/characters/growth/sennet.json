@@ -1,0 +1,15 @@
+{
+  "name": "Sennet",
+  "growthRates": {
+    "hp": 80,
+    "str": 55,
+    "mag": 0,
+    "skill": 50,
+    "spd": 40,
+    "luck": 45,
+    "mst": 45,
+    "def": 40,
+    "move": 0
+  },
+  "tier": "good"
+}

@@ -1,0 +1,15 @@
+{
+  "name": "Shirou",
+  "growthRates": {
+    "hp": 70,
+    "str": 35,
+    "mag": 10,
+    "skill": 25,
+    "spd": 35,
+    "luck": 45,
+    "mst": 35,
+    "def": 22,
+    "move": 0
+  },
+  "tier": "good"
+}

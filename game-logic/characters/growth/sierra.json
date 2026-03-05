@@ -1,0 +1,15 @@
+{
+  "name": "Sierra",
+  "growthRates": {
+    "hp": 45,
+    "str": 0,
+    "mag": 25,
+    "skill": 25,
+    "spd": 20,
+    "luck": 15,
+    "mst": 25,
+    "def": 15,
+    "move": 0
+  },
+  "tier": "bad"
+}

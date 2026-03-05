@@ -1,0 +1,15 @@
+{
+  "name": "Hagaru",
+  "growthRates": {
+    "hp": 55,
+    "str": 35,
+    "mag": 5,
+    "skill": 30,
+    "spd": 40,
+    "luck": 40,
+    "mst": 40,
+    "def": 40,
+    "move": 0
+  },
+  "tier": "good"
+}

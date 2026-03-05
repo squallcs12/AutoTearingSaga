@@ -1,0 +1,15 @@
+{
+  "name": "Raquel",
+  "growthRates": {
+    "hp": 40,
+    "str": 20,
+    "mag": 25,
+    "skill": 35,
+    "spd": 35,
+    "luck": 55,
+    "mst": 30,
+    "def": 15,
+    "move": 0
+  },
+  "tier": "avg"
+}

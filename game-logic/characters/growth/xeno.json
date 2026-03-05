@@ -1,0 +1,15 @@
+{
+  "name": "Xeno",
+  "growthRates": {
+    "hp": 65,
+    "str": 35,
+    "mag": 5,
+    "skill": 50,
+    "spd": 40,
+    "luck": 30,
+    "mst": 30,
+    "def": 22,
+    "move": 0
+  },
+  "tier": "good"
+}

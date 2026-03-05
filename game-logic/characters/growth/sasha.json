@@ -1,0 +1,15 @@
+{
+  "name": "Sasha",
+  "growthRates": {
+    "hp": 40,
+    "str": 20,
+    "mag": 20,
+    "skill": 30,
+    "spd": 50,
+    "luck": 40,
+    "mst": 30,
+    "def": 15,
+    "move": 0
+  },
+  "tier": "avg"
+}

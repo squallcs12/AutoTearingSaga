@@ -124,3 +124,16 @@ Compares screenshot colors against `arena-color.png` reference image with a 98%+
 | `sample-color.json` | Grayscale color palette for level-up UI detection |
 | `arena-color.png` | Arena screen reference image for detection |
 | `SLPS-03177_0.sav` | Game save file (committed to git on good results) |
+
+## Game UI
+
+### Character
+
+#### Faces
+
+Character face region in screenshots: (450,40) to (666,283)
+Saved to `game-logic/characters/faces/<name>.png`
+
+#### Growth
+
+Per-character stat growth data stored in `game-logic/characters/growth/<name>.json`

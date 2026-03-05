@@ -1,0 +1,15 @@
+{
+  "name": "Alfred",
+  "growthRates": {
+    "hp": 75,
+    "str": 0,
+    "mag": 30,
+    "skill": 30,
+    "spd": 30,
+    "luck": 30,
+    "mst": 30,
+    "def": 15,
+    "move": 0
+  },
+  "tier": "avg"
+}

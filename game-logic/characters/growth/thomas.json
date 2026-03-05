@@ -1,0 +1,15 @@
+{
+  "name": "Thomas",
+  "growthRates": {
+    "hp": 30,
+    "str": 10,
+    "mag": 0,
+    "skill": 35,
+    "spd": 45,
+    "luck": 20,
+    "mst": 40,
+    "def": 10,
+    "move": 0
+  },
+  "tier": "bad"
+}

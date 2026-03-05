@@ -1,0 +1,15 @@
+{
+  "name": "Lyria",
+  "growthRates": {
+    "hp": 25,
+    "str": 0,
+    "mag": 15,
+    "skill": 5,
+    "spd": 35,
+    "luck": 50,
+    "mst": 15,
+    "def": 5,
+    "move": 0
+  },
+  "tier": "bad"
+}

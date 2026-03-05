@@ -1,0 +1,15 @@
+{
+  "name": "Kreiss",
+  "growthRates": {
+    "hp": 65,
+    "str": 30,
+    "mag": 5,
+    "skill": 30,
+    "spd": 20,
+    "luck": 20,
+    "mst": 30,
+    "def": 25,
+    "move": 0
+  },
+  "tier": "avg"
+}

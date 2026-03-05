@@ -1,0 +1,15 @@
+{
+  "name": "Garo",
+  "growthRates": {
+    "hp": 85,
+    "str": 40,
+    "mag": 0,
+    "skill": 25,
+    "spd": 30,
+    "luck": 10,
+    "mst": 30,
+    "def": 20,
+    "move": 0
+  },
+  "tier": "avg"
+}

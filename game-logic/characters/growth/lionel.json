@@ -1,0 +1,15 @@
+{
+  "name": "Lionel",
+  "growthRates": {
+    "hp": 85,
+    "str": 30,
+    "mag": 5,
+    "skill": 30,
+    "spd": 20,
+    "luck": 45,
+    "mst": 25,
+    "def": 30,
+    "move": 5
+  },
+  "tier": "good"
+}

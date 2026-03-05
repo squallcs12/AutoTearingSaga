@@ -1,0 +1,15 @@
+{
+  "name": "Bud",
+  "growthRates": {
+    "hp": 40,
+    "str": 15,
+    "mag": 35,
+    "skill": 30,
+    "spd": 45,
+    "luck": 55,
+    "mst": 40,
+    "def": 13,
+    "move": 0
+  },
+  "tier": "good"
+}

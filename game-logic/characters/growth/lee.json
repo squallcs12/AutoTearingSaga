@@ -1,0 +1,15 @@
+{
+  "name": "Lee",
+  "growthRates": {
+    "hp": 35,
+    "str": 0,
+    "mag": 15,
+    "skill": 10,
+    "spd": 10,
+    "luck": 20,
+    "mst": 10,
+    "def": 5,
+    "move": 0
+  },
+  "tier": "bad"
+}

@@ -1,0 +1,15 @@
+{
+  "name": "Kate",
+  "growthRates": {
+    "hp": 55,
+    "str": 25,
+    "mag": 10,
+    "skill": 35,
+    "spd": 25,
+    "luck": 25,
+    "mst": 40,
+    "def": 18,
+    "move": 0
+  },
+  "tier": "avg"
+}

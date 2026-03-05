@@ -1,0 +1,15 @@
+{
+  "name": "Sun",
+  "growthRates": {
+    "hp": 55,
+    "str": 30,
+    "mag": 20,
+    "skill": 55,
+    "spd": 35,
+    "luck": 25,
+    "mst": 40,
+    "def": 24,
+    "move": 0
+  },
+  "tier": "good"
+}

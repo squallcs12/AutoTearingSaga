@@ -1,0 +1,15 @@
+{
+  "name": "Enteh",
+  "growthRates": {
+    "hp": 30,
+    "str": 0,
+    "mag": 30,
+    "skill": 20,
+    "spd": 25,
+    "luck": 30,
+    "mst": 50,
+    "def": 5,
+    "move": 0
+  },
+  "tier": "avg"
+}

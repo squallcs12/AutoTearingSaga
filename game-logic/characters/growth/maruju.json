@@ -1,0 +1,15 @@
+{
+  "name": "Maruju",
+  "growthRates": {
+    "hp": 45,
+    "str": 0,
+    "mag": 20,
+    "skill": 30,
+    "spd": 35,
+    "luck": 35,
+    "mst": 30,
+    "def": 10,
+    "move": 0
+  },
+  "tier": "bad"
+}

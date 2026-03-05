@@ -1,0 +1,15 @@
+{
+  "name": "Krisheenu",
+  "growthRates": {
+    "hp": 40,
+    "str": 15,
+    "mag": 10,
+    "skill": 15,
+    "spd": 25,
+    "luck": 25,
+    "mst": 20,
+    "def": 14,
+    "move": 0
+  },
+  "tier": "bad"
+}

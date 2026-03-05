@@ -1,0 +1,15 @@
+{
+  "name": "Lionheart",
+  "growthRates": {
+    "hp": 75,
+    "str": 30,
+    "mag": 5,
+    "skill": 25,
+    "spd": 20,
+    "luck": 25,
+    "mst": 25,
+    "def": 25,
+    "move": 0
+  },
+  "tier": "avg"
+}

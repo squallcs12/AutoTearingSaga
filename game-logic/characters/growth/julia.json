@@ -1,0 +1,15 @@
+{
+  "name": "Julia",
+  "growthRates": {
+    "hp": 50,
+    "str": 25,
+    "mag": 10,
+    "skill": 45,
+    "spd": 40,
+    "luck": 25,
+    "mst": 35,
+    "def": 18,
+    "move": 0
+  },
+  "tier": "avg"
+}

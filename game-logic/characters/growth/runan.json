@@ -1,0 +1,15 @@
+{
+  "name": "Runan",
+  "growthRates": {
+    "hp": 60,
+    "str": 30,
+    "mag": 15,
+    "skill": 30,
+    "spd": 30,
+    "luck": 30,
+    "mst": 40,
+    "def": 25,
+    "move": 0
+  },
+  "tier": "avg"
+}

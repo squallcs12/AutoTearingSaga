@@ -1,0 +1,15 @@
+{
+  "name": "Renee",
+  "growthRates": {
+    "hp": 30,
+    "str": 0,
+    "mag": 30,
+    "skill": 35,
+    "spd": 40,
+    "luck": 40,
+    "mst": 35,
+    "def": 5,
+    "move": 0
+  },
+  "tier": "bad"
+}

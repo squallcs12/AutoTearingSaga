@@ -1,0 +1,15 @@
+{
+  "name": "Tia",
+  "growthRates": {
+    "hp": 65,
+    "str": 50,
+    "mag": 65,
+    "skill": 55,
+    "spd": 50,
+    "luck": 60,
+    "mst": 40,
+    "def": 30,
+    "move": 0
+  },
+  "tier": "good"
+}

@@ -1,0 +1,15 @@
+{
+  "name": "Loffaru",
+  "growthRates": {
+    "hp": 50,
+    "str": 15,
+    "mag": 0,
+    "skill": 20,
+    "spd": 15,
+    "luck": 30,
+    "mst": 15,
+    "def": 15,
+    "move": 0
+  },
+  "tier": "bad"
+}

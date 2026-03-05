@@ -1,0 +1,15 @@
+{
+  "name": "Sharon",
+  "growthRates": {
+    "hp": 55,
+    "str": 25,
+    "mag": 10,
+    "skill": 35,
+    "spd": 45,
+    "luck": 25,
+    "mst": 35,
+    "def": 20,
+    "move": 0
+  },
+  "tier": "avg"
+}

@@ -1,0 +1,15 @@
+{
+  "name": "Samson",
+  "growthRates": {
+    "hp": 95,
+    "str": 35,
+    "mag": 5,
+    "skill": 35,
+    "spd": 40,
+    "luck": 15,
+    "mst": 35,
+    "def": 25,
+    "move": 0
+  },
+  "tier": "good"
+}

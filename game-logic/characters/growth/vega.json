@@ -1,0 +1,15 @@
+{
+  "name": "Vega",
+  "growthRates": {
+    "hp": 55,
+    "str": 30,
+    "mag": 5,
+    "skill": 35,
+    "spd": 35,
+    "luck": 15,
+    "mst": 35,
+    "def": 20,
+    "move": 0
+  },
+  "tier": "avg"
+}

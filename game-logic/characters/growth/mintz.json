@@ -1,0 +1,15 @@
+{
+  "name": "Mintz",
+  "growthRates": {
+    "hp": 85,
+    "str": 30,
+    "mag": 5,
+    "skill": 25,
+    "spd": 20,
+    "luck": 20,
+    "mst": 15,
+    "def": 30,
+    "move": 0
+  },
+  "tier": "avg"
+}

@@ -1,0 +1,15 @@
+{
+  "name": "Narron",
+  "growthRates": {
+    "hp": 60,
+    "str": 35,
+    "mag": 15,
+    "skill": 25,
+    "spd": 20,
+    "luck": 25,
+    "mst": 30,
+    "def": 22,
+    "move": 0
+  },
+  "tier": "avg"
+}

@@ -1,0 +1,15 @@
+{
+  "name": "Verna",
+  "growthRates": {
+    "hp": 55,
+    "str": 25,
+    "mag": 22,
+    "skill": 40,
+    "spd": 35,
+    "luck": 35,
+    "mst": 35,
+    "def": 22,
+    "move": 0
+  },
+  "tier": "avg"
+}

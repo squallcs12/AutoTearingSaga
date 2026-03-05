@@ -1,5 +1,6 @@
 const sharp = require('sharp');
 const { getScale } = require('../scene-detection/calib');
+const { getGoodCondition } = require('./characters/good-condition');
 const parse = (str) => str.split('\n').map(x => x.trim()).filter(x => x.length > 0);
 
 const CHAR_NAME_BOX = { left: 35, top: 95, width: 245, height: 50 };
@@ -42,7 +43,8 @@ async function performFight(PlayingPage, battle, isBoss) {
   await PlayingPage.perform('wait-level-up');
 }
 
-async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight, isBoss, goodCondition) {
+async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight, isBoss, characterName) {
+  const goodCondition = getGoodCondition(characterName);
   const battle = parse(fight);
   await PlayingPage.loadGameAndLoadQuickSave();
   await PlayingPage.perform('X');
@@ -99,6 +101,7 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
     console.log('[levelup] stats:', statIncreased);
     if (isGood) {
         await PlayingPage.perform('save');
+        await PlayingPage.perform('save1');
         break;
     }
   }

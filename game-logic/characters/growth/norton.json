@@ -1,0 +1,15 @@
+{
+  "name": "Norton",
+  "growthRates": {
+    "hp": 75,
+    "str": 40,
+    "mag": 0,
+    "skill": 30,
+    "spd": 25,
+    "luck": 15,
+    "mst": 20,
+    "def": 25,
+    "move": 0
+  },
+  "tier": "avg"
+}

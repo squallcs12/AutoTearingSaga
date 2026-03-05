@@ -1,0 +1,15 @@
+{
+  "name": "Ruka",
+  "growthRates": {
+    "hp": 60,
+    "str": 25,
+    "mag": 5,
+    "skill": 50,
+    "spd": 40,
+    "luck": 40,
+    "mst": 25,
+    "def": 15,
+    "move": 0
+  },
+  "tier": "avg"
+}

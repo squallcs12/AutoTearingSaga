@@ -1,0 +1,15 @@
+{
+  "name": "Barts",
+  "growthRates": {
+    "hp": 90,
+    "str": 30,
+    "mag": 0,
+    "skill": 15,
+    "spd": 35,
+    "luck": 15,
+    "mst": 15,
+    "def": 18,
+    "move": 0
+  },
+  "tier": "bad"
+}

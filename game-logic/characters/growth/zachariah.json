@@ -1,0 +1,15 @@
+{
+  "name": "Zachariah",
+  "growthRates": {
+    "hp": 55,
+    "str": 20,
+    "mag": 5,
+    "skill": 20,
+    "spd": 20,
+    "luck": 30,
+    "mst": 15,
+    "def": 15,
+    "move": 0
+  },
+  "tier": "bad"
+}

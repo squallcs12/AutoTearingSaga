@@ -1,0 +1,15 @@
+{
+  "name": "Meriah",
+  "growthRates": {
+    "hp": 35,
+    "str": 0,
+    "mag": 30,
+    "skill": 35,
+    "spd": 45,
+    "luck": 30,
+    "mst": 35,
+    "def": 10,
+    "move": 0
+  },
+  "tier": "avg"
+}

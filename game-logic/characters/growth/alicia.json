@@ -1,0 +1,15 @@
+{
+  "name": "Alicia",
+  "growthRates": {
+    "hp": 35,
+    "str": 0,
+    "mag": 25,
+    "skill": 30,
+    "spd": 25,
+    "luck": 40,
+    "mst": 40,
+    "def": 11,
+    "move": 0
+  },
+  "tier": "bad"
+}

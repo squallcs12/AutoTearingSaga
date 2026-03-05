@@ -7,8 +7,10 @@
 
 const { isArenaConfirm, isArenaWin } = require('../scene-detection/check-arena');
 const { checkHp } = require('../scene-detection/check-hp');
+const { getGoodCondition } = require('./characters/good-condition');
 
-async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, goodCondition, levelsToGain) {
+async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, characterName, levelsToGain) {
+  const goodCondition = getGoodCondition(characterName);
 
   console.log('[arena] reload');
   await PlayingPage.reload();

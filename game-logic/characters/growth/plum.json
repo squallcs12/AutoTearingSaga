@@ -1,0 +1,15 @@
+{
+  "name": "Plum",
+  "growthRates": {
+    "hp": 20,
+    "str": 0,
+    "mag": 35,
+    "skill": 0,
+    "spd": 20,
+    "luck": 60,
+    "mst": 20,
+    "def": 0,
+    "move": 0
+  },
+  "tier": "bad"
+}

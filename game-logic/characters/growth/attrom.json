@@ -1,0 +1,15 @@
+{
+  "name": "Attrom",
+  "growthRates": {
+    "hp": 70,
+    "str": 40,
+    "mag": 5,
+    "skill": 50,
+    "spd": 45,
+    "luck": 20,
+    "mst": 30,
+    "def": 20,
+    "move": 0
+  },
+  "tier": "good"
+}

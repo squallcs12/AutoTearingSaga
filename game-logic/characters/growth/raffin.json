@@ -1,0 +1,15 @@
+{
+  "name": "Raffin",
+  "growthRates": {
+    "hp": 80,
+    "str": 35,
+    "mag": 5,
+    "skill": 40,
+    "spd": 30,
+    "luck": 20,
+    "mst": 45,
+    "def": 25,
+    "move": 0
+  },
+  "tier": "good"
+}

@@ -1,0 +1,15 @@
+{
+  "name": "Estelle",
+  "growthRates": {
+    "hp": 50,
+    "str": 30,
+    "mag": 15,
+    "skill": 30,
+    "spd": 35,
+    "luck": 45,
+    "mst": 25,
+    "def": 18,
+    "move": 0
+  },
+  "tier": "avg"
+}
