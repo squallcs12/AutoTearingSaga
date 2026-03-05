@@ -34,6 +34,10 @@ class PlayingDesktop {
   async pressSquare()   { sendKey(KEYS.square); }
   async pressTriangle() { sendKey(KEYS.triangle); }
 
+  async loadGameAndLoadQuickSave() {
+    await this.reload();
+  }
+
   async reload(index = 0) {
     sendKey(index === 0 ? KEYS.quickLoad : KEYS[`loadSlot${index}`]);
     await sleep(500);

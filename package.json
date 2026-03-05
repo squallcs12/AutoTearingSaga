@@ -14,15 +14,15 @@
     },
     "scripts": {
         "wdio": "wdio run wdio.conf.js",
-        "level": "bash scripts/level.sh",
-        "arena": "bash scripts/arena.sh",
+        "level": "node scripts/level.js",
+        "arena": "node scripts/arena.js",
         "desktop-level": "node desktop/levelup.js",
         "desktop-arena": "node desktop/arena.js",
         "pull-desktop": "node desktop/pull-desktop.js",
         "pull-phone": "node android/pull-phone.js",
         "restore-phone": "node android/restore-phone.js",
         "sync-phone": "node android/sync-phone.js",
-        "push-emulator": "node android/push-emulator.js",
-        "pull-emulator": "node android/pull-emulator.js"
+        "push-emulator": "npx wdio --spec android/specs/push-emulator.e2e.js",
+        "pull-emulator": "npx wdio --spec android/specs/pull-emulator.e2e.js"
     }
 }

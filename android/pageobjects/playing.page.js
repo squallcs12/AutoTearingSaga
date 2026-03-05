@@ -111,6 +111,13 @@ class PlayingPage extends Page {
   }
 
 
+  async loadGameAndLoadQuickSave() {
+    await this.gameTitle.click();
+    await $('android=new UiSelector().text("Clean Boot")').click();
+    await sleep(5000);
+    await this.reload();
+  }
+
   async reload(index = 0) {
     await this.buttonPause.touchAction({action: 'tap', x: 10, y: 10});
     await sleep(500);
