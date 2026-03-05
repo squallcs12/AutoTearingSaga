@@ -117,7 +117,7 @@ async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, 
         : goodCondition;
       if (levelAttempts >= 1000) console.log('[arena] over 1000 attempts, reducing goodCondition count by 1');
 
-      const { isGood, statIncreased } = await checkLevelUpgrade(effectiveCondition);
+      const { isGood, statIncreased } = await checkLevelUpgrade(effectiveCondition, saveScreenshot, characterName);
       const stats = [statIncreased.count, ...Object.keys(statIncreased).filter(k => k !== 'count' && statIncreased[k])];
       const logLine = `turn=${levelAttempts} isGood=${isGood} stats=${stats.join(',')}\n`;
       fs.appendFileSync('logs/arena.log', logLine);

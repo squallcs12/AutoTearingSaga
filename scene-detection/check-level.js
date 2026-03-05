@@ -181,7 +181,7 @@ const syncSave = async (message) => {
   execSync('git push');
 };
 
-const checkLevelUpgrade = async (required, saveScreenshot) => {
+const checkLevelUpgrade = async (required, saveScreenshot, characterName) => {
   const total = 7;
   for (let i = 1; i <= total; i++) {
     await saveScreenshot(`level-up-${i}.png`);
@@ -191,7 +191,7 @@ const checkLevelUpgrade = async (required, saveScreenshot) => {
     console.error('Goooooooooooooodddddddddddddddddd');
     if (syncGithub) {
       try {
-        await syncSave(`Level up: ${statSummary(statIncreased).join(' ')}`);
+        await syncSave(`Level up ${characterName}: ${statSummary(statIncreased).join(' ')}`);
       } catch (e) {
         console.error('[syncSave] failed:', e.message);
       }

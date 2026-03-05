@@ -101,7 +101,7 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
 
     await performFight(PlayingPage, battle, isBoss);
 
-    const { isGood, statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot);
+    const { isGood, statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, characterName);
     const stats = [statIncreased.count, ...Object.keys(statIncreased).filter(k => k !== 'count' && statIncreased[k])];
     const logLine = `turn=${turn} isGood=${isGood} stats=${stats.join(',')}\n`;
     fs.appendFileSync('logs/levelup.log', logLine);
