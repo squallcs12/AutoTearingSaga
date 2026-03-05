@@ -6,7 +6,7 @@
 const getGoodCondition = (character) => {
   const data = require(`./growth/${character}.json`);
   const g = data.growthRates;
-  const tier = data.tier;
+  const tier = process.env.TIER_OVERRIDE || data.tier;
 
   const nonZero = Object.entries(g).filter(([, v]) => v > 0).map(([k, v]) => ({ name: k, growth: v }));
   const sorted = [...nonZero].sort((a, b) => a.growth - b.growth);
