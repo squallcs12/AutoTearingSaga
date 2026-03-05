@@ -169,15 +169,15 @@ const checkIsGoodLevelUp = async (total, required) => {
 };
 
 const syncSave = (message) => {
-  exec('git pull', () => {
-    exec('yarn pull-emulator', () => {
-      exec('git add .', () => {
-        exec(`git cm -m "${message}"`, () => {
-          exec('git push', () => {});
-        });
-      });
-    });
-  });
+//  exec('git pull', () => {
+//    exec('yarn pull-emulator', () => {
+//      exec('git add .', () => {
+//        exec(`git cm -m "${message}"`, () => {
+//          exec('git push', () => {});
+//        });
+//      });
+//    });
+//  });
 };
 
 const checkLevelUpgrade = async (required, saveScreenshot) => {
