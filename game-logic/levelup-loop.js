@@ -45,6 +45,7 @@ async function performFight(PlayingPage, battle, isBoss) {
 
 async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight, isBoss, characterName) {
   const goodCondition = getGoodCondition(characterName);
+  console.error('[levelup] goodCondition:', JSON.stringify(goodCondition));
   const battle = parse(fight);
   await PlayingPage.loadGameAndLoadQuickSave();
   await PlayingPage.perform('X');

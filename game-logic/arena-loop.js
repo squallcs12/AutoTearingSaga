@@ -11,6 +11,7 @@ const { getGoodCondition } = require('./characters/good-condition');
 
 async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, characterName, levelsToGain) {
   const goodCondition = getGoodCondition(characterName);
+  console.error('[arena] goodCondition:', JSON.stringify(goodCondition));
 
   console.log('[arena] reload');
   await PlayingPage.reload();
