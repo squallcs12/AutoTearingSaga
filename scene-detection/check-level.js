@@ -189,7 +189,13 @@ const checkLevelUpgrade = async (required, saveScreenshot) => {
   const { isGood, statIncreased } = await checkIsGoodLevelUp(total, required);
   if (isGood) {
     console.error('Goooooooooooooodddddddddddddddddd');
-    if (syncGithub) await syncSave(`Level up: ${statSummary(statIncreased).join(' ')}`);
+    if (syncGithub) {
+      try {
+        await syncSave(`Level up: ${statSummary(statIncreased).join(' ')}`);
+      } catch (e) {
+        console.error('[syncSave] failed:', e.message);
+      }
+    }
   }
   return { isGood, statIncreased };
 };
