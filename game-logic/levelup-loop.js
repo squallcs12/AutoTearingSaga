@@ -2,6 +2,7 @@ const sharp = require('sharp');
 const fs = require('fs');
 const { getScale } = require('../scene-detection/calib');
 const { getGoodCondition } = require('./characters/good-condition');
+const { identifyCharacter } = require('./identify-character');
 const parse = (str) => str.split('\n').map(x => x.trim()).filter(x => x.length > 0);
 
 const CHAR_NAME_BOX = { left: 35, top: 95, width: 245, height: 50 };
@@ -44,9 +45,7 @@ async function performFight(PlayingPage, battle, isBoss) {
   await PlayingPage.perform('wait-level-up');
 }
 
-async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, forceRandom, fight, isBoss, characterName) {
-  const goodCondition = getGoodCondition(characterName);
-  console.error('[levelup] goodCondition:', JSON.stringify(goodCondition));
+async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, forceRandom, fight, isBoss) {
   const randomSteps = parse(forceRandom);
   const battle = parse(fight);
   await PlayingPage.loadGameAndLoadQuickSave();
@@ -55,7 +54,12 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, force
   await PlayingPage.perform('X');
   await PlayingPage.perform('X');
   
-  await PlayingPage.perform('O');
+  await PlayingPage.perform('O'); // select character
+  await saveScreenshot('current-char-raw.png');
+  const detectedName = await identifyCharacter('tmp/current-char-raw.png');
+  console.log(`[levelup] detected character: ${detectedName}`);
+  const goodCondition = getGoodCondition(detectedName);
+  console.error('[levelup] goodCondition:', JSON.stringify(goodCondition));
   await PlayingPage.perform('save');
   await PlayingPage.perform('save2');
 
@@ -94,7 +98,7 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, force
 
     await performFight(PlayingPage, battle, isBoss);
 
-    const { isGood, statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, characterName);
+    const { isGood, statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
     const stats = [statIncreased.count, ...Object.keys(statIncreased).filter(k => k !== 'count' && statIncreased[k])];
     const logLine = `turn=${turn} isGood=${isGood} stats=${stats.join(',')}\n`;
     fs.appendFileSync('logs/levelup.log', logLine);

@@ -9,14 +9,25 @@ const fs = require('fs');
 const { isArenaConfirm, isArenaWin } = require('../scene-detection/check-arena');
 const { checkHp } = require('../scene-detection/check-hp');
 const { getGoodCondition } = require('./characters/good-condition');
+const { identifyCharacter } = require('./identify-character');
 
-async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, characterName, levelsToGain) {
-  const goodCondition = getGoodCondition(characterName);
+async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, levelsToGain) {
+  console.log('[arena] reload');
+  await PlayingPage.loadGameAndLoadQuickSave();
+  await sleep(2000);
+
+  await PlayingPage.perform('X');
+  await PlayingPage.perform('X');
+  await PlayingPage.perform('X');
+  await PlayingPage.perform('X');
+
+  await PlayingPage.perform('O'); // select character
+  await saveScreenshot('current-char-raw.png');
+  const detectedName = await identifyCharacter('tmp/current-char-raw.png');
+  console.log(`[arena] detected character: ${detectedName}`);
+  const goodCondition = getGoodCondition(detectedName);
   console.error('[arena] goodCondition:', JSON.stringify(goodCondition));
 
-  console.log('[arena] reload');
-  await PlayingPage.reload();
-  await sleep(2000);
   await PlayingPage.perform('save2');
 
   let levelCount = 0;
@@ -117,7 +128,7 @@ async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, 
         : goodCondition;
       if (levelAttempts >= 1000) console.log('[arena] over 1000 attempts, reducing goodCondition count by 1');
 
-      const { isGood, statIncreased } = await checkLevelUpgrade(effectiveCondition, saveScreenshot, characterName);
+      const { isGood, statIncreased } = await checkLevelUpgrade(effectiveCondition, saveScreenshot, detectedName);
       const stats = [statIncreased.count, ...Object.keys(statIncreased).filter(k => k !== 'count' && statIncreased[k])];
       const logLine = `turn=${levelAttempts} isGood=${isGood} stats=${stats.join(',')}\n`;
       fs.appendFileSync('logs/arena.log', logLine);
