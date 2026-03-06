@@ -1,0 +1,116 @@
+# Movement Detection Progress
+
+## Reference files (in this folder)
+- movement-fg.png  — screenshot WITH movement tiles visible (character selected)
+- movement-bg.png  — screenshot WITHOUT movement tiles (after pressing X)
+
+## Expected grid output
+C is at row 5, col 6 (0-indexed).
+
+. . . . G G G . . . . . . .
+. . . . . G G . . . . . . .
+. . . . . . G . . G G . . .
+. . . . . G . G . G G . G .
+. . G . G . G G G G G . . .
+. . G G G G C G G G G . . .
+. . . G G G G G G G G G G .
+. . . . G G . G G G G G . .
+. . . . . G G G G G G . . .
+. . . . . . G G G G . . . .
+. . . . . . G G G . . . . .
+
+## What's been built
+- scene-detection/check-movement.js
+  - subtractBackground(bgPath, fgPath): diffs two images, keeps pixels that
+    changed AND are green in fg (isMoveTile filter), limited to game area top 27%
+  - findComponents(): BFS flood-fill to get tile centroids and sizes
+  - estimateTileSizes(): estimate tileX / tileY separately -- BROKEN (see below)
+  - detectMovableGrid(bgPath, fgPath): full pipeline -> returns { grid, tileX, tileY }
+  - getAvailableDirections(grid): reads grid string array, checks 4 neighbors of C
+  - CLI: node scene-detection/check-movement.js <fg.png> <bg.png>
+
+- game-logic/levelup-loop.js
+  - buildForceRandom(directions): random 1-5 movement steps + 'O,wait,X,wait'
+  - Before Phase 1: capture fg, press X, capture bg, detect grid, get directions
+  - Phase 1: find random steps that change stat vs baseline
+  - Phase 2: farm good condition with working steps
+
+## Current bug in estimateTileSizes
+The function collects ALL pairwise same-row/col distances, so median is inflated
+by non-adjacent tile pairs. tileX comes out as 163px instead of ~80px.
+
+Fix: for each tile, find only the NEAREST neighbor in the same row/col, collect
+those minimum distances, then take median.
+
+  for (let i = 0; i < tiles.length; i++) {
+    let minX = Infinity, minY = Infinity;
+    for (let j = 0; j < tiles.length; j++) {
+      if (i === j) continue;
+      const dx = Math.abs(tiles[i].cx - tiles[j].cx);
+      const dy = Math.abs(tiles[i].cy - tiles[j].cy);
+      if (dy < 15 && dx > 10 && dx < minX) minX = dx;
+      if (dx < 15 && dy > 10 && dy < minY) minY = dy;
+    }
+    if (minX !== Infinity) xDists.push(minX);
+    if (minY !== Infinity) yDists.push(minY);
+  }
+
+## Known tile data (from debug run on reference images)
+- Screen: 1080x2400, game area: top 648px (27%)
+- Real tiles: size >= 1500px (noise tiles are < 1200px)
+- tileX ~= 80px (horiz spacing between adjacent tile centroids)
+- tileY ~= 72px (vert spacing)
+- Character tile gap (no green): approx cx=478, cy=430
+
+## Tile centroids (size >= 1500, sorted by cy then cx)
+cx=398  cy=13   size=1874
+cx=319  cy=76   size=2294
+cx=398  cy=69   size=4578
+cx=479  cy=68   size=4808
+cx=397  cy=138  size=4365
+cx=479  cy=140  size=4771
+cx=478  cy=211  size=4419
+cx=723  cy=212  size=4470
+cx=802  cy=213  size=4733
+cx=396  cy=280  size=4032
+cx=640  cy=285  size=4751
+cx=720  cy=280  size=3916
+cx=803  cy=285  size=4663
+cx=883  cy=285  size=4819
+cx=155  cy=358  size=4880
+cx=317  cy=357  size=4870
+cx=478  cy=352  size=3962
+cx=559  cy=357  size=4879
+cx=640  cy=358  size=4860
+cx=803  cy=358  size=4792
+cx=156  cy=429  size=4639
+cx=235  cy=430  size=4796
+cx=316  cy=430  size=4781
+cx=397  cy=429  size=4208
+cx=560  cy=430  size=4807
+cx=640  cy=430  size=4797
+cx=721  cy=430  size=4804
+cx=802  cy=430  size=4739
+cx=236  cy=502  size=4795
+cx=317  cy=502  size=4808
+cx=398  cy=503  size=4637
+cx=477  cy=498  size=4012
+cx=560  cy=502  size=4808
+cx=640  cy=501  size=4673
+cx=721  cy=502  size=4748
+cx=802  cy=502  size=4684
+cx=883  cy=502  size=4766
+cx=965  cy=502  size=4799
+cx=317  cy=574  size=4748
+cx=398  cy=575  size=4880
+cx=560  cy=574  size=4868
+cx=640  cy=575  size=4733
+cx=721  cy=575  size=4805
+cx=802  cy=575  size=4659
+cx=883  cy=573  size=4334
+cx=398  cy=631  size=2442
+cx=478  cy=631  size=2441
+cx=560  cy=631  size=2440
+cx=641  cy=631  size=2442
+cx=721  cy=631  size=2441
+cx=802  cy=631  size=2393

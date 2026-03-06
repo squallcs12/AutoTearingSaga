@@ -1,30 +1,25 @@
-const sharp = require('sharp');
 const fs = require('fs');
-const { getScale } = require('../scene-detection/calib');
 const { getGoodCondition } = require('./characters/good-condition');
 const { identifyCharacter } = require('./identify-character');
+const { detectMovableGrid, getAvailableDirections } = require('../scene-detection/check-movement');
 const parse = (str) => str.split('\n').map(x => x.trim()).filter(x => x.length > 0);
 
-const CHAR_NAME_BOX = { left: 35, top: 195, width: 345, height: 100 };
-
-async function extractCharName(imagePath) {
-  const image = sharp(imagePath);
-  const { width } = await image.metadata();
-  const s = getScale(width);
-  return image.extract({
-    left:   Math.round(CHAR_NAME_BOX.left   * s),
-    top:    Math.round(CHAR_NAME_BOX.top    * s),
-    width:  Math.round(CHAR_NAME_BOX.width  * s),
-    height: Math.round(CHAR_NAME_BOX.height * s),
-  }).resize(CHAR_NAME_BOX.width, CHAR_NAME_BOX.height);
+function buildForceRandom(directions) {
+  const count = Math.floor(Math.random() * 5) + 1;
+  const steps = [];
+  for (let i = 0; i < count; i++) {
+    steps.push(directions[Math.floor(Math.random() * directions.length)]);
+  }
+  steps.push('O', 'wait', 'X', 'wait');
+  return steps;
 }
 
-function buildForceRandom(attempt) {
-  const steps = [];
-  for (let i = 0; i < attempt; i++) {
-    steps.push(i % 2 === 0 ? 'up' : 'down');
+function statsDiffer(a, b) {
+  if (a.count !== b.count) return true;
+  for (let i = 1; i <= 9; i++) {
+    if (!!a[i] !== !!b[i]) return true;
   }
-  return steps;
+  return false;
 }
 
 async function performSteps(PlayingPage, steps) {
@@ -45,9 +40,8 @@ async function performFight(PlayingPage, battle, isBoss) {
   await PlayingPage.perform('wait-level-up');
 }
 
-async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, forceRandom, fight, isBoss) {
+async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight, isBoss) {
   fs.writeFileSync('logs/levelup.log', '');
-  const randomSteps = parse(forceRandom);
   const battle = parse(fight);
   await PlayingPage.loadGameAndLoadQuickSave();
   await PlayingPage.perform('X');
@@ -64,37 +58,53 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, force
   await PlayingPage.perform('save');
   await PlayingPage.perform('save2');
 
-  await PlayingPage.waitNotificationHide();
-  await saveScreenshot('current-char-raw.png');
-  await (await extractCharName('tmp/current-char-raw.png')).toFile('tmp/current-char-name.png');
+  // Baseline: fight with no random steps to record init stat
+  await performFight(PlayingPage, battle, isBoss);
+  const { statIncreased: initStat } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
+  console.error('[levelup] initStat:', JSON.stringify(initStat));
 
+  // Detect available movement directions
+  await PlayingPage.perform('left');            // move cursor left (tiles still visible)
+  await saveScreenshot('movement-fg.png');      // fg: with movement tiles
+  await PlayingPage.perform('X');               // cancel → tiles disappear
+  await saveScreenshot('movement-bg.png');      // bg: without movement tiles
+  const { grid } = await detectMovableGrid('tmp/movement-fg.png', 'tmp/movement-bg.png');
+  console.error('[levelup] movement grid:\n' + grid.join('\n'));
+  const directions = getAvailableDirections(grid);
+  console.error('[levelup] available directions:', directions);
+  await PlayingPage.perform('right');           // move cursor back
+  await PlayingPage.perform('O');               // reselect character
+
+  // Phase 1: find random steps that change the stat outcome
+  let workingRandomSteps;
+  while (true) {
+    await PlayingPage.reload();
+    await PlayingPage.perform('save2');
+
+    const randomSteps = buildForceRandom(directions);
+    console.error('[levelup] trying random steps:', randomSteps.join(', '));
+    await performSteps(PlayingPage, randomSteps);
+    await PlayingPage.perform('save');
+
+    await performFight(PlayingPage, battle, isBoss);
+    const { statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
+
+    if (statsDiffer(statIncreased, initStat)) {
+      console.error('[levelup] found working random steps:', randomSteps.join(', '));
+      workingRandomSteps = randomSteps;
+      break;
+    }
+    console.error('[levelup] no change, retrying...');
+  }
+
+  // Phase 2: farm good condition using the working random steps
   let turn = 0;
   while (true) {
     turn++;
     await PlayingPage.reload();
     await PlayingPage.perform('save2');
 
-    await performSteps(PlayingPage, randomSteps);
-
-    await PlayingPage.waitNotificationHide();
-    await saveScreenshot('current-char-raw.png');
-    const [refBuf, curBuf] = await Promise.all([
-      sharp('tmp/current-char-name.png').raw().toBuffer(),
-      (await extractCharName('tmp/current-char-raw.png')).raw().toBuffer(),
-    ]);
-    let same = 0;
-    for (let i = 0; i < refBuf.length; i++) {
-      if (Math.abs(refBuf[i] - curBuf[i]) < 10) same++;
-    }
-    const match = same / refBuf.length;
-    console.log(`[levelup] char name match: ${(match * 100).toFixed(1)}%`);
-//    if (match <= 0.9) {
-//      console.log('[levelup] wrong character, reloading');
-//      await PlayingPage.reload(2);
-//      PlayingPage.perform('save');
-//      continue;
-//    }
-
+    await performSteps(PlayingPage, workingRandomSteps);
     await PlayingPage.perform('save');
 
     await performFight(PlayingPage, battle, isBoss);
@@ -105,9 +115,9 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, force
     fs.appendFileSync('logs/levelup.log', logLine);
     console.error(logLine.trim());
     if (isGood) {
-        await PlayingPage.perform('save');
-        await PlayingPage.perform('save1');
-        break;
+      await PlayingPage.perform('save');
+      await PlayingPage.perform('save1');
+      break;
     }
   }
 
