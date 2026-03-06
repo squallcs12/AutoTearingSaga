@@ -5,7 +5,7 @@ const { getGoodCondition } = require('./characters/good-condition');
 const { identifyCharacter } = require('./identify-character');
 const parse = (str) => str.split('\n').map(x => x.trim()).filter(x => x.length > 0);
 
-const CHAR_NAME_BOX = { left: 35, top: 95, width: 245, height: 50 };
+const CHAR_NAME_BOX = { left: 35, top: 195, width: 345, height: 100 };
 
 async function extractCharName(imagePath) {
   const image = sharp(imagePath);
@@ -46,6 +46,7 @@ async function performFight(PlayingPage, battle, isBoss) {
 }
 
 async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, forceRandom, fight, isBoss) {
+  fs.writeFileSync('logs/levelup.log', '');
   const randomSteps = parse(forceRandom);
   const battle = parse(fight);
   await PlayingPage.loadGameAndLoadQuickSave();
@@ -87,12 +88,12 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, force
     }
     const match = same / refBuf.length;
     console.log(`[levelup] char name match: ${(match * 100).toFixed(1)}%`);
-    if (match <= 0.9) {
-      console.log('[levelup] wrong character, reloading');
-      await PlayingPage.reload(2);
-      PlayingPage.perform('save');
-      continue;
-    }
+//    if (match <= 0.9) {
+//      console.log('[levelup] wrong character, reloading');
+//      await PlayingPage.reload(2);
+//      PlayingPage.perform('save');
+//      continue;
+//    }
 
     await PlayingPage.perform('save');
 
