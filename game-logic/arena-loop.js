@@ -23,13 +23,15 @@ async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, 
 
   await PlayingPage.perform('O'); // select character
   await saveScreenshot('current-char-raw.png');
-  const detectedName = await identifyCharacter('tmp/current-char-raw.png');
-  console.log(`[arena] detected character: ${detectedName}`);
+  const detectedName = process.env.CHAR_NAME || await identifyCharacter('tmp/current-char-raw.png');
+  console.log(`[arena] detected character: ${detectedName}${process.env.CHAR_NAME ? ' (override)' : ''}`);
+  if (!detectedName) throw new Error('Could not identify character face (no match above 95%). Add face image to game-logic/characters/faces/ or use -name <char>');
   const goodCondition = getGoodCondition(detectedName);
   console.error('[arena] goodCondition:', JSON.stringify(goodCondition));
 
   await PlayingPage.perform('save2');
 
+  const skipCount = parseInt(process.env.SKIP_COUNT || '0', 10);
   let levelCount = 0;
   let skipNav = false;
   let changeOpponent = false;
@@ -106,6 +108,19 @@ async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, 
     await PlayingPage.perform('wait');
 
     await PlayingPage.perform('save3');
+
+    if (levelAttempts + 1 <= skipCount) {
+      levelAttempts++;
+      console.log(`[arena] skipping attempt ${levelAttempts}/${skipCount}`);
+      await PlayingPage.perform('reload3');
+      await PlayingPage.perform('O');
+      await PlayingPage.perform('X');
+      await PlayingPage.perform('X');
+      await PlayingPage.perform('X');
+      await PlayingPage.perform('X');
+      skipNav = true;
+      continue;
+    }
 
     await PlayingPage.perform('left');
     await PlayingPage.perform('O');

@@ -5,10 +5,14 @@ const path = require('path');
 const TIERS = ['good', 'avg', 'bad'];
 const args = process.argv.slice(2);
 const verbose = args.includes('-v');
-const positional = args.filter(a => a !== '-v');
+const skipIdx = args.indexOf('--skip');
+const skipCount = skipIdx !== -1 ? args[skipIdx + 1] : '0';
+const nameIdx = args.indexOf('-name');
+const nameOverride = nameIdx !== -1 ? args[nameIdx + 1] : null;
+const positional = args.filter((a, i) => a !== '-v' && a !== '--skip' && a !== '-name' && (skipIdx === -1 || i !== skipIdx + 1) && (nameIdx === -1 || i !== nameIdx + 1));
 const tierOverride = TIERS.includes(positional[0]) ? positional[0] : null;
 const N = parseInt(tierOverride ? (positional[1] || '4') : (positional[0] || '4'), 10);
-const env = tierOverride ? { ...process.env, TIER_OVERRIDE: tierOverride } : process.env;
+const env = { ...process.env, ...(tierOverride ? { TIER_OVERRIDE: tierOverride } : {}), SKIP_COUNT: skipCount, ...(nameOverride ? { CHAR_NAME: nameOverride } : {}) };
 
 let logFd;
 if (!verbose) {
