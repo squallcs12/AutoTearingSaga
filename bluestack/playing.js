@@ -1,30 +1,28 @@
 const { waitLevelUp } = require('../scene-detection/check-level');
 const { sleep, sendKey, takeScreenshot } = require('./common');
 
-// Keyboard mappings — update these to match your DuckStation bindings
 const KEYS = {
-  circle:    'c',       // PS1 Circle (O)
-  cross:     'x',       // PS1 Cross (X)
-  square:    'z',       // PS1 Square  — UPDATE if needed
-  triangle:  's',       // PS1 Triangle — UPDATE if needed
+  circle:    'c',
+  cross:     'x',
+  square:    'z',
+  triangle:  's',
   up:        'up',
   down:      'down',
   left:      'left',
   right:     'right',
-  quickSave: 'f4',        // user: F4 = quick save
-  quickLoad: 'shift+f4',  // user: Shift+F4 = quick load
-  // Save slots: F1/F2/F3 = save, Shift+F1/F2/F3 = load
+  quickSave: 'f4',
+  quickLoad: 'shift+f4',
   saveSlot1: 'f1', loadSlot1: 'shift+f1',
   saveSlot2: 'f2', loadSlot2: 'shift+f2',
   saveSlot3: 'f3', loadSlot3: 'shift+f3',
 };
 
-class PlayingDesktop {
+class PlayingBluestack {
   async moveUp()        { sendKey(KEYS.up); }
   async moveDown()      { sendKey(KEYS.down); }
   async moveLeft()      { sendKey(KEYS.left); }
   async moveRight()     { sendKey(KEYS.right); }
-  async moveUpLeft()    { sendKey(KEYS.up); }    // approximate diagonal
+  async moveUpLeft()    { sendKey(KEYS.up); }
   async moveUpRight()   { sendKey(KEYS.up); }
   async moveDownLeft()  { sendKey(KEYS.down); }
   async moveDownRight() { sendKey(KEYS.down); }
@@ -49,8 +47,9 @@ class PlayingDesktop {
   }
 
   async spamO() {
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 4; i++) {
       await this.pressO();
+      await sleep(1000);
     }
   }
 
@@ -118,4 +117,4 @@ class PlayingDesktop {
   }
 }
 
-module.exports = new PlayingDesktop();
+module.exports = new PlayingBluestack();

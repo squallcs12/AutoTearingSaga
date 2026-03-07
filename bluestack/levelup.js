@@ -1,8 +1,8 @@
-// Standalone desktop level-up automation (no WebdriverIO/Appium required).
-// Run from project root: node desktop/levelup.js
+// Standalone BlueStacks level-up automation.
+// Run from project root: node bluestack/levelup.js
 
 const { levelupLoop } = require('../game-logic/levelup-loop');
-const { checkLevelUpgrade } = require('./check-level');
+const { checkLevelUpgrade } = require('../scene-detection/check-level');
 const PlayingPage = require('./playing');
 const { takeScreenshot } = require('./common');
 const { fight, isBoss } = require('../config');

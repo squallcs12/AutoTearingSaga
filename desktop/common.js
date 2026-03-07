@@ -15,14 +15,29 @@ using System;
 using System.Runtime.InteropServices;
 public class WinApi {
     [DllImport("user32.dll")]
-    public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+    public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+    [DllImport("user32.dll")]
+    public static extern bool SetForegroundWindow(IntPtr hWnd);
+    [DllImport("user32.dll")]
+    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
     [DllImport("user32.dll")]
     public static extern uint MapVirtualKey(uint uCode, uint uMapType);
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")]
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+    [DllImport("user32.dll")]
+    public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+    [DllImport("kernel32.dll")]
+    public static extern uint GetCurrentThreadId();
 }
 "@
 
-$WM_KEYDOWN = 0x0100
-$WM_KEYUP   = 0x0101
+$KEYEVENTF_KEYUP       = 0x0002
+$KEYEVENTF_EXTENDEDKEY = 0x0001
+$VK_MENU  = 0x12
+$VK_SHIFT = 0x10
+$SW_SHOW  = 5
 
 $keyMap = @{
     'c'    = 0x43; 'x'    = 0x58; 'z'    = 0x5A; 's'    = 0x53;
@@ -34,24 +49,38 @@ $keyMap = @{
 
 $extendedVKs = @(0x25, 0x26, 0x27, 0x28)
 
-function Get-LParam([uint32]$vk, [bool]$keyUp) {
-    $scan = [WinApi]::MapVirtualKey($vk, 0)
-    $ext  = if ($extendedVKs -contains $vk) { 0x01000000 } else { 0 }
-    if ($keyUp) { return [IntPtr]($ext -bor ($scan -shl 16) -bor 0xC0000001) }
-    else        { return [IntPtr]($ext -bor ($scan -shl 16) -bor 1) }
+function Focus-Window($hwnd) {
+    $fgHwnd = [WinApi]::GetForegroundWindow()
+    if ($fgHwnd -eq $hwnd) { return }
+    $fgPid = 0; $tgtPid = 0
+    $fgTid  = [WinApi]::GetWindowThreadProcessId($fgHwnd, [ref]$fgPid)
+    $tgtTid = [WinApi]::GetWindowThreadProcessId($hwnd, [ref]$tgtPid)
+    $ourTid = [WinApi]::GetCurrentThreadId()
+    [WinApi]::AttachThreadInput($ourTid, $fgTid, $true)  | Out-Null
+    [WinApi]::AttachThreadInput($ourTid, $tgtTid, $true)  | Out-Null
+    [WinApi]::keybd_event($VK_MENU, 0, 0, [UIntPtr]::Zero)
+    [WinApi]::keybd_event($VK_MENU, 0, $KEYEVENTF_KEYUP, [UIntPtr]::Zero)
+    [WinApi]::ShowWindow($hwnd, $SW_SHOW)  | Out-Null
+    [WinApi]::SetForegroundWindow($hwnd)   | Out-Null
+    [WinApi]::AttachThreadInput($ourTid, $fgTid, $false)  | Out-Null
+    [WinApi]::AttachThreadInput($ourTid, $tgtTid, $false) | Out-Null
+    Start-Sleep -Milliseconds 50
 }
 
 function Send-VK($hwnd, [uint32]$vk, [bool]$shift) {
+    Focus-Window $hwnd
+    $scan  = [WinApi]::MapVirtualKey($vk, 0)
+    $flags = if ($extendedVKs -contains $vk) { $KEYEVENTF_EXTENDEDKEY } else { 0 }
     if ($shift) {
-        $ss = [WinApi]::MapVirtualKey(0x10, 0)
-        [WinApi]::PostMessage($hwnd, $WM_KEYDOWN, [IntPtr]0x10, [IntPtr](($ss -shl 16) -bor 1)) | Out-Null
+        $ss = [WinApi]::MapVirtualKey($VK_SHIFT, 0)
+        [WinApi]::keybd_event($VK_SHIFT, $ss, 0, [UIntPtr]::Zero)
     }
-    [WinApi]::PostMessage($hwnd, $WM_KEYDOWN, [IntPtr]$vk, (Get-LParam $vk $false)) | Out-Null
+    [WinApi]::keybd_event($vk, $scan, $flags, [UIntPtr]::Zero)
     Start-Sleep -Milliseconds 50
-    [WinApi]::PostMessage($hwnd, $WM_KEYUP, [IntPtr]$vk, (Get-LParam $vk $true)) | Out-Null
+    [WinApi]::keybd_event($vk, $scan, ($flags -bor $KEYEVENTF_KEYUP), [UIntPtr]::Zero)
     if ($shift) {
-        $ss = [WinApi]::MapVirtualKey(0x10, 0)
-        [WinApi]::PostMessage($hwnd, $WM_KEYUP, [IntPtr]0x10, [IntPtr](($ss -shl 16) -bor 0xC0000001)) | Out-Null
+        $ss = [WinApi]::MapVirtualKey($VK_SHIFT, 0)
+        [WinApi]::keybd_event($VK_SHIFT, $ss, $KEYEVENTF_KEYUP, [UIntPtr]::Zero)
     }
 }
 

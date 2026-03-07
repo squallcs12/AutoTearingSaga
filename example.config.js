@@ -1,11 +1,3 @@
-// Steps executed before battle to position the character randomly.
-// Each token is a step name optionally followed by a repeat count.
-// Available: up, down, left, right, up-left, up-right, down-left, down-right
-const forceRandom = `
-  right 2
-  down 1
-`;
-
 // Steps to execute the battle (movement + attack sequence).
 // Available: O, X, 2O, up, down, left, right, up-left, up-right, down-left, down-right, wait
 const fight = `
@@ -29,7 +21,10 @@ const goodCondition = [
 // Set to true to automatically pull the save, git add, commit and push when a good result is found.
 const syncGithub = false;
 
+// Character name (used in commit messages and save tracking)
+const characterName = 'kreiss';
+
 // Number of levels to gain when running arena.e2e.js
 const levelsToGain = 3;
 
-module.exports = { forceRandom, fight, isBoss, goodCondition, syncGithub, levelsToGain };
+module.exports = { fight, isBoss, goodCondition, syncGithub, characterName, levelsToGain };

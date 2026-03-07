@@ -13,7 +13,7 @@ const { identifyCharacter } = require('./identify-character');
 
 async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, levelsToGain) {
   console.log('[arena] reload');
-  await PlayingPage.loadGameAndLoadQuickSave();
+  await PlayingPage.perform('load-game');
   await sleep(2000);
 
   await PlayingPage.perform('X');
@@ -116,7 +116,8 @@ async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, 
     }
 
     console.log('[arena] waiting for level up');
-    const didLevelUp = await PlayingPage.waitLevelUp();
+    await PlayingPage.perform('wait-level-up');
+    const didLevelUp = PlayingPage.lastLevelUpResult;
     console.log(`[arena] didLevelUp=${didLevelUp}`);
 
     levelAttempts++;
@@ -159,7 +160,7 @@ async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, 
     }
 
     if (changeOpponent) {
-      await PlayingPage.reload(3);
+      await PlayingPage.perform('reload3');
       await PlayingPage.perform('O');
       await PlayingPage.perform('X');
       await PlayingPage.perform('X');

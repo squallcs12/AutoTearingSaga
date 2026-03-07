@@ -4,20 +4,23 @@
 - movement-fg.png  — screenshot WITH movement tiles visible (character selected)
 - movement-bg.png  — screenshot WITHOUT movement tiles (after pressing X)
 
-## Expected grid output
-C is at row 5, col 6 (0-indexed).
+## Current detection output (61 tiles)
+tiles=61  tileX=81px tileY=72px  origin=(479,445)
 
-. . . . G G G . . . . . . .
-. . . . . G G . . . . . . .
-. . . . . . G . . G G . . .
-. . . . . G . G . G G . G .
-. . G . G . G G G G G . . .
-. . G G G G C G G G G . . .
-. . . G G G G G G G G G G .
-. . . . G G . G G G G G . .
-. . . . . G G G G G G . . .
-. . . . . . G G G G . . . .
-. . . . . . G G G . . . . .
+. . . G . . . . . . .
+. . G G G . . . . . .
+. . . G G . . . . . .
+. . . . G . . G G . .
+. . . G G . G G G G .
+G . G . G G G G G . .
+G G G G C G G G G . .
+. G G G G G G G G G G
+. . G G G G G G G G .
+. . . G G G G G G . .
+. . . . G G G G . . .
+. . . . G G G . . . .
+
+Directions from C: up, down, left, right (all 4 reachable)
 
 ## What's been built
 - scene-detection/check-movement.js
@@ -35,32 +38,31 @@ C is at row 5, col 6 (0-indexed).
   - Phase 1: find random steps that change stat vs baseline
   - Phase 2: farm good condition with working steps
 
-## Current bug in estimateTileSizes
-The function collects ALL pairwise same-row/col distances, so median is inflated
-by non-adjacent tile pairs. tileX comes out as 163px instead of ~80px.
+## Fixed: estimateTileSizes (nearest-neighbor only)
+Previously collected ALL pairwise distances, inflating median. Now finds only the
+nearest neighbor in each row/col. tileX correctly comes out as ~81px.
 
-Fix: for each tile, find only the NEAREST neighbor in the same row/col, collect
-those minimum distances, then take median.
+## Fixed: character position detection (hole-finding)
+Previously used average centroid of all tiles as origin, which was wrong for
+asymmetric movement shapes. Now uses `findCharacterPosition()` which:
+1. Grid-aligns all tiles relative to a reference tile
+2. Finds all empty cells adjacent to tiles (candidate holes)
+3. Picks the hole with the most tile neighbors, tiebreaking by proximity to centroid
+Result: origin correctly detected at (479, 445) vs old incorrect (561, 411).
 
-  for (let i = 0; i < tiles.length; i++) {
-    let minX = Infinity, minY = Infinity;
-    for (let j = 0; j < tiles.length; j++) {
-      if (i === j) continue;
-      const dx = Math.abs(tiles[i].cx - tiles[j].cx);
-      const dy = Math.abs(tiles[i].cy - tiles[j].cy);
-      if (dy < 15 && dx > 10 && dx < minX) minX = dx;
-      if (dx < 15 && dy > 10 && dy < minY) minY = dy;
-    }
-    if (minX !== Infinity) xDists.push(minX);
-    if (minY !== Infinity) yDists.push(minY);
-  }
+## Fixed: edge tile detection (two-pass approach)
+- Extended game area from 27% to 33% of screen height (648px -> 792px)
+- Two-pass tile detection:
+  - Pass 1: reliable tiles at size >= 1500
+  - Pass 2: smaller tiles (>= 800) accepted if they snap to the grid (< 0.35 error)
+- Result: 60+ tiles detected (was 51), bottom rows now visible
 
 ## Known tile data (from debug run on reference images)
-- Screen: 1080x2400, game area: top 648px (27%)
-- Real tiles: size >= 1500px (noise tiles are < 1200px)
-- tileX ~= 80px (horiz spacing between adjacent tile centroids)
+- Screen: 1080x2400, game area: top 792px (33%)
+- Reliable tiles: size >= 1500px, edge tiles: >= 800px (grid-snapped)
+- tileX ~= 81px (horiz spacing between adjacent tile centroids)
 - tileY ~= 72px (vert spacing)
-- Character tile gap (no green): approx cx=478, cy=430
+- Character position (hole in tiles): approx cx=479, cy=445
 
 ## Tile centroids (size >= 1500, sorted by cy then cx)
 cx=398  cy=13   size=1874

@@ -2,7 +2,7 @@
 
 ## wdio.conf.js — Appium IPv4/IPv6 mismatch (Windows vs Linux)
 
-**Status:** Linux fix applied, pending retest on Windows (as of 2026-03-05)
+**Status:** Resolved via OS detection in `wdio.conf.js` (as of 2026-03-06)
 
 ### The Problem
 
@@ -25,7 +25,8 @@ Windows has dual-stack socket support: connecting to `127.0.0.1` (IPv4) transpar
 services: ['appium'],        // no address: '::1' — use Appium default (0.0.0.0)
 ```
 
-### TODO
+### Fix Applied
 
-- Retest on Windows with the Linux config to confirm it still works there
-- If Windows breaks, may need OS-detection or separate config files per platform
+`wdio.conf.js` now uses `process.platform === 'win32'` to switch config:
+- **Windows**: `hostname: '127.0.0.1'` + `services: [['appium', { args: { address: '::1' } }]]`
+- **Linux/other**: no hostname override + `services: ['appium']`

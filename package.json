@@ -18,6 +18,8 @@
         "arena": "node scripts/arena.js",
         "desktop-level": "node desktop/levelup.js",
         "desktop-arena": "node desktop/arena.js",
+        "bluestack-level": "node scripts/bluestack-level.js",
+        "bluestack-arena": "node bluestack/arena.js",
         "pull-desktop": "node desktop/pull-desktop.js",
         "pull-phone": "node android/pull-phone.js",
         "restore-phone": "node android/restore-phone.js",

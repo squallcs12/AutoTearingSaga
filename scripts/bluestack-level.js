@@ -21,7 +21,7 @@ const stdio = verbose ? 'inherit' : ['ignore', logFd, logFd];
 
 for (let i = 0; i < N; i++) {
   try {
-    execSync('npx wdio --spec android/specs/levelup.e2e.js', { stdio, env });
+    execSync('node bluestack/levelup.js', { stdio, env });
     if (logFd) fs.closeSync(logFd);
     execSync('node scripts/notify.js success', { stdio: 'inherit' });
     process.exit(0);

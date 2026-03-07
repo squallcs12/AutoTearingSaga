@@ -173,7 +173,8 @@ class PlayingPage extends Page {
   }
 
   async waitLevelUp() {
-    return waitLevelUp(this, { sleepMs: 500 });
+    this.lastLevelUpResult = await waitLevelUp(this, { sleepMs: 500 });
+    return this.lastLevelUpResult;
   }
 
   async perform(step) {
@@ -272,6 +273,12 @@ class PlayingPage extends Page {
           break
         case 'wait-level-up':
           await this.waitLevelUp();
+          break;
+        case 'reload':  await this.reload(0); break;
+        case 'reload1': await this.reload(1); break;
+        case 'reload2': await this.reload(2); break;
+        case 'reload3': await this.reload(3); break;
+        case 'load-game': await this.loadGameAndLoadQuickSave(); break;
         default:
           break;
       }

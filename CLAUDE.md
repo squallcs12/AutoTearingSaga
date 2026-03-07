@@ -34,6 +34,9 @@ node pull-phone.js
 
 # Push save from emulator back to phone
 node restore-phone.js
+
+# Run level-up farming on BlueStacks (DuckStation inside BlueStacks)
+yarn bluestack-level
 ```
 
 ## Prerequisites
@@ -95,6 +98,26 @@ The main loop:
 6. Evaluates result against `goodCondition`: `count` sets minimum total increases; individual stat keys use `1` (must increase) or `-1` (must NOT increase)
 7. On success + `syncGithub=true`: auto-pulls save file via adb and git commits/pushes
 
+### Movement Detection (`scene-detection/check-movement.js`)
+
+Detects which tiles the selected character can move to by comparing two screenshots:
+1. **fg** (foreground): screenshot with movement tiles visible (character selected)
+2. **bg** (background): screenshot without movement tiles (after pressing X)
+
+Pipeline:
+1. Background subtraction: diff the two images, keep pixels that changed AND are green (`isMoveTile` filter), limited to game area (4:3 aspect ratio: `width * 3/4`)
+2. BFS flood-fill to find connected components (tile blobs), filter by size
+3. Two-pass detection: reliable tiles (>= 1500px), then smaller edge tiles (>= 800px) that snap to the grid
+4. Estimate tile spacing (`tileX` ~81px, `tileY` ~72px) via nearest-neighbor distances
+5. Find character position: the interior "hole" surrounded by the most tiles
+6. Build grid string array (`C`=character, `G`=reachable, `.`=blocked)
+
+`getAvailableDirections(grid)` checks 4 neighbors of `C` to return which directions have reachable tiles.
+
+Used by `game-logic/levelup-loop.js` to dynamically build random movement steps (`buildForceRandom`) instead of requiring hardcoded `forceRandom` config.
+
+CLI: `node scene-detection/check-movement.js <bg.png> <fg.png>`
+
 ### Arena Detection (`scene-detection/check-arena.js`)
 
 Compares screenshot colors against `arena-color.png` reference image with a 98%+ match threshold to detect the arena confirmation screen.
@@ -117,13 +140,19 @@ Compares screenshot colors against `arena-color.png` reference image with a 98%+
 | `test/specs/arena.e2e.js` | Arena battle automation loop |
 | `test/specs/levelup.js` | **Local config** (gitignored) — battle steps and win conditions |
 | `test/pageobjects/playing.page.js` | Game controller abstraction (Page Object) |
+| `game-logic/levelup-loop.js` | Core level-up loop logic (movement detection + phase 1/2 farming) |
 | `scene-detection/check-level.js` | Screenshot analysis for level-up stat detection |
 | `scene-detection/check-arena.js` | Screenshot analysis for arena screen detection |
+| `scene-detection/check-movement.js` | Movement tile grid detection (bg/fg diff) |
 | `scene-detection/check-hp.js` | Screenshot analysis for HP detection |
 | `wdio.conf.js` | WebdriverIO/Appium config (port 4723, emulator-5554, Android 12) |
 | `sample-color.json` | Grayscale color palette for level-up UI detection |
 | `arena-color.png` | Arena screen reference image for detection |
 | `SLPS-03177_0.sav` | Game save file (committed to git on good results) |
+
+## Game Screen
+
+The PS1 game renders at 4:3 aspect ratio. On a vertical mobile screen (e.g. 1080x2400), the game area occupies the top portion: `gameAreaHeight = width * 3 / 4` (e.g. 810px for 1080px wide). Everything below is the virtual controller UI overlay.
 
 ## Game UI
 
