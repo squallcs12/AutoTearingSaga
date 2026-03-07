@@ -1,7 +1,9 @@
 const sharp = require('sharp');
 const path = require('path');
+const fs = require('fs');
 sharp.cache(false);
 
+const MOVEMENT_DIR = 'tmp/movement';
 const BG_PATH = 'tmp/movement-bg.png';
 const FG_PATH = 'tmp/movement-fg.png';
 
@@ -9,25 +11,42 @@ async function loadRaw(filePath) {
   return sharp(filePath).raw().toBuffer({ resolveWithObject: true });
 }
 
+// Detect game screen area (4:3 aspect ratio) within the full image.
+// Portrait (vertical): game at top, full width, height = width * 3/4
+// Landscape (horizontal): game centered vertically, full height, width = height * 4/3
+function getGameArea(width, height) {
+  if (height > width) {
+    // Portrait
+    return { gameX: 0, gameY: 0, gameW: width, gameH: Math.round(width * 3 / 4) };
+  } else {
+    // Landscape
+    const gameW = Math.round(height * 4 / 3);
+    const gameX = Math.round((width - gameW) / 2);
+    return { gameX, gameY: 0, gameW, gameH: height };
+  }
+}
+
 // Background subtraction: pixels that changed between bg and fg frames,
 // limited to the game area (top portion of screen, excluding controller UI)
 async function subtractBackground(bgPath, fgPath, diffThreshold = 25) {
   const [bg, fg] = await Promise.all([loadRaw(bgPath), loadRaw(fgPath)]);
   const { width, height, channels } = fg.info;
-  const gameAreaHeight = Math.round(width * 3 / 4); // game is 4:3, rendered at top of vertical screen
+  const { gameX, gameY, gameW, gameH } = getGameArea(width, height);
   const total = width * height;
   const tileMap = new Uint8Array(total);
 
   for (let px = 0; px < total; px++) {
-    const y = Math.floor(px / width);
-    if (y >= gameAreaHeight) continue;
+    const x = px % width, y = Math.floor(px / width);
+    if (x < gameX || x >= gameX + gameW || y < gameY || y >= gameY + gameH) continue;
     const i = px * channels;
-    const diff =
-      Math.abs(bg.data[i]   - fg.data[i])   +
-      Math.abs(bg.data[i+1] - fg.data[i+1]) +
-      Math.abs(bg.data[i+2] - fg.data[i+2]);
+    const dr = fg.data[i]   - bg.data[i];
+    const dg = fg.data[i+1] - bg.data[i+1];
+    const db = fg.data[i+2] - bg.data[i+2];
+    const diff = Math.abs(dr) + Math.abs(dg) + Math.abs(db);
     if (diff > diffThreshold) {
-      tileMap[px] = 1;
+      // Movement tiles are green overlays: fg green channel increases more than red/blue
+      const isGreenShift = dg > dr && dg > db;
+      if (isGreenShift) tileMap[px] = 1;
     }
   }
 
@@ -38,9 +57,16 @@ async function subtractBackground(bgPath, fgPath, diffThreshold = 25) {
     const i = px * 3;
     diffBuf[i] = v; diffBuf[i+1] = v; diffBuf[i+2] = v;
   }
-  await sharp(diffBuf, { raw: { width, height, channels: 3 } })
-    .png()
-    .toFile('tmp/movement-diff.png');
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const runDir = `${MOVEMENT_DIR}/${timestamp}`;
+  if (!fs.existsSync(runDir)) fs.mkdirSync(runDir, { recursive: true });
+  await Promise.all([
+    fs.promises.copyFile(bgPath, `${runDir}/bg.png`),
+    fs.promises.copyFile(fgPath, `${runDir}/fg.png`),
+    sharp(diffBuf, { raw: { width, height, channels: 3 } })
+      .png()
+      .toFile(`${runDir}/diff.png`),
+  ]);
 
   return { tileMap, width, height };
 }
@@ -56,15 +82,16 @@ function findComponents(tileMap, width, height, minSize = 20) {
     const queue = [start];
     let head = 0;
     let sumX = 0, sumY = 0, count = 0;
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     visited[start] = 1;
 
     while (head < queue.length) {
       const px = queue[head++];
-      sumX += px % width;
-      sumY += Math.floor(px / width);
-      count++;
-
       const x = px % width, y = Math.floor(px / width);
+      sumX += x; sumY += y; count++;
+      if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (y < minY) minY = y; if (y > maxY) maxY = y;
+
       for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
         const nx = x + dx, ny = y + dy;
         if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
@@ -76,7 +103,7 @@ function findComponents(tileMap, width, height, minSize = 20) {
     }
 
     if (count >= minSize) {
-      components.push({ cx: Math.round(sumX / count), cy: Math.round(sumY / count), size: count });
+      components.push({ cx: Math.round(sumX / count), cy: Math.round(sumY / count), size: count, minX, maxX, minY, maxY });
     }
   }
 
@@ -118,14 +145,14 @@ function estimateTileSizes(tiles) {
 // C = cursor center + 1 tile right.
 async function findCharacterPosition(tiles, tileX, tileY, bgPath) {
   const bg = await sharp(bgPath).raw().toBuffer({ resolveWithObject: true });
-  const { width, channels } = bg.info;
+  const { width, height, channels } = bg.info;
   const ref = tiles[0];
-  const gameH = Math.round(width * 3 / 4);
+  const { gameX, gameY, gameW, gameH } = getGameArea(width, height);
 
   // Collect white/bright pixels in game area (cursor corners are white)
   const whitePixels = [];
-  for (let y = 0; y < gameH; y++) {
-    for (let x = 0; x < width; x++) {
+  for (let y = gameY; y < gameY + gameH; y++) {
+    for (let x = gameX; x < gameX + gameW; x++) {
       const i = (y * width + x) * channels;
       const r = bg.data[i], g = bg.data[i+1], b = bg.data[i+2];
       if (r > 180 && g > 180 && b > 180 && Math.max(r,g,b) - Math.min(r,g,b) < 30) {
@@ -176,9 +203,6 @@ async function findCharacterPosition(tiles, tileX, tileY, bgPath) {
       for (let k = j+1; k < corners.length && !cursorCx; k++) {
         for (let l = k+1; l < corners.length && !cursorCx; l++) {
           const pts = [corners[i], corners[j], corners[k], corners[l]];
-          // Check sizes are similar (all within 30% of each other)
-          const sizes = pts.map(p => p.size).sort((a,b) => a-b);
-          if (sizes[3] > sizes[0] * 1.3) continue;
           // Group into left/right and top/bottom pairs with tolerance
           const sortedX = pts.map(p => p.cx).sort((a, b) => a - b);
           if (sortedX[1] - sortedX[0] > 10 || sortedX[3] - sortedX[2] > 10) continue;
@@ -200,11 +224,9 @@ async function findCharacterPosition(tiles, tileX, tileY, bgPath) {
   }
 
   if (cursorCx !== null) {
-    // Character is to the right of cursor. In this game's isometric grid,
-    // pressing LEFT moved the cursor 2 screen-tiles left and 2 down.
-    // So character = cursor + 2*tileX right and 2*tileY up.
-    const charCx = cursorCx + 2 * tileX;
-    const charCy = cursorCy - 2 * tileY;
+    // Character is 1 tile to the right of cursor (LEFT was pressed once).
+    const charCx = cursorCx + 1 * tileX;
+    const charCy = cursorCy;
     console.log(`[cursor] at (${cursorCx},${cursorCy}), char at (${charCx},${charCy})`);
     const charGx = Math.round((charCx - ref.cx) / tileX);
     const charGy = Math.round((charCy - ref.cy) / tileY);
@@ -280,15 +302,51 @@ async function detectMovableGrid(bgPath, fgPath) {
 
   // Second pass: include smaller tiles (>= 800) that snap to the grid
   // Second pass uses original tileMap to recover tiles near sprites that erosion removed
-  const allCandidates = findComponents(tileMap, width, height, 800).filter(t => t.size <= maxTileSize);
-  const tiles = allCandidates.filter(t => {
-    if (t.size >= 1500) return true;
-    // Check if this tile snaps to a grid position
-    const gxFrac = (t.cx - originX) / tileX;
-    const gyFrac = (t.cy - originY) / tileY;
-    return Math.abs(gxFrac - Math.round(gxFrac)) < 0.35 &&
-           Math.abs(gyFrac - Math.round(gyFrac)) < 0.35;
-  });
+  // Oversized components (multiple touching tiles) are split by grid cell
+  const allCandidates = findComponents(tileMap, width, height, 800);
+  const tiles = [];
+  for (const t of allCandidates) {
+    if (t.size <= maxTileSize) {
+      if (t.size >= 1500) {
+        tiles.push(t);
+      } else {
+        const gxFrac = (t.cx - originX) / tileX;
+        const gyFrac = (t.cy - originY) / tileY;
+        if (Math.abs(gxFrac - Math.round(gxFrac)) < 0.35 &&
+            Math.abs(gyFrac - Math.round(gyFrac)) < 0.35) {
+          tiles.push(t);
+        }
+      }
+    } else {
+      // Split oversized component: BFS to collect only this component's pixels,
+      // then assign each pixel to its nearest grid cell
+      const cellCounts = new Map();
+      const compVisited = new Uint8Array(total);
+      const startPx = t.cy * width + t.cx;
+      const bfsQueue = [startPx]; compVisited[startPx] = 1; let bfsHead = 0;
+      while (bfsHead < bfsQueue.length) {
+        const px = bfsQueue[bfsHead++];
+        const x = px % width, y = Math.floor(px / width);
+        const gx = Math.round((x - originX) / tileX);
+        const gy = Math.round((y - originY) / tileY);
+        const key = `${gx},${gy}`;
+        const entry = cellCounts.get(key);
+        if (entry) { entry.sumX += x; entry.sumY += y; entry.count++; }
+        else cellCounts.set(key, { sumX: x, sumY: y, count: 1 });
+        for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+          const nx = x + dx, ny = y + dy;
+          if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+          const nPx = ny * width + nx;
+          if (tileMap[nPx] && !compVisited[nPx]) { compVisited[nPx] = 1; bfsQueue.push(nPx); }
+        }
+      }
+      for (const [, cell] of cellCounts) {
+        if (cell.count >= 2000) {
+          tiles.push({ cx: Math.round(cell.sumX / cell.count), cy: Math.round(cell.sumY / cell.count), size: cell.count });
+        }
+      }
+    }
+  }
 
   const gridTiles = tiles.map(t => ({
     gx: Math.round((t.cx - originX) / tileX),
