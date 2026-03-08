@@ -28,6 +28,9 @@ async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, 
   if (!detectedName) throw new Error('Could not identify character face (no match above 95%). Add face image to game-logic/characters/faces/ or use -name <char>');
   const goodCondition = getGoodCondition(detectedName);
   console.error('[arena] goodCondition:', JSON.stringify(goodCondition));
+  const FALLBACK_THRESHOLD = 20;
+  let nearMissCount = process.env.NO_FALLBACK ? Infinity : 0;
+  const fallbackCondition = goodCondition.map(c => ({ ...c, count: Math.max(1, c.count - 1), hp: 1 }));
 
   await PlayingPage.perform('save2');
 
@@ -139,20 +142,24 @@ async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, 
     console.log(`[arena] levelAttempts=${levelAttempts}`);
 
     if (didLevelUp) {
-      const effectiveCondition = levelAttempts >= 1000
-        ? goodCondition.map(c => ({ ...c, count: Math.max(1, c.count - 1) }))
-        : goodCondition;
-      if (levelAttempts >= 1000) console.log('[arena] over 1000 attempts, reducing goodCondition count by 1');
+      const effectiveCondition = nearMissCount >= FALLBACK_THRESHOLD ? fallbackCondition : goodCondition;
 
       const { isGood, statIncreased } = await checkLevelUpgrade(effectiveCondition, saveScreenshot, detectedName);
       const stats = [statIncreased.count, ...Object.keys(statIncreased).filter(k => k !== 'count' && statIncreased[k])];
       const logLine = `turn=${levelAttempts} isGood=${isGood} stats=${stats.join(',')}\n`;
       fs.appendFileSync('logs/arena.log', logLine);
       console.error(logLine.trim());
+      if (!isGood && statIncreased.count === goodCondition[0].count - 1) {
+        nearMissCount++;
+        if (nearMissCount === FALLBACK_THRESHOLD) {
+          console.log(`[arena] ${FALLBACK_THRESHOLD} near-misses (count=${statIncreased.count}), relaxing to count=${fallbackCondition[0].count} with hp required`);
+        }
+      }
       if (isGood) {
         await PlayingPage.perform('save1');
         levelCount++;
         levelAttempts = 0;
+        nearMissCount = process.env.NO_FALLBACK ? Infinity : 0;
         consecutiveLosses = 0;
       } else {
         console.log('[arena] bad stats, change opponent');

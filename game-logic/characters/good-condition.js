@@ -13,12 +13,10 @@ const getGoodCondition = (character) => {
 
   let cond = {};
   if (tier === 'good') {
-    const exclude = sorted[0].name;
-    const required = nonZero.filter(({ name }) => name !== exclude);
-    cond = { count: required.length };
-    for (const { name } of required) cond[name] = 1;
+    cond = { count: 6 };
+    cond[sorted[0].name] = -1;
   } else if (tier === 'avg') {
-    cond = { count: nonZero.length - 2 };
+    cond = { count: 5 };
     cond[sorted[0].name] = -1;
   } else { // bad
     cond = { count: 5 };

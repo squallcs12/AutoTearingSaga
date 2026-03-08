@@ -174,6 +174,12 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
   let lastChangeTurn = skipCount;
   let prevStat = null;
   const STALE_LIMIT = 10;
+  const FALLBACK_THRESHOLD = 20;
+  let nearMissCount = process.env.NO_FALLBACK ? Infinity : 0;
+  const fallbackCondition = goodCondition.map(c => {
+    const fc = { ...c, count: Math.max(1, c.count - 1), hp: 1 };
+    return fc;
+  });
   while (true) {
     turn++;
     if (turn > skipCount) {
@@ -193,11 +199,21 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
 
     await performFight(PlayingPage, battle, isBoss);
 
-    const { isGood, statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
+    const effectiveCondition = nearMissCount >= FALLBACK_THRESHOLD ? fallbackCondition : goodCondition;
+    const { isGood, statIncreased } = await checkLevelUpgrade(effectiveCondition, saveScreenshot, detectedName);
     const stats = [statIncreased.count, ...Object.keys(statIncreased).filter(k => k !== 'count' && statIncreased[k])];
     const logLine = `turn=${turn} stats=${stats.join(',')}\n`;
     fs.appendFileSync(logFile, logLine);
     console.error(logLine.trim());
+
+    // Track near-misses: count is 1 less than required
+    if (!isGood && statIncreased.count === goodCondition[0].count - 1) {
+      nearMissCount++;
+      if (nearMissCount === FALLBACK_THRESHOLD) {
+        console.log(`[levelup] ${FALLBACK_THRESHOLD} near-misses (count=${statIncreased.count}), relaxing to count=${fallbackCondition[0].count} with hp required`);
+      }
+    }
+
     if (isGood) {
       await PlayingPage.perform('save');
       await PlayingPage.perform('save1');
