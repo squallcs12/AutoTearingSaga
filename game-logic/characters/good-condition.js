@@ -21,12 +21,14 @@ const getGoodCondition = (character) => {
     cond = { count: nonZero.length - 2 };
     cond[sorted[0].name] = -1;
   } else { // bad
-    cond = { count: nonZero.length - 3 };
+    cond = { count: 5 };
     cond[sorted[0].name] = -1;
-    cond[sorted[1].name] = -1;
   }
 
-  if (g.move > 0) cond.move = 1;
+  if (g.move > 0) {
+    cond.move = 1;
+    cond.count = Math.max(1, cond.count - 1);
+  }
   return [cond];
 };
 

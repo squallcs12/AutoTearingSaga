@@ -25,4 +25,13 @@ const getAvdDevice = () => {
   throw new Error('No AVD emulator found. Run "adb devices" to check.');
 };
 
-module.exports = { getPhoneDevice, getAvdDevice };
+const getBluestackDevice = () => {
+  const emulators = getConnectedDevices().filter(id => id.startsWith('emulator-'));
+  for (const id of emulators) {
+    const avdName = execSync(`adb -s ${id} shell getprop ro.boot.qemu.avd_name`, { encoding: 'utf8' }).trim();
+    if (!avdName) return id; // BlueStacks has no avd_name
+  }
+  throw new Error('No BlueStacks emulator found. Run "adb devices" to check.');
+};
+
+module.exports = { getPhoneDevice, getAvdDevice, getBluestackDevice };

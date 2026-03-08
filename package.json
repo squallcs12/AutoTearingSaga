@@ -1,4 +1,5 @@
 {
+    "license": "MIT",
     "dependencies": {
         "@wdio/appium-service": "^7.25.1",
         "@wdio/jasmine-framework": "^7.25.1",
@@ -23,6 +24,7 @@
         "pull-desktop": "node desktop/pull-desktop.js",
         "pull-phone": "node android/pull-phone.js",
         "restore-phone": "node android/restore-phone.js",
+        "sync": "node sync.js",
         "sync-phone": "node android/sync-phone.js",
         "push-emulator": "npx wdio --spec android/specs/push-emulator.e2e.js",
         "pull-emulator": "npx wdio --spec android/specs/pull-emulator.e2e.js"

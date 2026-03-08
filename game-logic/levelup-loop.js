@@ -70,7 +70,9 @@ async function performFight(PlayingPage, battle, isBoss) {
 }
 
 async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight, isBoss) {
-  fs.writeFileSync('logs/levelup.log', '');
+  const sessionTime = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const logFile = `logs/levelup-${sessionTime}.log`;
+  fs.writeFileSync(logFile, '');
   const battle = parse(fight);
   await PlayingPage.perform('load-game');
   await PlayingPage.perform('X');
@@ -165,7 +167,7 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
 
   // Phase 2: farm good condition using the working random steps
   let skipCount = parseInt(process.env.SKIP_COUNT || '0', 10);
-  workingRandomSteps = ['left', 'left', 'O', 'wait', 'X', 'wait', ];
+  // workingRandomSteps = ['left 5', 'down 2', 'O', 'wait', 'X', 'wait', ];
   await PlayingPage.perform('reload');
   await PlayingPage.perform('save2');
   let turn = 0;
@@ -174,13 +176,19 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
   const STALE_LIMIT = 10;
   while (true) {
     turn++;
-    await PlayingPage.perform('reload');
+    if (turn > skipCount) {
+      await PlayingPage.perform('reload');
+    }
     await performSteps(PlayingPage, workingRandomSteps);
-    await PlayingPage.perform('save');
 
     if (turn <= skipCount) {
+      if (turn === skipCount) {
+        PlayingPage.perform('save2');
+      }
       console.log(`[levelup] skipping turn ${turn}/${skipCount}`);
       continue;
+    } else {
+      await PlayingPage.perform('save');
     }
 
     await performFight(PlayingPage, battle, isBoss);
@@ -188,7 +196,7 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
     const { isGood, statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
     const stats = [statIncreased.count, ...Object.keys(statIncreased).filter(k => k !== 'count' && statIncreased[k])];
     const logLine = `turn=${turn} stats=${stats.join(',')}\n`;
-    fs.appendFileSync('logs/levelup.log', logLine);
+    fs.appendFileSync(logFile, logLine);
     console.error(logLine.trim());
     if (isGood) {
       await PlayingPage.perform('save');
@@ -198,15 +206,16 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
 
     if (prevStat && statIncreased.count > 0 && statsDiffer(statIncreased, prevStat)) {
       lastChangeTurn = turn;
-      await PlayingPage.perform('save2');
     }
     prevStat = statIncreased;
 
     if (turn - lastChangeTurn >= STALE_LIMIT) {
-      console.log(`[levelup] no stat change in ${STALE_LIMIT} turns, reloading from save2 (turn ${lastChangeTurn})`);
+      console.log(`[levelup] no stat change in ${STALE_LIMIT} turns, reloading from save2 and skipping to turn ${lastChangeTurn}`);
       await PlayingPage.perform('reload2');
       await PlayingPage.perform('save');
-      lastChangeTurn = turn;
+      skipCount = lastChangeTurn;
+      turn = 0;
+      lastChangeTurn = skipCount;
       prevStat = null;
     }
   }
