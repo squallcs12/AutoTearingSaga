@@ -26,31 +26,43 @@ function getGameArea(width, height) {
   }
 }
 
-// Background subtraction: pixels that changed between bg and fg frames,
-// limited to the game area (top portion of screen, excluding controller UI)
-async function subtractBackground(bgPath, fgPath, diffThreshold = 25) {
-  const [bg, fg] = await Promise.all([loadRaw(bgPath), loadRaw(fgPath)]);
-  const { width, height, channels } = fg.info;
+// Standard game area size — all images are normalized to this before processing.
+// tileX = 1080 * 3/40 = 81, tileY = 810 * 4/45 = 72
+const STD_W = 1080, STD_H = 810;
+const TILE_X = 81, TILE_Y = 72;
+
+// Crop game area and resize to standard 1080x810
+async function loadNormalized(filePath) {
+  const meta = await sharp(filePath).metadata();
+  const { width, height } = meta;
   const { gameX, gameY, gameW, gameH } = getGameArea(width, height);
+  return sharp(filePath)
+    .extract({ left: gameX, top: gameY, width: gameW, height: gameH })
+    .resize(STD_W, STD_H, { fit: 'fill' })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+}
+
+// Background subtraction on normalized (1080x810) images
+async function subtractBackground(bgPath, fgPath, diffThreshold = 25) {
+  const [bg, fg] = await Promise.all([loadNormalized(bgPath), loadNormalized(fgPath)]);
+  const width = STD_W, height = STD_H, channels = fg.info.channels;
   const total = width * height;
   const tileMap = new Uint8Array(total);
 
   for (let px = 0; px < total; px++) {
-    const x = px % width, y = Math.floor(px / width);
-    if (x < gameX || x >= gameX + gameW || y < gameY || y >= gameY + gameH) continue;
     const i = px * channels;
     const dr = fg.data[i]   - bg.data[i];
     const dg = fg.data[i+1] - bg.data[i+1];
     const db = fg.data[i+2] - bg.data[i+2];
     const diff = Math.abs(dr) + Math.abs(dg) + Math.abs(db);
     if (diff > diffThreshold) {
-      // Movement tiles are green overlays: fg green channel increases more than red/blue
       const isGreenShift = dg > dr && dg > db;
       if (isGreenShift) tileMap[px] = 1;
     }
   }
 
-  // Save black and white diff to tmp/ for debugging (tileMap=1 → white, else black)
+  // Save debug diff image
   const diffBuf = Buffer.alloc(total * 3);
   for (let px = 0; px < total; px++) {
     const v = tileMap[px] ? 255 : 0;
@@ -68,7 +80,7 @@ async function subtractBackground(bgPath, fgPath, diffThreshold = 25) {
       .toFile(`${runDir}/diff.png`),
   ]);
 
-  return { tileMap, width, height };
+  return { tileMap, width, height, bgData: bg.data, fgData: fg.data, channels };
 }
 
 // BFS flood-fill connected components
@@ -140,24 +152,21 @@ function estimateTileSizes(tiles) {
   return { tileX: median(xDists), tileY: median(yDists) };
 }
 
-// Find the character by detecting the cursor [ ] corners in the bg image.
-// The bg is taken after pressing LEFT then X, so cursor is 1 cell left of character.
-// C = cursor center + 1 tile right.
-async function findCharacterPosition(tiles, tileX, tileY, bgPath) {
-  const bg = await sharp(bgPath).raw().toBuffer({ resolveWithObject: true });
-  const { width, height, channels } = bg.info;
-  const ref = tiles[0];
-  const { gameX, gameY, gameW, gameH } = getGameArea(width, height);
+// Find the cursor pixel position via fg−bg differencing (4 white corner brackets).
+// Returns { cx, cy } of cursor center, or null if not found.
+function findCursorPosition(fgData, bgData, channels, tileX, tileY) {
+  const width = STD_W, height = STD_H;
 
-  // Collect white/bright pixels in game area (cursor corners are white)
+  // Collect white/bright pixels that appear in fg but NOT in bg (cursor-only pixels)
   const whitePixels = [];
-  for (let y = gameY; y < gameY + gameH; y++) {
-    for (let x = gameX; x < gameX + gameW; x++) {
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
       const i = (y * width + x) * channels;
-      const r = bg.data[i], g = bg.data[i+1], b = bg.data[i+2];
-      if (r > 180 && g > 180 && b > 180 && Math.max(r,g,b) - Math.min(r,g,b) < 30) {
-        whitePixels.push({ x, y });
-      }
+      const r = fgData[i], g = fgData[i+1], b = fgData[i+2];
+      if (!(r > 180 && g > 180 && b > 180 && Math.max(r,g,b) - Math.min(r,g,b) < 30)) continue;
+      const br = bgData[i], bg2 = bgData[i+1], bb = bgData[i+2];
+      if (br > 180 && bg2 > 180 && bb > 180 && Math.max(br,bg2,bb) - Math.min(br,bg2,bb) < 30) continue;
+      whitePixels.push({ x, y });
     }
   }
 
@@ -186,71 +195,65 @@ async function findCharacterPosition(tiles, tileX, tileY, bgPath) {
   for (const cl of clusters) {
     if (cl.length < 30 || cl.length > 200) continue;
     const xs = cl.map(p => p.x), ys = cl.map(p => p.y);
-    const bw = Math.max(...xs) - Math.min(...xs);
-    const bh = Math.max(...ys) - Math.min(...ys);
-    if (bw > 30 || bh > 30) continue; // each corner is small
+    if (Math.max(...xs) - Math.min(...xs) > 30) continue;
+    if (Math.max(...ys) - Math.min(...ys) > 30) continue;
     corners.push({
       cx: Math.round((Math.min(...xs) + Math.max(...xs)) / 2),
       cy: Math.round((Math.min(...ys) + Math.max(...ys)) / 2),
-      size: cl.length,
     });
   }
 
-  // Try all combinations of 4 corners to find a rectangle
-  let cursorCx = null, cursorCy = null;
-  for (let i = 0; i < corners.length && !cursorCx; i++) {
-    for (let j = i+1; j < corners.length && !cursorCx; j++) {
-      for (let k = j+1; k < corners.length && !cursorCx; k++) {
-        for (let l = k+1; l < corners.length && !cursorCx; l++) {
+  for (let i = 0; i < corners.length; i++) {
+    for (let j = i+1; j < corners.length; j++) {
+      for (let k = j+1; k < corners.length; k++) {
+        for (let l = k+1; l < corners.length; l++) {
           const pts = [corners[i], corners[j], corners[k], corners[l]];
-          // Group into left/right and top/bottom pairs with tolerance
           const sortedX = pts.map(p => p.cx).sort((a, b) => a - b);
           if (sortedX[1] - sortedX[0] > 10 || sortedX[3] - sortedX[2] > 10) continue;
           const byY = pts.map(p => p.cy).sort((a, b) => a - b);
           if (byY[1] - byY[0] > 10 || byY[3] - byY[2] > 10) continue;
-          const xLeft = (sortedX[0] + sortedX[1]) / 2;
-          const xRight = (sortedX[2] + sortedX[3]) / 2;
-          const yTop = (byY[0] + byY[1]) / 2;
-          const yBot = (byY[2] + byY[3]) / 2;
-          const w = xRight - xLeft, h = yBot - yTop;
-          if (w > tileX * 0.5 && w < tileX * 1.5 &&
-              h > tileY * 0.5 && h < tileY * 1.5) {
-            cursorCx = Math.round((xLeft + xRight) / 2);
-            cursorCy = Math.round((yTop + yBot) / 2);
+          const w = (sortedX[2] + sortedX[3]) / 2 - (sortedX[0] + sortedX[1]) / 2;
+          const h = (byY[2] + byY[3]) / 2 - (byY[0] + byY[1]) / 2;
+          if (w > tileX * 0.5 && w < tileX * 1.5 && h > tileY * 0.5 && h < tileY * 1.5) {
+            const cx = Math.round((sortedX[0] + sortedX[1] + sortedX[2] + sortedX[3]) / 4);
+            const cy = Math.round((byY[0] + byY[1] + byY[2] + byY[3]) / 4);
+            return { cx, cy };
           }
         }
       }
     }
   }
+  return null;
+}
 
-  if (cursorCx !== null) {
-    // Character is 1 tile to the right of cursor (LEFT was pressed once).
-    const charCx = cursorCx + 1 * tileX;
-    const charCy = cursorCy;
-    console.log(`[cursor] at (${cursorCx},${cursorCy}), char at (${charCx},${charCy})`);
-    const charGx = Math.round((charCx - ref.cx) / tileX);
-    const charGy = Math.round((charCy - ref.cy) / tileY);
-    const snappedCx = ref.cx + charGx * tileX;
-    const snappedCy = ref.cy + charGy * tileY;
-    return { charGx, charGy, charCx: snappedCx, charCy: snappedCy };
+// Find character grid cell. Cursor is 1 tile left of character.
+// If cursor not found, use hole fallback (empty cell surrounded by most tiles).
+function findCharacterCell(tileSet, ox, oy, tileX, tileY, fgData, bgData, channels) {
+  const cursor = findCursorPosition(fgData, bgData, channels, tileX, tileY);
+  if (cursor) {
+    // Cursor pixel → grid cell, then character = 1 cell right
+    const cursorGx = Math.round((cursor.cx - ox) / tileX);
+    const cursorGy = Math.round((cursor.cy - oy) / tileY);
+    const charGx = cursorGx + 1;
+    const charGy = cursorGy;
+    console.log(`[cursor] at (${cursor.cx},${cursor.cy}) grid(${cursorGx},${cursorGy}), char grid(${charGx},${charGy})`);
+    return { charGx, charGy };
   }
 
-  // Fallback: hole-based
+  // Fallback: hole surrounded by most tiles, closest to center
   console.log('[cursor] not found, using hole fallback');
-  const gridTiles = tiles.map(t => ({
-    gx: Math.round((t.cx - ref.cx) / tileX),
-    gy: Math.round((t.cy - ref.cy) / tileY),
-  }));
-  const tileSet = new Set(gridTiles.map(t => `${t.gx},${t.gy}`));
   const candidates = new Map();
-  for (const t of gridTiles) {
+  for (const key of tileSet) {
+    const [gx, gy] = key.split(',').map(Number);
     for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
-      const k = `${t.gx+dx},${t.gy+dy}`;
-      if (!tileSet.has(k)) candidates.set(k, (candidates.get(k) || 0) + 1);
+      const nk = `${gx+dx},${gy+dy}`;
+      if (!tileSet.has(nk)) candidates.set(nk, (candidates.get(nk) || 0) + 1);
     }
   }
-  const avgGx = gridTiles.reduce((s, t) => s + t.gx, 0) / gridTiles.length;
-  const avgGy = gridTiles.reduce((s, t) => s + t.gy, 0) / gridTiles.length;
+  const allGx = [...tileSet].map(k => +k.split(',')[0]);
+  const allGy = [...tileSet].map(k => +k.split(',')[1]);
+  const avgGx = allGx.reduce((s, v) => s + v, 0) / allGx.length;
+  const avgGy = allGy.reduce((s, v) => s + v, 0) / allGy.length;
   let bestKey = null, bestCount = 0, bestD = Infinity;
   for (const [k, count] of candidates) {
     const [gx, gy] = k.split(',').map(Number);
@@ -260,154 +263,158 @@ async function findCharacterPosition(tiles, tileX, tileY, bgPath) {
     }
   }
   const [charGx, charGy] = (bestKey || '0,0').split(',').map(Number);
-  return { charGx, charGy, charCx: ref.cx + charGx * tileX, charCy: ref.cy + charGy * tileY };
+  return { charGx, charGy };
+}
+
+// Count white pixels and total visible pixels per grid cell for a given offset.
+// Returns Map of key -> { white, total } so fill % accounts for edge clipping.
+function countCellPixels(tileMap, width, height, ox, oy, tileX, tileY) {
+  const cells = new Map();
+  for (let py = 0; py < height; py++) {
+    const gy = Math.round((py - oy) / tileY);
+    for (let px = 0; px < width; px++) {
+      const gx = Math.round((px - ox) / tileX);
+      const key = `${gx},${gy}`;
+      let entry = cells.get(key);
+      if (!entry) { entry = { white: 0, total: 0 }; cells.set(key, entry); }
+      entry.total++;
+      if (tileMap[py * width + px]) entry.white++;
+    }
+  }
+  return cells;
+}
+
+// Find grid cell-center offset by folding pixel histograms with tile period.
+// The minimum of the folded histogram is the border between cells;
+// cell center = border + half tile.
+function findGridOffset(tileMap, width, height, tileX, tileY) {
+  // Fold column histogram with period tileX
+  const foldX = new Float64Array(tileX);
+  for (let x = 0; x < width; x++) {
+    let sum = 0;
+    for (let y = 0; y < height; y++) sum += tileMap[y * width + x];
+    foldX[x % tileX] += sum;
+  }
+  let minXVal = Infinity, borderX = 0;
+  for (let i = 0; i < tileX; i++) {
+    if (foldX[i] < minXVal) { minXVal = foldX[i]; borderX = i; }
+  }
+
+  // Fold row histogram with period tileY
+  const foldY = new Float64Array(tileY);
+  for (let y = 0; y < height; y++) {
+    let sum = 0;
+    for (let x = 0; x < width; x++) sum += tileMap[y * width + x];
+    foldY[y % tileY] += sum;
+  }
+  let minYVal = Infinity, borderY = 0;
+  for (let i = 0; i < tileY; i++) {
+    if (foldY[i] < minYVal) { minYVal = foldY[i]; borderY = i; }
+  }
+
+  const ox = (borderX + Math.round(tileX / 2)) % tileX;
+  const oy = (borderY + Math.round(tileY / 2)) % tileY;
+  return { ox, oy };
 }
 
 async function detectMovableGrid(bgPath, fgPath) {
-  const { tileMap, width, height } = await subtractBackground(bgPath, fgPath);
+  const { tileMap, width, height, bgData, fgData, channels } = await subtractBackground(bgPath, fgPath);
+  const tileX = TILE_X, tileY = TILE_Y;
+  const cellArea = tileX * tileY;
 
-  // Erode tileMap to break thin connections between tiles and sprite noise
-  const total = width * height;
-  const eroded = new Uint8Array(total);
-  for (let px = 0; px < total; px++) {
-    if (!tileMap[px]) continue;
-    const x = px % width, y = Math.floor(px / width);
-    // Keep pixel only if all 4 neighbors (within 2px) are also set
-    let ok = true;
-    for (const d of [-2, -1, 1, 2]) {
-      if (x + d < 0 || x + d >= width || !tileMap[y * width + (x + d)]) { ok = false; break; }
-      if (y + d < 0 || y + d >= height || !tileMap[(y + d) * width + x]) { ok = false; break; }
-    }
-    if (ok) eroded[px] = 1;
+  // Find grid offset via folded histogram
+  const { ox, oy } = findGridOffset(tileMap, width, height, tileX, tileY);
+
+  // Count pixels per cell at best offset
+  const cells = countCellPixels(tileMap, width, height, ox, oy, tileX, tileY);
+
+  // Classify cells: center pixel must be white AND ≥60% of visible area is white
+  const tileSet = new Set();
+  for (const [key, { white, total }] of cells) {
+    if (total <= 0 || white / total < 0.60) continue;
+    const [gx, gy] = key.split(',').map(Number);
+    const cx = ox + gx * tileX, cy = oy + gy * tileY;
+    if (cx < 0 || cx >= width || cy < 0 || cy >= height) continue;
+    if (!tileMap[cy * width + cx]) continue;
+    tileSet.add(key);
   }
-  // Use eroded map for component detection but keep original tileMap for size counting
-  const detectMap = eroded;
+  if (tileSet.size === 0) return { grid: [], tileX, tileY, tileCount: 0 };
 
-  // Two-pass: reliable tiles first, then accept smaller edge tiles that align to the grid
-  // Filter out oversized components (stat panel noise, UI overlays) using median-based threshold
-  const rawReliable = findComponents(detectMap, width, height, 1500);
-  if (rawReliable.length === 0) return { grid: [], tileX: null, tileY: null, tileCount: 0 };
-  const sizes = rawReliable.map(t => t.size).sort((a, b) => a - b);
-  const medianSize = sizes[Math.floor(sizes.length / 2)];
-  const maxTileSize = medianSize * 3;
-  const reliableTiles = rawReliable.filter(t => t.size <= maxTileSize);
-  if (reliableTiles.length === 0) return { grid: [], tileX: null, tileY: null, tileCount: 0 };
+  // Find character cell via cursor detection or hole fallback
+  const { charGx, charGy } = findCharacterCell(tileSet, ox, oy, tileX, tileY, fgData, bgData, channels);
+  const originX = ox + charGx * tileX;
+  const originY = oy + charGy * tileY;
 
-  const { tileX, tileY } = estimateTileSizes(reliableTiles);
-  if (!tileX || !tileY) return { grid: [], tileX, tileY, tileCount: reliableTiles.length };
-
-  const { charCx, charCy } = await findCharacterPosition(reliableTiles, tileX, tileY, bgPath);
-  const originX = Math.round(charCx);
-  const originY = Math.round(charCy);
-
-  // Second pass: include smaller tiles (>= 800) that snap to the grid
-  // Second pass uses original tileMap to recover tiles near sprites that erosion removed
-  // Oversized components (multiple touching tiles) are split by grid cell
-  const allCandidates = findComponents(tileMap, width, height, 800);
-  const tiles = [];
-  for (const t of allCandidates) {
-    if (t.size <= maxTileSize) {
-      if (t.size >= 1500) {
-        tiles.push(t);
-      } else {
-        const gxFrac = (t.cx - originX) / tileX;
-        const gyFrac = (t.cy - originY) / tileY;
-        if (Math.abs(gxFrac - Math.round(gxFrac)) < 0.35 &&
-            Math.abs(gyFrac - Math.round(gyFrac)) < 0.35) {
-          tiles.push(t);
-        }
-      }
-    } else {
-      // Split oversized component: BFS to collect only this component's pixels,
-      // then assign each pixel to its nearest grid cell
-      const cellCounts = new Map();
-      const compVisited = new Uint8Array(total);
-      const startPx = t.cy * width + t.cx;
-      const bfsQueue = [startPx]; compVisited[startPx] = 1; let bfsHead = 0;
-      while (bfsHead < bfsQueue.length) {
-        const px = bfsQueue[bfsHead++];
-        const x = px % width, y = Math.floor(px / width);
-        const gx = Math.round((x - originX) / tileX);
-        const gy = Math.round((y - originY) / tileY);
-        const key = `${gx},${gy}`;
-        const entry = cellCounts.get(key);
-        if (entry) { entry.sumX += x; entry.sumY += y; entry.count++; }
-        else cellCounts.set(key, { sumX: x, sumY: y, count: 1 });
-        for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
-          const nx = x + dx, ny = y + dy;
-          if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
-          const nPx = ny * width + nx;
-          if (tileMap[nPx] && !compVisited[nPx]) { compVisited[nPx] = 1; bfsQueue.push(nPx); }
-        }
-      }
-      for (const [, cell] of cellCounts) {
-        if (cell.count >= 2000) {
-          tiles.push({ cx: Math.round(cell.sumX / cell.count), cy: Math.round(cell.sumY / cell.count), size: cell.count });
-        }
-      }
-    }
+  // Re-express tile cells relative to character (0,0)
+  const gridSet = new Set();
+  for (const key of tileSet) {
+    const [gx, gy] = key.split(',').map(Number);
+    const rk = `${gx - charGx},${gy - charGy}`;
+    if (rk !== '0,0') gridSet.add(rk);
   }
 
-  const gridTiles = tiles.map(t => ({
-    gx: Math.round((t.cx - originX) / tileX),
-    gy: Math.round((t.cy - originY) / tileY),
-  }));
-
-  const rawGridSet = new Set(gridTiles.map(t => `${t.gx},${t.gy}`));
-
-  // Include C and its immediate neighbors — sprites on/near character
-  // merge with adjacent tiles, making them undetectable as separate components
-  rawGridSet.add('0,0');
-  for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
-    rawGridSet.add(`${dx},${dy}`);
-  }
-
-  // Keep only the largest connected component (BFS on grid) to remove noise clusters
+  // Keep only the largest connected component (BFS on grid, using C as bridge)
+  const rawSet = new Set(gridSet);
+  rawSet.add('0,0');
   const visited = new Set();
   const components = [];
-  for (const key of rawGridSet) {
+  for (const key of rawSet) {
     if (visited.has(key)) continue;
-    const queue = [key];
-    visited.add(key);
-    let head = 0;
+    const queue = [key]; visited.add(key); let head = 0;
     while (head < queue.length) {
       const cur = queue[head++];
       const [cx, cy] = cur.split(',').map(Number);
       for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
         const nk = `${cx+dx},${cy+dy}`;
-        if (rawGridSet.has(nk) && !visited.has(nk)) {
-          visited.add(nk);
-          queue.push(nk);
-        }
+        if (rawSet.has(nk) && !visited.has(nk)) { visited.add(nk); queue.push(nk); }
       }
     }
     components.push(queue);
   }
   components.sort((a, b) => b.length - a.length);
-  const gridSet = new Set(components[0]);
-  gridSet.delete('0,0');
+  const connectedSet = new Set(components[0]);
+  connectedSet.delete('0,0');
 
-  // Bounds: use all tiles (before CC filter) capped at ±6, so grid shows full extent
-  const MAX_GRID = 6;
-  const allGx = gridTiles.map(t => t.gx);
-  const allGy = gridTiles.map(t => t.gy);
+  // Bounds capped at ±10
+  const MAX_GRID = 10;
+  const allGx = [...connectedSet].map(k => +k.split(',')[0]);
+  const allGy = [...connectedSet].map(k => +k.split(',')[1]);
+  allGx.push(0); allGy.push(0);
   const minGx = Math.max(-MAX_GRID, Math.min(...allGx));
   const maxGx = Math.min(MAX_GRID, Math.max(...allGx));
   const minGy = Math.max(-MAX_GRID, Math.min(...allGy));
   const maxGy = Math.min(MAX_GRID, Math.max(...allGy));
+
+  // BFS from character (0,0) to compute step distances
+  const distMap = new Map();
+  distMap.set('0,0', 0);
+  const bfsQ = ['0,0'];
+  let bfsH = 0;
+  while (bfsH < bfsQ.length) {
+    const cur = bfsQ[bfsH++];
+    const [cx, cy] = cur.split(',').map(Number);
+    const d = distMap.get(cur);
+    for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      const nk = `${cx+dx},${cy+dy}`;
+      if (connectedSet.has(nk) && !distMap.has(nk)) {
+        distMap.set(nk, d + 1);
+        bfsQ.push(nk);
+      }
+    }
+  }
 
   const grid = [];
   for (let gy = minGy; gy <= maxGy; gy++) {
     let row = '';
     for (let gx = minGx; gx <= maxGx; gx++) {
       if (gx === 0 && gy === 0) row += 'C ';
-      else if (gridSet.has(`${gx},${gy}`)) row += 'G ';
+      else if (distMap.has(`${gx},${gy}`)) row += distMap.get(`${gx},${gy}`) + ' ';
       else row += '. ';
     }
     grid.push(row.trimEnd());
   }
 
-  return { grid, tileX, tileY, tileCount: tiles.length, originX, originY };
+  return { grid, tileX, tileY, tileCount: connectedSet.size, originX, originY };
 }
 
 /**
@@ -442,11 +449,12 @@ function getAvailableDirections(grid) {
   }
   if (charRow === -1) return ['up', 'down', 'left', 'right'];
 
+  const isReachable = (v) => v !== '.' && v !== 'C';
   const dirs = [];
-  if (charRow > 0                && cells[charRow - 1][charCol] === 'G') dirs.push('up');
-  if (charRow < cells.length - 1 && cells[charRow + 1][charCol] === 'G') dirs.push('down');
-  if (charCol > 0                && cells[charRow][charCol - 1] === 'G') dirs.push('left');
-  if (charCol < cells[charRow].length - 1 && cells[charRow][charCol + 1] === 'G') dirs.push('right');
+  if (charRow > 0                && isReachable(cells[charRow - 1][charCol])) dirs.push('up');
+  if (charRow < cells.length - 1 && isReachable(cells[charRow + 1][charCol])) dirs.push('down');
+  if (charCol > 0                && isReachable(cells[charRow][charCol - 1])) dirs.push('left');
+  if (charCol < cells[charRow].length - 1 && isReachable(cells[charRow][charCol + 1])) dirs.push('right');
 
   return dirs.length > 0 ? dirs : ['up', 'down', 'left', 'right'];
 }
@@ -464,7 +472,7 @@ if (require.main === module) {
   }
   detectMovableGrid(bgPath, fgPath).then(({ grid, tileX, tileY, tileCount, originX, originY }) => {
     console.log(`tiles=${tileCount}  tileX≈${tileX}px tileY≈${tileY}px  origin=(${originX},${originY})\n`);
-    console.log('Grid (C=character, G=reachable, .=blocked):\n');
+    console.log('Grid (C=character, N=steps to reach, .=blocked):\n');
     grid.forEach(row => console.log(' ', row));
   });
 }
