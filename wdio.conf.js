@@ -1,4 +1,8 @@
+const { getAvdDevice } = require('./android/adb-device');
+
 const isWindows = process.platform === 'win32';
+const udid = getAvdDevice();
+console.log(`Using device: ${udid}`);
 
 exports.config = {
     //
@@ -59,7 +63,7 @@ exports.config = {
         appiumVersion: '1.22.3',
         platformName: 'Android',
         platformVersion: '12',
-        udid: 'emulator-5554', // 'R3CN203BDKN',
+        udid,
         automationName: 'UiAutomator2',
         autoGrantPermissions: 'true',
         appPackage: 'com.github.stenzek.duckstation',

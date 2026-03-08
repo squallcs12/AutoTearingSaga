@@ -109,6 +109,54 @@ async function takeScreenshot(filename) {
     .extract(GAME_AREA)
     .toFile(destPath);
   fs.unlinkSync(rawPath);
+  await sleep(1000);
 }
 
-module.exports = { sleep, sendKey, takeScreenshot };
+// --- adb tap/swipe for virtual controller ---
+
+// DuckStation touchscreen controller positions (1920x1080 landscape)
+// Analog stick center
+const STICK_CENTER = { x: 120, y: 915 };
+const STICK_RADIUS = 80; // swipe distance from center
+
+// D-pad directions via analog stick swipe
+const DPAD = {
+  up:         { x: STICK_CENTER.x,                    y: STICK_CENTER.y - STICK_RADIUS },
+  down:       { x: STICK_CENTER.x,                    y: STICK_CENTER.y + STICK_RADIUS },
+  left:       { x: STICK_CENTER.x - STICK_RADIUS,     y: STICK_CENTER.y },
+  right:      { x: STICK_CENTER.x + STICK_RADIUS,     y: STICK_CENTER.y },
+  'up-left':  { x: STICK_CENTER.x - STICK_RADIUS * 0.7, y: STICK_CENTER.y - STICK_RADIUS * 0.7 },
+  'up-right': { x: STICK_CENTER.x + STICK_RADIUS * 0.7, y: STICK_CENTER.y - STICK_RADIUS * 0.7 },
+  'down-left':  { x: STICK_CENTER.x - STICK_RADIUS * 0.7, y: STICK_CENTER.y + STICK_RADIUS * 0.7 },
+  'down-right': { x: STICK_CENTER.x + STICK_RADIUS * 0.7, y: STICK_CENTER.y + STICK_RADIUS * 0.7 },
+};
+
+// Button positions
+const BUTTONS = {
+  circle:   { x: 1895, y: 940 },
+  cross:    { x: 1810, y: 1030 },
+  square:   { x: 1720, y: 940 },
+  triangle: { x: 1810, y: 840 },
+};
+
+function adbTap(x, y) {
+  execSync(`adb -s ${DEVICE} shell input tap ${Math.round(x)} ${Math.round(y)}`);
+}
+
+function adbSwipe(x1, y1, x2, y2, durationMs = 100) {
+  execSync(`adb -s ${DEVICE} shell input swipe ${Math.round(x1)} ${Math.round(y1)} ${Math.round(x2)} ${Math.round(y2)} ${durationMs}`);
+}
+
+function adbMove(direction) {
+  const target = DPAD[direction];
+  if (!target) throw new Error(`Unknown direction: ${direction}`);
+  adbSwipe(STICK_CENTER.x, STICK_CENTER.y, target.x, target.y, 150);
+}
+
+function adbButton(name) {
+  const pos = BUTTONS[name];
+  if (!pos) throw new Error(`Unknown button: ${name}`);
+  adbTap(pos.x, pos.y);
+}
+
+module.exports = { sleep, sendKey, takeScreenshot, adbTap, adbSwipe, adbMove, adbButton, DPAD, BUTTONS };

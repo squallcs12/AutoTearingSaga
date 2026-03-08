@@ -1,15 +1,11 @@
 const { waitLevelUp } = require('../scene-detection/check-level');
-const { sleep, sendKey, takeScreenshot } = require('./common');
+const { sleep, sendKey, takeScreenshot, adbMove } = require('./common');
 
 const KEYS = {
   circle:    'c',
   cross:     'x',
   square:    'z',
   triangle:  's',
-  up:        'up',
-  down:      'down',
-  left:      'left',
-  right:     'right',
   quickSave: 'f4',
   quickLoad: 'shift+f4',
   saveSlot1: 'f1', loadSlot1: 'shift+f1',
@@ -18,14 +14,14 @@ const KEYS = {
 };
 
 class PlayingBluestack {
-  async moveUp()        { sendKey(KEYS.up); }
-  async moveDown()      { sendKey(KEYS.down); }
-  async moveLeft()      { sendKey(KEYS.left); }
-  async moveRight()     { sendKey(KEYS.right); }
-  async moveUpLeft()    { sendKey(KEYS.up); }
-  async moveUpRight()   { sendKey(KEYS.up); }
-  async moveDownLeft()  { sendKey(KEYS.down); }
-  async moveDownRight() { sendKey(KEYS.down); }
+  async moveUp()        { adbMove('up'); }
+  async moveDown()      { adbMove('down'); }
+  async moveLeft()      { adbMove('left'); }
+  async moveRight()     { adbMove('right'); }
+  async moveUpLeft()    { adbMove('up-left'); }
+  async moveUpRight()   { adbMove('up-right'); }
+  async moveDownLeft()  { adbMove('down-left'); }
+  async moveDownRight() { adbMove('down-right'); }
 
   async pressO()        { sendKey(KEYS.circle); }
   async pressX()        { sendKey(KEYS.cross); }

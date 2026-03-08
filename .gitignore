@@ -1,5 +1,5 @@
 node_modules/
-tmp/*.png
+tmp/**/*
 tmp/*.jpg
 xxx*-*.jpg
 config.js
