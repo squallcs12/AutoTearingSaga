@@ -82,66 +82,72 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
   await PlayingPage.perform('save');
 
   // Detect available movement directions (retry up to 10 times for non-empty grid)
-  // let grid = [];
-  // for (let attempt = 1; attempt <= 100; attempt++) {
-  //   await PlayingPage.perform('left');            // move cursor left (tiles still visible)
-  //   await sleep(1000);
-  //   await saveScreenshot('movement-fg.png');      // fg: with movement tiles
-  //   await PlayingPage.perform('X');               // cancel → tiles disappear
-  //   await sleep(1000);
-  //   await saveScreenshot('movement-bg.png');      // bg: without movement tiles
-  //   const result = await detectMovableGrid('tmp/movement-bg.png', 'tmp/movement-fg.png');
-  //   grid = result.grid;
-  //   const hasC = grid.some(row => row.includes('C'));
-  //   const hasG = grid.some(row => row.includes('G'));
-  //   if (grid.length > 0 && hasC && hasG) {
-  //     console.log(`[levelup] movement grid (attempt ${attempt}):\n` + grid.join('\n'));
-  //     await PlayingPage.perform('right');         // move cursor back
-  //     await PlayingPage.perform('O');             // reselect character
-  //     break;
-  //   }
-  //   console.log(`[levelup] invalid grid (empty=${grid.length === 0} C=${hasC} G=${hasG}), retrying (${attempt}/10)...`);
-  //   await PlayingPage.perform('right');           // move cursor back
-  //   await sleep(1000);
-  //   await PlayingPage.perform('O');               // reselect character
-  //   await sleep(1000);
-  // }
-  // if (grid.length === 0) {
-  //   throw new Error('[levelup] Failed to detect movement grid after 10 attempts');
-  // }
+  let grid = [];
+  for (let attempt = 1; attempt <= 100; attempt++) {
+    await PlayingPage.perform('left');            // move cursor left (tiles still visible)
+    await sleep(1000);
+    await saveScreenshot('movement-fg.png');      // fg: with movement tiles
+    await PlayingPage.perform('X');               // cancel → tiles disappear
+    await sleep(1000);
+    await saveScreenshot('movement-bg.png');      // bg: without movement tiles
+    const result = await detectMovableGrid('tmp/movement-bg.png', 'tmp/movement-fg.png');
+    grid = result.grid;
+    const hasC = grid.some(row => row.includes('C'));
+    const hasG = grid.some(row => row.includes('G'));
+    if (grid.length > 0 && hasC && hasG) {
+      console.log(`[levelup] movement grid (attempt ${attempt}):\n` + grid.join('\n'));
+      await PlayingPage.perform('right');         // move cursor back
+      await PlayingPage.perform('O');             // reselect character
+      break;
+    }
+    console.log(`[levelup] invalid grid (empty=${grid.length === 0} C=${hasC} G=${hasG}), retrying (${attempt}/10)...`);
+    await PlayingPage.perform('right');           // move cursor back
+    await sleep(1000);
+    await PlayingPage.perform('O');               // reselect character
+    await sleep(1000);
+  }
+  if (grid.length === 0) {
+    throw new Error('[levelup] Failed to detect movement grid after 10 attempts');
+  }
 
-  // // Baseline: fight with no random steps to record init stat
-  // await performFight(PlayingPage, battle, isBoss);
-  // const { statIncreased: initStat } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
-  // console.log('[levelup] initStat:', JSON.stringify(initStat));
+  // Baseline: fight with no random steps to record init stat
+  await performFight(PlayingPage, battle, isBoss);
+  const { isGood: initGood, statIncreased: initStat } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
+  console.log('[levelup] initStat:', JSON.stringify(initStat));
+  if (initGood) {
+    console.log('[levelup] baseline fight already has good stats, no need to farm!');
+    await PlayingPage.perform('save');
+    await PlayingPage.perform('save1');
+    return;
+  }
 
-  // // Phase 1: accumulate random move-cancel cycles until stats change
-  // // Reset after 10 moves to avoid overly long sequences
-  // const MAX_MOVES = 10;
-  // let workingRandomSteps = [];
-  // let moveCount = 0;
-  // while (true) {
-  //   if (moveCount >= MAX_MOVES) {
-  //     console.log('[levelup] reached ' + MAX_MOVES + ' moves, resetting...');
-  //     workingRandomSteps = [];
-  //     moveCount = 0;
-  //   }
-  //   workingRandomSteps.push(...buildForceRandom(grid));
-  //   moveCount++;
-  //   console.log('[levelup] move ' + moveCount + ' (' + workingRandomSteps.length + ' steps):', workingRandomSteps.join(', '));
+  // Phase 1: accumulate random move-cancel cycles until stats change
+  // Reset after 10 moves to avoid overly long sequences
+  const MAX_MOVES = 10;
+  let workingRandomSteps = [];
+  let moveCount = 0;
+  while (true) {
+    if (moveCount >= MAX_MOVES) {
+      console.log('[levelup] reached ' + MAX_MOVES + ' moves, resetting...');
+      workingRandomSteps = [];
+      moveCount = 0;
+    }
+    workingRandomSteps.push(...buildForceRandom(grid));
+    moveCount++;
+    console.log('[levelup] move ' + moveCount + ' (' + workingRandomSteps.length + ' steps):', workingRandomSteps.join(', '));
 
-  //   await PlayingPage.perform('reload');
-  //   await performSteps(PlayingPage, workingRandomSteps);
+    await PlayingPage.perform('reload');
+    await performSteps(PlayingPage, workingRandomSteps);
 
-  //   await performFight(PlayingPage, battle, isBoss);
-  //   const { statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
+    await performFight(PlayingPage, battle, isBoss);
+    const { statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
 
-  //   if (statsDiffer(statIncreased, initStat)) {
-  //     console.log('[levelup] found working steps (move ' + moveCount + ', ' + workingRandomSteps.length + ' steps)');
-  //     break;
-  //   }
-  //   console.log('[levelup] no change, adding more steps...');
-  // }
+    if (statsDiffer(statIncreased, initStat)) {
+      console.log('[levelup] found working steps (move ' + moveCount + ', ' + workingRandomSteps.length + ' steps)');
+      break;
+    }
+    console.log('[levelup] no change, adding more steps...');
+  }
 
   // Phase 2: farm good condition using the working random steps
   let skipCount = parseInt(process.env.SKIP_COUNT || '0', 10);
