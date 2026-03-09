@@ -182,7 +182,7 @@ const syncSave = async (message) => {
 };
 
 const checkLevelUpgrade = async (required, saveScreenshot, characterName) => {
-  const total = 7;
+  const total = 14;
   for (let i = 1; i <= total; i++) {
     await saveScreenshot(`level-up-${i}.png`);
   }
