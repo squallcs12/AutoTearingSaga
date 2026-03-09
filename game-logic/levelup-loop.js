@@ -43,10 +43,12 @@ function buildStepsToTile(charRow, charCol, target) {
 
 
 
+const statOrder = ['str', 'skill', 'spd', 'luck', 'def', 'mag', 'mst', 'hp', 'move'];
+
 function statsDiffer(a, b) {
   if (a.count !== b.count) return true;
-  for (let i = 1; i <= 9; i++) {
-    if (!!a[i] !== !!b[i]) return true;
+  for (const name of statOrder) {
+    if (!!a[name] !== !!b[name]) return true;
   }
   return false;
 }
