@@ -69,15 +69,13 @@ async function subtractBackground(bgPath, fgPath, diffThreshold = 25) {
     const i = px * 3;
     diffBuf[i] = v; diffBuf[i+1] = v; diffBuf[i+2] = v;
   }
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const runDir = `${MOVEMENT_DIR}/${timestamp}`;
-  if (!fs.existsSync(runDir)) fs.mkdirSync(runDir, { recursive: true });
+  if (!fs.existsSync(MOVEMENT_DIR)) fs.mkdirSync(MOVEMENT_DIR, { recursive: true });
   await Promise.all([
-    fs.promises.copyFile(bgPath, `${runDir}/bg.png`),
-    fs.promises.copyFile(fgPath, `${runDir}/fg.png`),
+    fs.promises.copyFile(bgPath, `${MOVEMENT_DIR}/bg.png`),
+    fs.promises.copyFile(fgPath, `${MOVEMENT_DIR}/fg.png`),
     sharp(diffBuf, { raw: { width, height, channels: 3 } })
       .png()
-      .toFile(`${runDir}/diff.png`),
+      .toFile(`${MOVEMENT_DIR}/diff.png`),
   ]);
 
   return { tileMap, width, height, bgData: bg.data, fgData: fg.data, channels };
