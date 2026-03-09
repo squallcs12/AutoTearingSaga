@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { sleep } = require('../utils');
+const { sleep, debugCopyScreenshot } = require('../utils');
 
 const SCREENSHOT_DIR = 'C:\\Users\\daotr\\AppData\\Local\\DuckStation\\screenshots';
 const PROCESS_NAME = 'duckstation-qt-x64-ReleaseLTCG';
@@ -143,6 +143,7 @@ async function takeScreenshot(filename) {
       console.log(`[screenshot] found ${newFile} after ${i * 100}ms`);
       fs.copyFileSync(fullPath, destPath);
       fs.unlinkSync(fullPath);
+      debugCopyScreenshot(destPath);
       return;
     }
   }

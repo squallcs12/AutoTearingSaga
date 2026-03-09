@@ -4,7 +4,7 @@ const path = require('path');
 const os = require('os');
 const sharp = require('sharp');
 
-const { sleep } = require('../utils');
+const { sleep, debugCopyScreenshot } = require('../utils');
 
 const DEVICE = 'emulator-5554';
 const PROCESS_NAME = 'HD-Player';
@@ -109,6 +109,7 @@ async function takeScreenshot(filename) {
     .extract(GAME_AREA)
     .toFile(destPath);
   fs.unlinkSync(rawPath);
+  debugCopyScreenshot(destPath);
   await sleep(1000);
 }
 

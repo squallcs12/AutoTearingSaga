@@ -1,5 +1,6 @@
 const { waitLevelUp } = require('../../scene-detection/check-level');
 const { sleep } = require('../specs/common');
+const { debugCopyScreenshot } = require('../../utils');
 const path = require('path');
 const Page = require('./page');
 
@@ -149,14 +150,7 @@ class PlayingPage extends Page {
   }
 
   async spamO () {
-    await this.pressO();
-    await this.pressO();
-    await this.pressO();
-    await this.pressO();
-    await this.pressO();
-    await this.pressO();
-    await this.pressO();
-    await this.pressO();
+    for (let i = 0; i < 8; i++) await this.pressO();
   }
   async finish() {
   }
@@ -164,7 +158,9 @@ class PlayingPage extends Page {
   }
 
   async saveScreenshot(filename) {
-    await driver.saveScreenshot(path.join('tmp', filename));
+    const destPath = path.join('tmp', filename);
+    await driver.saveScreenshot(destPath);
+    debugCopyScreenshot(destPath);
   }
 
   async takePic() {
