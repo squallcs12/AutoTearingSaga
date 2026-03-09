@@ -1,11 +1,8 @@
 const speed = parseFloat(process.env.EMULATOR_SPEED || 1);
 const sleep = (ms) => new Promise(r => setTimeout(r, ms / speed));
 
-<<<<<<< HEAD
 const statOrder = ['str', 'skill', 'spd', 'luck', 'def', 'mag', 'mst', 'hp', 'move'];
 
-module.exports = { sleep, statOrder };
-=======
 function debugCopyScreenshot(destPath) {
   if (!process.env.__DEBUG__) return;
   const fs = require('fs');
@@ -18,5 +15,4 @@ function debugCopyScreenshot(destPath) {
   fs.copyFileSync(destPath, path.join(debugDir, prefix + path.basename(destPath)));
 }
 
-module.exports = { sleep, debugCopyScreenshot };
->>>>>>> e63ff78a3878c3cca4959002e70ee3cb9ba97a3b
+module.exports = { sleep, statOrder, debugCopyScreenshot };
