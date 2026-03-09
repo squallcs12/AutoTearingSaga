@@ -8,29 +8,21 @@
 const fs = require('fs');
 const { isArenaConfirm, isArenaWin } = require('../scene-detection/check-arena');
 const { checkHp } = require('../scene-detection/check-hp');
-const { getGoodCondition } = require('./characters/good-condition');
-const { identifyCharacter } = require('./identify-character');
+const { buildFallbackCondition, createNearMissTracker, detectCharacter, statLogLine, performSteps } = require('./shared');
 
 async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, levelsToGain) {
   console.log('[arena] reload');
   await PlayingPage.perform('load-game');
   await sleep(2000);
 
-  await PlayingPage.perform('X');
-  await PlayingPage.perform('X');
-  await PlayingPage.perform('X');
-  await PlayingPage.perform('X');
+  await performSteps(PlayingPage, ['X', 'X', 'X', 'X']);
 
   await PlayingPage.perform('O'); // select character
-  await saveScreenshot('current-char-raw.png');
-  const detectedName = process.env.CHAR_NAME || await identifyCharacter('tmp/current-char-raw.png');
+  const { detectedName, goodCondition } = await detectCharacter(saveScreenshot);
   console.log(`[arena] detected character: ${detectedName}${process.env.CHAR_NAME ? ' (override)' : ''}`);
-  if (!detectedName) throw new Error('Could not identify character face (no match above 95%). Add face image to game-logic/characters/faces/ or use -name <char>');
-  const goodCondition = getGoodCondition(detectedName);
   console.error('[arena] goodCondition:', JSON.stringify(goodCondition));
-  const FALLBACK_THRESHOLD = 20;
-  let nearMissCount = process.env.NO_FALLBACK ? Infinity : 0;
-  const fallbackCondition = goodCondition.map(c => ({ ...c, count: Math.max(1, c.count - 1), hp: 1 }));
+  const fallbackCondition = buildFallbackCondition(goodCondition);
+  const nearMiss = createNearMissTracker(goodCondition, fallbackCondition);
 
   await PlayingPage.perform('save2');
 
@@ -72,24 +64,15 @@ async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, 
     }
 
     console.log('[arena] enter arena');
-    await PlayingPage.perform('O');
-    await PlayingPage.perform('O');
-    await PlayingPage.perform('O');
-    await PlayingPage.perform('O');
+    await performSteps(PlayingPage, ['O', 'O', 'O', 'O']);
 
     console.log('[arena] waiting for loading');
-    await PlayingPage.perform('wait');
-    await PlayingPage.perform('wait');
-    await PlayingPage.perform('wait');
-    await PlayingPage.perform('wait');
+    await performSteps(PlayingPage, ['wait', 'wait', 'wait', 'wait']);
 
     console.log('[arena] waiting for confirm');
     await PlayingPage.perform('O');
-    await PlayingPage.perform('wait');
-    await PlayingPage.perform('wait');
-    await PlayingPage.perform('2O');
-    await PlayingPage.perform('2O');
-    await PlayingPage.perform('2O');
+    await performSteps(PlayingPage, ['wait', 'wait']);
+    await performSteps(PlayingPage, ['2O', '2O', '2O']);
 
     console.log('[arena] checking for arena confirm');
     let isAtArenaConfirm = false;
@@ -107,8 +90,7 @@ async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, 
     console.log(`[arena] isAtArenaConfirm=${isAtArenaConfirm}`);
     if (!isAtArenaConfirm) continue;
 
-    await PlayingPage.perform('wait');
-    await PlayingPage.perform('wait');
+    await performSteps(PlayingPage, ['wait', 'wait']);
 
     await PlayingPage.perform('save3');
 
@@ -117,10 +99,7 @@ async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, 
       console.log(`[arena] skipping attempt ${levelAttempts}/${skipCount}`);
       await PlayingPage.perform('reload3');
       await PlayingPage.perform('O');
-      await PlayingPage.perform('X');
-      await PlayingPage.perform('X');
-      await PlayingPage.perform('X');
-      await PlayingPage.perform('X');
+      await performSteps(PlayingPage, ['X', 'X', 'X', 'X']);
       skipNav = true;
       continue;
     }
@@ -142,24 +121,19 @@ async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, 
     console.log(`[arena] levelAttempts=${levelAttempts}`);
 
     if (didLevelUp) {
-      const effectiveCondition = nearMissCount >= FALLBACK_THRESHOLD ? fallbackCondition : goodCondition;
-
-      const { isGood, statIncreased } = await checkLevelUpgrade(effectiveCondition, saveScreenshot, detectedName);
-      const stats = [statIncreased.count, ...Object.keys(statIncreased).filter(k => k !== 'count' && statIncreased[k])];
-      const logLine = `turn=${levelAttempts} isGood=${isGood} stats=${stats.join(',')}\n`;
+      const { isGood, statIncreased } = await checkLevelUpgrade(nearMiss.getEffectiveCondition(), saveScreenshot, detectedName);
+      const logLine = `turn=${levelAttempts} isGood=${isGood} stats=${statLogLine(statIncreased).join(',')}\n`;
       fs.appendFileSync('logs/arena.log', logLine);
       console.error(logLine.trim());
-      if (!isGood && statIncreased.count === goodCondition[0].count - 1) {
-        nearMissCount++;
-        if (nearMissCount === FALLBACK_THRESHOLD) {
-          console.log(`[arena] ${FALLBACK_THRESHOLD} near-misses (count=${statIncreased.count}), relaxing to count=${fallbackCondition[0].count} with hp required`);
-        }
-      }
+
+      const nearMissMsg = nearMiss.track(isGood, statIncreased);
+      if (nearMissMsg) console.log(`[arena] ${nearMissMsg}`);
+
       if (isGood) {
         await PlayingPage.perform('save1');
         levelCount++;
         levelAttempts = 0;
-        nearMissCount = process.env.NO_FALLBACK ? Infinity : 0;
+        nearMiss.reset();
         consecutiveLosses = 0;
       } else {
         console.log('[arena] bad stats, change opponent');
@@ -184,10 +158,7 @@ async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, 
     if (changeOpponent) {
       await PlayingPage.perform('reload3');
       await PlayingPage.perform('O');
-      await PlayingPage.perform('X');
-      await PlayingPage.perform('X');
-      await PlayingPage.perform('X');
-      await PlayingPage.perform('X');
+      await performSteps(PlayingPage, ['X', 'X', 'X', 'X']);
       skipNav = true;
       continue;
     }
@@ -199,8 +170,7 @@ async function arenaLoop(PlayingPage, sleep, saveScreenshot, checkLevelUpgrade, 
       }
 
       console.log('[arena] wait for map show');
-      await PlayingPage.perform('wait');
-      await PlayingPage.perform('wait');
+      await performSteps(PlayingPage, ['wait', 'wait']);
 
       console.log('[arena] end turn');
       await PlayingPage.perform('down');

@@ -2,6 +2,7 @@ const { waitLevelUp } = require('../../scene-detection/check-level');
 const { sleep } = require('../specs/common');
 const path = require('path');
 const Page = require('./page');
+const { addPerform } = require('../../shared/perform');
 
 
 
@@ -62,52 +63,59 @@ class PlayingPage extends Page {
 
   async moveUp() {
     await this.pad.touchAction({action: 'tap', x: 168, y:30});
+    await sleep(300);
   }
 
   async moveUpLeft() {
     await this.pad.touchAction({action: 'tap', x: 30, y:30});
+    await sleep(300);
   }
 
   async moveUpRight() {
     await this.pad.touchAction({action: 'tap', x: 306, y:30});
+    await sleep(300);
   }
 
   async moveDown() {
     await this.pad.touchAction({action: 'tap', x: 168, y:280});
+    await sleep(300);
   }
 
   async moveDownLeft() {
     await this.pad.touchAction({action: 'tap', x: 30, y:280});
+    await sleep(300);
   }
   async moveDownRight() {
     await this.pad.touchAction({action: 'tap', x: 328, y:280});
+    await sleep(300);
   }
-
 
   async moveLeft() {
     await this.pad.touchAction({action: 'tap', x: 30, y:168});
-
+    await sleep(300);
   }
 
   async moveRight() {
     await this.pad.touchAction({action: 'tap', x: 328, y:168});
-
+    await sleep(300);
   }
 
   async pressO() {
     await this.buttonO.touchAction({action: 'tap', x: 10, y:10});
+    await sleep(1000);
   }
 
   async pressX() {
     await this.buttonX.touchAction({action: 'tap', x: 10, y:10});
+    await sleep(1000);
   }
 
   async pressSquare() {
-
+    await sleep(500);
   }
 
   async pressTriangle() {
-
+    await sleep(500);
   }
 
 
@@ -141,6 +149,13 @@ class PlayingPage extends Page {
     } else{
       await $(`android=new UiSelector().text("Save Slot ${index}")`).touchAction({action: 'tap', x: 10, y: 10});
     }
+    await sleep(1500);
+  }
+
+  async press2O() {
+    await this.buttonO.touchAction({action: 'tap', x: 10, y:10});
+    await sleep(200);
+    await this.buttonO.touchAction({action: 'tap', x: 10, y:10});
     await sleep(500);
   }
 
@@ -149,14 +164,9 @@ class PlayingPage extends Page {
   }
 
   async spamO () {
-    await this.pressO();
-    await this.pressO();
-    await this.pressO();
-    await this.pressO();
-    await this.pressO();
-    await this.pressO();
-    await this.pressO();
-    await this.pressO();
+    for (let i = 0; i < 8; i++) {
+      await this.buttonO.touchAction({action: 'tap', x: 10, y:10});
+    }
   }
   async finish() {
   }
@@ -177,113 +187,8 @@ class PlayingPage extends Page {
     return this.lastLevelUpResult;
   }
 
-  async perform(step) {
-    console.log(`[perform] ${step}`);
-    const parts = step.split(' ');
-    let count = 1;
-    if (parts[1]) {
-      count = parseInt(parts[1], 10);
-    }
-    for (let i = 0; i < count; i++) {
-      switch (parts[0]) {
-        case 'left':
-          await this.moveLeft();
-          await sleep(300);
-          break;
-        case 'right':
-          await this.moveRight();
-          await sleep(300);
-          break;
-        case 'up':
-          await this.moveUp();
-          await sleep(300);
-          break;
-        case 'down':
-          await this.moveDown();
-          await sleep(300);
-          break;
-        case 'X':
-          await this.pressX();
-          await sleep(1000);
-          break;
-        case 'O':
-          await this.pressO();
-          await sleep(1000);
-          break;
-        case '2O':
-          await this.pressO();
-          await sleep(200);
-          await this.pressO();
-          await sleep(500);
-          break;
-        case 'square':
-          await this.pressSquare();
-          await sleep(500);
-          break;
-        case 'triangle':
-          await this.pressTriangle();
-          await sleep(500);
-          break;
-        case 'save':
-          await this.quicksave()
-          await sleep(1000);
-          break;
-        case 'save1':
-          await this.quicksave(1)
-          await sleep(1000);
-          break;
-        case 'save2':
-          await this.quicksave(2)
-          await sleep(1000);
-          break;
-        case 'save3':
-          await this.quicksave(3)
-          await sleep(1000);
-          break;
-        case 'up-left':
-          await this.moveUpLeft();
-          await sleep(300);
-          break;
-        case 'up-right':
-          await this.moveUpRight();
-          await sleep(300);
-          break;
-        case 'down-left':
-          await this.moveDownLeft();
-          await sleep(300);
-          break;
-        case 'down-right':
-          await this.moveDownRight();
-          await sleep(300);
-          break;
-        case 'confirm':
-          await this.spamO();
-          break;
-        case 'boss':
-          await this.finishBoss();
-          break;
-        case 'finish':
-          await this.finish();
-          break;
-        case 'wait':
-          await sleep(1000);
-          break;
-        case 'pic':
-          await this.takePic();
-          break
-        case 'wait-level-up':
-          await this.waitLevelUp();
-          break;
-        case 'reload':  await this.reload(0); break;
-        case 'reload1': await this.reload(1); break;
-        case 'reload2': await this.reload(2); break;
-        case 'reload3': await this.reload(3); break;
-        case 'load-game': await this.loadGameAndLoadQuickSave(); break;
-        default:
-          break;
-      }
-    }
-  }
 }
+
+addPerform(PlayingPage);
 
 module.exports = new PlayingPage();

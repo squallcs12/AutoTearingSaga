@@ -4,7 +4,7 @@ const { exec, execSync } = require('child_process');
 const { exportSave } = require('../android/specs/transfer-save');
 
 const { goodCondition, syncGithub } = require('../config');
-const { sleep } = require('../utils');
+const { sleep, statOrder } = require('../utils');
 const { getScale } = require('./calib');
 sharp.cache(false);
 
@@ -18,8 +18,6 @@ const findColor = (color, colors) => {
   }
   return false;
 };
-
-const statOrder = ['str', 'skill', 'spd', 'luck', 'def', 'mag', 'mst', 'hp', 'move'];
 
 const loadSampleColors = async () => {
   const raw = await sharp('example/level-up/level-up.jpg').greyscale().raw().toBuffer();

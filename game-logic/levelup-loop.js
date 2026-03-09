@@ -1,8 +1,7 @@
 const fs = require('fs');
-const { getGoodCondition } = require('./characters/good-condition');
-const { identifyCharacter } = require('./identify-character');
 const { detectMovableGrid } = require('../scene-detection/check-movement');
-const { sleep } = require('../utils');
+const { sleep, statOrder } = require('../utils');
+const { buildFallbackCondition, createNearMissTracker, detectCharacter, statLogLine, performSteps } = require('./shared');
 const parse = (str) => str.split('\n').map(x => x.trim()).filter(x => x.length > 0);
 
 // Parse grid into tiles grouped by distance from C
@@ -41,10 +40,6 @@ function buildStepsToTile(charRow, charCol, target) {
   return steps;
 }
 
-
-
-const statOrder = ['str', 'skill', 'spd', 'luck', 'def', 'mag', 'mst', 'hp', 'move'];
-
 function statsDiffer(a, b) {
   if (a.count !== b.count) return true;
   for (const name of statOrder) {
@@ -53,10 +48,9 @@ function statsDiffer(a, b) {
   return false;
 }
 
-async function performSteps(PlayingPage, steps) {
-  for (const step of steps) {
-    await PlayingPage.perform(step);
-  }
+async function saveGoodResult(PlayingPage) {
+  await PlayingPage.perform('save');
+  await PlayingPage.perform('save1');
 }
 
 async function performFight(PlayingPage, battle, isBoss) {
@@ -77,17 +71,11 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
   fs.writeFileSync(logFile, '');
   const battle = parse(fight);
   await PlayingPage.perform('load-game');
-  await PlayingPage.perform('X');
-  await PlayingPage.perform('X');
-  await PlayingPage.perform('X');
-  await PlayingPage.perform('X');
-  
+  await performSteps(PlayingPage, ['X', 'X', 'X', 'X']);
+
   await PlayingPage.perform('O'); // select character
-  await saveScreenshot('current-char-raw.png');
-  const detectedName = process.env.CHAR_NAME || await identifyCharacter('tmp/current-char-raw.png');
+  const { detectedName, goodCondition } = await detectCharacter(saveScreenshot);
   console.log(`[levelup] detected character: ${detectedName}${process.env.CHAR_NAME ? ' (override)' : ''}`);
-  if (!detectedName) throw new Error('Could not identify character face (no match above 95%). Add face image to game-logic/characters/faces/ or use -name <char>');
-  const goodCondition = getGoodCondition(detectedName);
   console.log('[levelup] goodCondition:', JSON.stringify(goodCondition));
   await PlayingPage.perform('save');
 
@@ -126,8 +114,7 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
   console.log('[levelup] initStat:', JSON.stringify(initStat));
   if (initGood) {
     console.log('[levelup] baseline fight already has good stats, no need to farm!');
-    await PlayingPage.perform('save');
-    await PlayingPage.perform('save1');
+    await saveGoodResult(PlayingPage);
     return;
   }
 
@@ -169,19 +156,14 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
 
   // Phase 2: farm good condition using the working random steps
   let skipCount = parseInt(process.env.SKIP_COUNT || '0', 10);
-  // workingRandomSteps = ['left 5', 'down 2', 'O', 'wait', 'X', 'wait', ];
   await PlayingPage.perform('reload');
   await PlayingPage.perform('save2');
   let turn = 0;
   let lastChangeTurn = skipCount;
   let prevStat = null;
   const STALE_LIMIT = 10;
-  const FALLBACK_THRESHOLD = 20;
-  let nearMissCount = process.env.NO_FALLBACK ? Infinity : 0;
-  const fallbackCondition = goodCondition.map(c => {
-    const fc = { ...c, count: Math.max(1, c.count - 1), hp: 1 };
-    return fc;
-  });
+  const fallbackCondition = buildFallbackCondition(goodCondition);
+  const nearMiss = createNearMissTracker(goodCondition, fallbackCondition);
   while (true) {
     turn++;
     if (turn > skipCount) {
@@ -201,24 +183,16 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
 
     await performFight(PlayingPage, battle, isBoss);
 
-    const effectiveCondition = nearMissCount >= FALLBACK_THRESHOLD ? fallbackCondition : goodCondition;
-    const { isGood, statIncreased } = await checkLevelUpgrade(effectiveCondition, saveScreenshot, detectedName);
-    const stats = [statIncreased.count, ...Object.keys(statIncreased).filter(k => k !== 'count' && statIncreased[k])];
-    const logLine = `turn=${turn} stats=${stats.join(',')}\n`;
+    const { isGood, statIncreased } = await checkLevelUpgrade(nearMiss.getEffectiveCondition(), saveScreenshot, detectedName);
+    const logLine = `turn=${turn} stats=${statLogLine(statIncreased).join(',')}\n`;
     fs.appendFileSync(logFile, logLine);
     console.error(logLine.trim());
 
-    // Track near-misses: count is 1 less than required
-    if (!isGood && statIncreased.count === goodCondition[0].count - 1) {
-      nearMissCount++;
-      if (nearMissCount === FALLBACK_THRESHOLD) {
-        console.log(`[levelup] ${FALLBACK_THRESHOLD} near-misses (count=${statIncreased.count}), relaxing to count=${fallbackCondition[0].count} with hp required`);
-      }
-    }
+    const nearMissMsg = nearMiss.track(isGood, statIncreased);
+    if (nearMissMsg) console.log(`[levelup] ${nearMissMsg}`);
 
     if (isGood) {
-      await PlayingPage.perform('save');
-      await PlayingPage.perform('save1');
+      await saveGoodResult(PlayingPage);
       break;
     }
 
