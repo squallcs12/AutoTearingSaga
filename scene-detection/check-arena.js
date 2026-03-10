@@ -1,6 +1,6 @@
 const sharp = require('sharp');
 const { existsSync } = require('fs');
-const { getScale } = require('./calib');
+const { cropGameArea } = require('./calib');
 sharp.cache(false);
 
 const confirmConfigs = [
@@ -31,12 +31,11 @@ const winConfigs = [
 
 
 const matchesAny = async (filename, configs) => {
-  const { width } = await sharp(filename).metadata();
-  const s = getScale(width);
+  const { image, s } = await cropGameArea(sharp(filename));
   for (const { ref, crop, refSize } of configs) {
     const [refBuf, curBuf] = await Promise.all([
       ref,
-      sharp(filename).extract(crop(s)).resize(refSize.w, refSize.h).raw().toBuffer(),
+      image.clone().extract(crop(s)).resize(refSize.w, refSize.h).raw().toBuffer(),
     ]);
     let same = 0;
     for (let i = 0; i < refBuf.length; i++) {

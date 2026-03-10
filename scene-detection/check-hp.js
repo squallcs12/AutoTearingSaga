@@ -1,14 +1,13 @@
 const sharp = require('sharp');
-const { getScale } = require('./calib');
+const { cropGameArea } = require('./calib');
 sharp.cache(false);
 
 // HP bar: filled=orange (R>200, B<5), empty=dark red (R>100, G<80, B<30)
 // Coordinates calibrated at 1080px wide; scaled uniformly by image width.
 const checkHp = async (filename) => {
-  const { width } = await sharp(filename).metadata();
-  const s = getScale(width);
+  const { image, s } = await cropGameArea(sharp(filename));
 
-  const { data, info } = await sharp(filename)
+  const { data, info } = await image
     .extract({
       left:   Math.round(732 * s),
       top:    Math.round(742 * s),

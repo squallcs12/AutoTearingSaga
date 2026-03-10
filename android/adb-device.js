@@ -1,4 +1,14 @@
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
+
+const isWindows = process.platform === 'win32';
+
+const sleepSync = (ms) => {
+  if (isWindows) {
+    execSync(`powershell -c "Start-Sleep -Milliseconds ${ms}"`);
+  } else {
+    execSync(`sleep ${ms / 1000}`);
+  }
+};
 
 const getConnectedDevices = () => {
   const output = execSync('adb devices').toString();
@@ -15,6 +25,33 @@ const getPhoneDevice = () => {
   return device;
 };
 
+const startAvdAndWait = (avdName) => {
+  console.log(`No ADB devices found. Starting AVD "${avdName}"...`);
+  if (isWindows) {
+    execSync(`start "" emulator -avd ${avdName}`, { shell: 'cmd.exe', stdio: 'ignore' });
+  } else {
+    spawn('emulator', ['-avd', avdName], { detached: true, stdio: 'ignore' }).unref();
+  }
+
+  const timeoutSec = 120;
+  const start = Date.now();
+  while ((Date.now() - start) / 1000 < timeoutSec) {
+    sleepSync(3000);
+    const devices = getConnectedDevices();
+    const emulator = devices.find(id => id.startsWith('emulator-'));
+    if (emulator) {
+      try {
+        const bootComplete = execSync(`adb -s ${emulator} shell getprop sys.boot_completed`, { encoding: 'utf8' }).trim();
+        if (bootComplete === '1') {
+          console.log(`AVD "${avdName}" is ready (${emulator})`);
+          return emulator;
+        }
+      } catch {}
+    }
+  }
+  throw new Error(`Timed out waiting for AVD "${avdName}" to boot after ${timeoutSec}s`);
+};
+
 const getAvdDevice = () => {
   const emulators = getConnectedDevices().filter(id => id.startsWith('emulator-'));
   for (const id of emulators) {
@@ -22,6 +59,9 @@ const getAvdDevice = () => {
     if (avdName) return id;
   }
   if (emulators.length === 1) return emulators[0];
+  if (getConnectedDevices().length === 0) {
+    return startAvdAndWait('Medium_Phone');
+  }
   throw new Error('No AVD emulator found. Run "adb devices" to check.');
 };
 

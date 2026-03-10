@@ -110,8 +110,7 @@ const checkIsGoodLevelUpImg = async (i, startStat) => {
   // not the original image (Sharp chains extracts against the source, not the prior extract)
   const panelBuf = await panelPipeline.toBuffer();
   if (debug) await sharp(panelBuf).toFormat('jpg').toFile(`crop-level-up-${i}.jpg`);
-  const isLevelUp = await checkIsLevelUp(sharp(panelBuf));
-  if (isLevelUp) return findTotalStatIncrease(sharp(panelBuf), startStat, s);
+  return findTotalStatIncrease(sharp(panelBuf), startStat, s);
 };
 
 const getStatIncreased = async (total) => {
@@ -180,12 +179,36 @@ const syncSave = async (message) => {
   execSync('git push');
 };
 
+const checkIsLevelUpByIndex = async (i) => {
+  const { image, s } = await cropGameArea(sharp(`tmp/level-up-${i}.png`));
+  const panelPipeline = await extractLevelUpPanel(image, s);
+  const panelBuf = await panelPipeline.toBuffer();
+  return checkIsLevelUp(sharp(panelBuf));
+};
+
 const checkLevelUpgrade = async (required, saveScreenshot, characterName) => {
   const total = 14;
+  const checkPromises = [];
+
   for (let i = 1; i <= total; i++) {
     await saveScreenshot(`level-up-${i}.png`);
+    // Fire off level-up check concurrently with next screenshot
+    checkPromises.push(
+      checkIsLevelUpByIndex(i).then(isLevelUp => isLevelUp ? i : null)
+    );
   }
-  const { isGood, statIncreased } = await checkIsGoodLevelUp(total, required);
+
+  // All screenshots done; wait for any remaining checks
+  const results = await Promise.all(checkPromises);
+  const latestLevelUpIdx = results.reduce((max, r) => r !== null && r > max ? r : max, 0);
+
+  if (latestLevelUpIdx === 0) {
+    console.error('[checkLevelUpgrade] No level-up panel detected in any screenshot');
+    return { isGood: false, statIncreased: { count: 0 } };
+  }
+
+  console.log(`[checkLevelUpgrade] latest level-up panel at index ${latestLevelUpIdx}`);
+  const { isGood, statIncreased } = await checkIsGoodLevelUp(latestLevelUpIdx, required);
   if (isGood) {
     console.error('Goooooooooooooodddddddddddddddddd');
     if (syncGithub) {
