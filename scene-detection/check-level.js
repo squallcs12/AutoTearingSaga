@@ -113,20 +113,21 @@ const checkIsGoodLevelUpImg = async (i, startStat) => {
   return findTotalStatIncrease(sharp(panelBuf), startStat, s);
 };
 
-const getStatIncreased = async (total) => {
+const getStatIncreased = async (total, { expectMove = false } = {}) => {
   const increased = { count: 0 };
+  const stopIdx = expectMove ? statOrder.length : statOrder.indexOf('move');
   let lastStatIdx = 0;
   for (let i = 1; i <= total; i++) {
     const findIncreased = await checkIsGoodLevelUpImg(i, lastStatIdx);
     if (!findIncreased) continue;
-    for (let k = lastStatIdx; k < statOrder.length; k++) {
+    for (let k = lastStatIdx; k < stopIdx; k++) {
       const name = statOrder[k];
       if (findIncreased[name]) {
         increased[name] = 1;
         lastStatIdx = k + 1;
       }
     }
-    if (lastStatIdx >= statOrder.length) break;
+    if (lastStatIdx >= stopIdx) break;
   }
   for (const name of statOrder) {
     if (increased[name]) increased.count += 1;
@@ -161,7 +162,8 @@ const checkGoodCondition = (isGood, required) => {
 };
 
 const checkIsGoodLevelUp = async (total, required) => {
-  const statIncreased = await getStatIncreased(total);
+  const expectMove = required.some(r => r.move === 1);
+  const statIncreased = await getStatIncreased(total, { expectMove });
   console.error(statSummary(statIncreased));
   const isGood = checkGoodCondition(statIncreased, required);
   return { isGood, statIncreased };
