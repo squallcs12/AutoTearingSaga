@@ -65,21 +65,7 @@ async function performFight(PlayingPage, battle, isBoss) {
   await PlayingPage.perform('wait-level-up');
 }
 
-async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight, isBoss) {
-  const sessionTime = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const logFile = `logs/levelup-${sessionTime}.log`;
-  fs.writeFileSync(logFile, '');
-  const battle = parse(fight);
-  await PlayingPage.perform('load-game');
-  await performSteps(PlayingPage, ['X', 'X', 'X', 'X']);
-
-  await PlayingPage.perform('O'); // select character
-  const { detectedName, goodCondition } = await detectCharacter(saveScreenshot);
-  console.log(`[levelup] detected character: ${detectedName}${process.env.CHAR_NAME ? ' (override)' : ''}`);
-  console.log('[levelup] goodCondition:', JSON.stringify(goodCondition));
-  await PlayingPage.perform('save');
-
-  // Detect available movement directions (retry up to 10 times for non-empty grid)
+async function detectMoveableGrid(PlayingPage, saveScreenshot) {
   let grid = [];
   for (let attempt = 1; attempt <= 100; attempt++) {
     await PlayingPage.perform('left');            // move cursor left (tiles still visible)
@@ -107,6 +93,80 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
   if (grid.length === 0) {
     throw new Error('[levelup] Failed to detect movement grid after 10 attempts');
   }
+  return grid;
+}
+
+async function detectRandomTriggerSteps(PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, grid, initStat, goodCondition, detectedName) {
+  const { charRow, charCol, byDist, maxDist } = parseGridTiles(grid);
+  const allTiles = [];
+  for (let dist = 1; dist <= maxDist; dist++) {
+    if (byDist[dist]) allTiles.push(...byDist[dist]);
+  }
+
+  const MAX_MULTI_COMBOS = 50;
+  for (let numMoves = 1; numMoves <= 3; numMoves++) {
+    console.log(`[levelup] trying ${numMoves}-move combinations...`);
+    let combos;
+    if (numMoves === 1) {
+      // Try single tiles, shuffled within each distance
+      combos = [];
+      for (let dist = 1; dist <= maxDist; dist++) {
+        const tiles = byDist[dist];
+        if (!tiles || tiles.length === 0) continue;
+        const shuffled = [...tiles].sort(() => Math.random() - 0.5);
+        combos.push(...shuffled.map(t => [t]));
+      }
+    } else {
+      // Random sampling for multi-move combinations
+      combos = [];
+      for (let i = 0; i < MAX_MULTI_COMBOS; i++) {
+        const combo = [];
+        for (let j = 0; j < numMoves; j++) {
+          combo.push(allTiles[Math.floor(Math.random() * allTiles.length)]);
+        }
+        combos.push(combo);
+      }
+    }
+
+    for (const combo of combos) {
+      const steps = combo.flatMap(tile => buildStepsToTile(charRow, charCol, tile));
+      const label = combo.map(t => `(${t.r},${t.c})`).join('→');
+      console.log(`[levelup] ${numMoves}-move ${label}:`, steps.join(', '));
+
+      await PlayingPage.perform('reload');
+      await performSteps(PlayingPage, steps);
+
+      await performFight(PlayingPage, battle, isBoss);
+      const { statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
+
+      if (statsDiffer(statIncreased, initStat)) {
+        console.log(`[levelup] found working ${numMoves}-move combination`);
+        return steps;
+      }
+      console.log(`[levelup] no change, trying next...`);
+    }
+  }
+
+  console.log('[levelup] exhausted all combinations, using fallback...');
+  const fallbackTiles = byDist[1] || Object.values(byDist)[0];
+  return buildStepsToTile(charRow, charCol, fallbackTiles[0]);
+}
+
+async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight, isBoss) {
+  const sessionTime = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const logFile = `logs/levelup-${sessionTime}.log`;
+  fs.writeFileSync(logFile, '');
+  const battle = parse(fight);
+  await PlayingPage.perform('load-game');
+  await performSteps(PlayingPage, ['X', 'X', 'X', 'X']);
+
+  await PlayingPage.perform('O'); // select character
+  const { detectedName, goodCondition } = await detectCharacter(saveScreenshot);
+  console.log(`[levelup] detected character: ${detectedName}${process.env.CHAR_NAME ? ' (override)' : ''}`);
+  console.log('[levelup] goodCondition:', JSON.stringify(goodCondition));
+  await PlayingPage.perform('save');
+
+  const grid = await detectMoveableGrid(PlayingPage, saveScreenshot);
 
   // Baseline: fight with no random steps to record init stat
   await performFight(PlayingPage, battle, isBoss);
@@ -118,41 +178,9 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
     return;
   }
 
-  // Phase 1: try all tiles at distance 1, then 2, ..., up to maxDist
-  // For each distance, shuffle tiles and try each one until stats change
-  const { charRow, charCol, byDist, maxDist } = parseGridTiles(grid);
-  let workingRandomSteps = [];
-  let found = false;
-  for (let dist = 1; dist <= maxDist && !found; dist++) {
-    const tiles = byDist[dist];
-    if (!tiles || tiles.length === 0) continue;
-    // Shuffle tiles at this distance
-    const shuffled = [...tiles].sort(() => Math.random() - 0.5);
-    console.log(`[levelup] trying ${shuffled.length} tiles at distance ${dist}...`);
-    for (const tile of shuffled) {
-      workingRandomSteps = buildStepsToTile(charRow, charCol, tile);
-      console.log(`[levelup] dist=${dist} tile=(${tile.r},${tile.c}):`, workingRandomSteps.join(', '));
-
-      await PlayingPage.perform('reload');
-      await performSteps(PlayingPage, workingRandomSteps);
-
-      await performFight(PlayingPage, battle, isBoss);
-      const { statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
-
-      if (statsDiffer(statIncreased, initStat)) {
-        console.log(`[levelup] found working steps at distance ${dist}`);
-        found = true;
-        break;
-      }
-      console.log(`[levelup] no change, trying next tile...`);
-    }
-  }
-  if (!found) {
-    console.log('[levelup] exhausted all tiles, restarting from distance 1...');
-    // Fallback: just use a 1-step move
-    const fallbackTiles = byDist[1] || Object.values(byDist)[0];
-    workingRandomSteps = buildStepsToTile(charRow, charCol, fallbackTiles[0]);
-  }
+  const workingRandomSteps = await detectRandomTriggerSteps(
+    PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, grid, initStat, goodCondition, detectedName
+  );
 
   // Phase 2: farm good condition using the working random steps
   let skipCount = parseInt(process.env.SKIP_COUNT || '0', 10);
