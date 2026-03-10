@@ -62,20 +62,11 @@ async function subtractBackground(bgPath, fgPath, diffThreshold = 25) {
     }
   }
 
-  // Save debug diff image
-  const diffBuf = Buffer.alloc(total * 3);
-  for (let px = 0; px < total; px++) {
-    const v = tileMap[px] ? 255 : 0;
-    const i = px * 3;
-    diffBuf[i] = v; diffBuf[i+1] = v; diffBuf[i+2] = v;
-  }
+  // Save debug images (bg, fg normalized)
   if (!fs.existsSync(MOVEMENT_DIR)) fs.mkdirSync(MOVEMENT_DIR, { recursive: true });
   await Promise.all([
-    fs.promises.copyFile(bgPath, `${MOVEMENT_DIR}/bg.png`),
-    fs.promises.copyFile(fgPath, `${MOVEMENT_DIR}/fg.png`),
-    sharp(diffBuf, { raw: { width, height, channels: 3 } })
-      .png()
-      .toFile(`${MOVEMENT_DIR}/diff.png`),
+    sharp(bg.data, { raw: { width, height, channels } }).png().toFile(`${MOVEMENT_DIR}/bg.png`),
+    sharp(fg.data, { raw: { width, height, channels } }).png().toFile(`${MOVEMENT_DIR}/fg.png`),
   ]);
 
   return { tileMap, width, height, bgData: bg.data, fgData: fg.data, channels };
@@ -155,16 +146,16 @@ function estimateTileSizes(tiles) {
 function findCursorPosition(fgData, bgData, channels, tileX, tileY) {
   const width = STD_W, height = STD_H;
 
-  // Collect white/bright pixels that appear in fg but NOT in bg (cursor-only pixels)
+  // Collect white/bright pixels from bg image (cursor is always visible in bg).
+  // Cursor animates slightly so exact pixels differ between bg/fg — use bg only.
+  const isWhite = (data, i) => data[i] > 180 && data[i+1] > 180 && data[i+2] > 180 && Math.max(data[i],data[i+1],data[i+2]) - Math.min(data[i],data[i+1],data[i+2]) < 30;
   const whitePixels = [];
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * channels;
-      const r = fgData[i], g = fgData[i+1], b = fgData[i+2];
-      if (!(r > 180 && g > 180 && b > 180 && Math.max(r,g,b) - Math.min(r,g,b) < 30)) continue;
-      const br = bgData[i], bg2 = bgData[i+1], bb = bgData[i+2];
-      if (br > 180 && bg2 > 180 && bb > 180 && Math.max(br,bg2,bb) - Math.min(br,bg2,bb) < 30) continue;
-      whitePixels.push({ x, y });
+      if (isWhite(bgData, i)) {
+        whitePixels.push({ x, y });
+      }
     }
   }
 
@@ -351,27 +342,8 @@ async function detectMovableGrid(bgPath, fgPath) {
     if (rk !== '0,0') gridSet.add(rk);
   }
 
-  // Keep only the largest connected component (BFS on grid, using C as bridge)
-  const rawSet = new Set(gridSet);
-  rawSet.add('0,0');
-  const visited = new Set();
-  const components = [];
-  for (const key of rawSet) {
-    if (visited.has(key)) continue;
-    const queue = [key]; visited.add(key); let head = 0;
-    while (head < queue.length) {
-      const cur = queue[head++];
-      const [cx, cy] = cur.split(',').map(Number);
-      for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
-        const nk = `${cx+dx},${cy+dy}`;
-        if (rawSet.has(nk) && !visited.has(nk)) { visited.add(nk); queue.push(nk); }
-      }
-    }
-    components.push(queue);
-  }
-  components.sort((a, b) => b.length - a.length);
-  const connectedSet = new Set(components[0]);
-  connectedSet.delete('0,0');
+  // Use all tiles (sprites on tiles can break connectivity)
+  const connectedSet = gridSet;
 
   // Bounds capped at ±10
   const MAX_GRID = 10;
@@ -383,7 +355,8 @@ async function detectMovableGrid(bgPath, fgPath) {
   const minGy = Math.max(-MAX_GRID, Math.min(...allGy));
   const maxGy = Math.min(MAX_GRID, Math.max(...allGy));
 
-  // BFS from character (0,0) to compute step distances
+  // BFS from character (0,0) to compute step distances.
+  // Walk through any cell within bounds (sprite-blocked tiles are still walkable).
   const distMap = new Map();
   distMap.set('0,0', 0);
   const bfsQ = ['0,0'];
@@ -393,12 +366,22 @@ async function detectMovableGrid(bgPath, fgPath) {
     const [cx, cy] = cur.split(',').map(Number);
     const d = distMap.get(cur);
     for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
-      const nk = `${cx+dx},${cy+dy}`;
-      if (connectedSet.has(nk) && !distMap.has(nk)) {
+      const nx = cx+dx, ny = cy+dy;
+      const nk = `${nx},${ny}`;
+      if (distMap.has(nk)) continue;
+      if (nx < minGx || nx > maxGx || ny < minGy || ny > maxGy) continue;
+      // Only expand into cells that have a detected tile OR are between detected tiles
+      if (connectedSet.has(nk) || hasDetectedNeighbor(nx, ny)) {
         distMap.set(nk, d + 1);
         bfsQ.push(nk);
       }
     }
+  }
+  function hasDetectedNeighbor(x, y) {
+    for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      if (connectedSet.has(`${x+dx},${y+dy}`)) return true;
+    }
+    return false;
   }
 
   const grid = [];
@@ -406,11 +389,66 @@ async function detectMovableGrid(bgPath, fgPath) {
     let row = '';
     for (let gx = minGx; gx <= maxGx; gx++) {
       if (gx === 0 && gy === 0) row += 'C ';
-      else if (distMap.has(`${gx},${gy}`)) row += distMap.get(`${gx},${gy}`) + ' ';
+      else if (connectedSet.has(`${gx},${gy}`)) row += (distMap.get(`${gx},${gy}`) || 'G') + ' ';
       else row += '. ';
     }
     grid.push(row.trimEnd());
   }
+
+  // Build diff image buffer
+  const total = width * height;
+  const diffBuf = Buffer.alloc(total * 3);
+  for (let px = 0; px < total; px++) {
+    const v = tileMap[px] ? 255 : 0;
+    const i = px * 3;
+    diffBuf[i] = v; diffBuf[i+1] = v; diffBuf[i+2] = v;
+  }
+
+  // Draw grid lines and character cross on diff image
+  const halfTX = Math.round(tileX / 2), halfTY = Math.round(tileY / 2);
+  for (let px = (originX - halfTX) % tileX; px < width; px += tileX) {
+    if (px < 0 || px >= width) continue;
+    for (let y = 0; y < height; y++) {
+      const i = (y * width + px) * 3;
+      diffBuf[i] = 255; diffBuf[i+1] = 255; diffBuf[i+2] = 0;
+    }
+  }
+  for (let py = (originY - halfTY) % tileY; py < height; py += tileY) {
+    if (py < 0 || py >= height) continue;
+    for (let x = 0; x < width; x++) {
+      const i = (py * width + x) * 3;
+      diffBuf[i] = 255; diffBuf[i+1] = 255; diffBuf[i+2] = 0;
+    }
+  }
+  // Mark character cell center with red cross
+  for (let d = -10; d <= 10; d++) {
+    const px1 = originX + d, py1 = originY;
+    if (px1 >= 0 && px1 < width && py1 >= 0 && py1 < height) {
+      const i = (py1 * width + px1) * 3;
+      diffBuf[i] = 255; diffBuf[i+1] = 0; diffBuf[i+2] = 0;
+    }
+    const px2 = originX, py2 = originY + d;
+    if (px2 >= 0 && px2 < width && py2 >= 0 && py2 < height) {
+      const i = (py2 * width + px2) * 3;
+      diffBuf[i] = 255; diffBuf[i+1] = 0; diffBuf[i+2] = 0;
+    }
+  }
+  // Mark detected tiles with green X
+  const xSize = Math.min(halfTX, halfTY) - 5;
+  for (const key of connectedSet) {
+    const [gx, gy] = key.split(',').map(Number);
+    const cx = originX + gx * tileX, cy = originY + gy * tileY;
+    for (let d = -xSize; d <= xSize; d++) {
+      for (const [dx, dy] of [[d, d], [d, -d]]) {
+        const px = cx + dx, py = cy + dy;
+        if (px >= 0 && px < width && py >= 0 && py < height) {
+          const i = (py * width + px) * 3;
+          diffBuf[i] = 0; diffBuf[i+1] = 255; diffBuf[i+2] = 0;
+        }
+      }
+    }
+  }
+  await sharp(diffBuf, { raw: { width, height, channels: 3 } }).png().toFile(`${MOVEMENT_DIR}/diff.png`);
 
   return { grid, tileX, tileY, tileCount: connectedSet.size, originX, originY };
 }
