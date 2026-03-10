@@ -13,15 +13,17 @@ const getGoodCondition = (character) => {
 
   let cond = {};
   if (tier === 'good') {
-    cond = { count: 7 };
-    cond[sorted[0].name] = -1;
-  } else if (tier === 'avg') {
     cond = { count: 6 };
     cond[sorted[0].name] = -1;
-  } else { // bad
+  } else if (tier === 'avg') {
     cond = { count: 5 };
     cond[sorted[0].name] = -1;
+  } else { // bad
+    cond = { count: 4 };
+    cond[sorted[0].name] = -1;
   }
+
+  cond.hp = 1;
 
   if (g.move > 0) {
     cond.move = 1;
