@@ -5,7 +5,7 @@ const { exportSave } = require('../android/specs/transfer-save');
 
 const { goodCondition, syncGithub } = require('../config');
 const { sleep, statOrder } = require('../utils');
-const { getScale } = require('./calib');
+const { cropGameArea } = require('./calib');
 sharp.cache(false);
 
 const debug = false;
@@ -104,13 +104,14 @@ const findTotalStatIncrease = async (newImage, startIdx, s = 1) => {
 };
 
 const checkIsGoodLevelUpImg = async (i, startStat) => {
-  const image = sharp(`tmp/level-up-${i}.png`);
-  const { width } = await image.metadata();
-  const s = getScale(width);
-  const newImage = await extractLevelUpPanel(image, s);
-  if (debug) await newImage.toFormat('jpg').toFile(`crop-level-up-${i}.jpg`);
-  const isLevelUp = await checkIsLevelUp(newImage);
-  if (isLevelUp) return findTotalStatIncrease(newImage, startStat, s);
+  const { image, s } = await cropGameArea(sharp(`tmp/level-up-${i}.png`));
+  const panelPipeline = await extractLevelUpPanel(image, s);
+  // Materialize to buffer so subsequent .extract() calls work on the cropped panel,
+  // not the original image (Sharp chains extracts against the source, not the prior extract)
+  const panelBuf = await panelPipeline.toBuffer();
+  if (debug) await sharp(panelBuf).toFormat('jpg').toFile(`crop-level-up-${i}.jpg`);
+  const isLevelUp = await checkIsLevelUp(sharp(panelBuf));
+  if (isLevelUp) return findTotalStatIncrease(sharp(panelBuf), startStat, s);
 };
 
 const getStatIncreased = async (total) => {
@@ -202,9 +203,7 @@ const waitLevelUp = async (playing, { sleepMs = 500 } = {}) => {
   const start = Date.now();
   for (let i = 0; i < 30; i++) {
     await playing.saveScreenshot('current.png');
-    const image = sharp('tmp/current.png');
-    const { width } = await image.metadata();
-    const s = getScale(width);
+    const { image, s } = await cropGameArea(sharp('tmp/current.png'));
     const cropImage = await extractLevelUpPanel(image, s);
     if (await checkIsLevelUp(cropImage)) {
       console.log(`[waitLevelUp] detected at i=${i} +${Date.now() - start}ms`);
