@@ -52,7 +52,8 @@ const startAvdAndWait = (avdName) => {
   throw new Error(`Timed out waiting for AVD "${avdName}" to boot after ${timeoutSec}s`);
 };
 
-const getAvdDevice = () => {
+const getTargetDevice = () => {
+  if (process.env.TARGET_DEVICE === 'phone') return getPhoneDevice();
   const emulators = getConnectedDevices().filter(id => id.startsWith('emulator-'));
   for (const id of emulators) {
     const avdName = execSync(`adb -s ${id} shell getprop ro.boot.qemu.avd_name`, { encoding: 'utf8' }).trim();
@@ -74,4 +75,4 @@ const getBluestackDevice = () => {
   throw new Error('No BlueStacks emulator found. Run "adb devices" to check.');
 };
 
-module.exports = { getPhoneDevice, getAvdDevice, getBluestackDevice };
+module.exports = { getPhoneDevice, getTargetDevice, getBluestackDevice };

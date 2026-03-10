@@ -1,7 +1,7 @@
-const { getAvdDevice } = require('./android/adb-device');
+const { getTargetDevice } = require('./android/adb-device');
 
 const isWindows = process.platform === 'win32';
-const udid = getAvdDevice();
+const udid = getTargetDevice();
 console.log(`Using device: ${udid}`);
 
 exports.config = {
