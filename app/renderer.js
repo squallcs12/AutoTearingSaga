@@ -1,4 +1,21 @@
 const output = document.getElementById('output')
+const randomInput = document.getElementById('random')
+const randomSuggestion = document.getElementById('random-suggestion')
+const randomSuggestionValue = document.getElementById('random-suggestion-value')
+
+function showRandomSuggestion(value) {
+  randomSuggestionValue.textContent = value
+  randomSuggestion.classList.remove('hidden')
+}
+
+randomSuggestion.addEventListener('click', () => {
+  randomInput.value = randomSuggestionValue.textContent
+})
+
+window.api.getLastRandom().then(value => {
+  if (value) showRandomSuggestion(value)
+})
+
 const status = document.getElementById('status')
 const btnRun = document.getElementById('btn-run')
 const btnStop = document.getElementById('btn-stop')

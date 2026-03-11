@@ -126,9 +126,9 @@ async function identifyCharacter(imagePath) {
   // Get greyscale game area pixels for sliding search
   const gameBuf = await gameImage.clone().greyscale().raw().toBuffer();
 
-  // Search within the popup region (border to border + 300px, x from 350 to 700)
+  // Search the full game height — border detection is unreliable due to terrain colors
   const searchX = 350, searchW = 350;
-  const searchY = borderY, searchH = 300;
+  const searchY = 0, searchH = CALIB_H;
 
   let bestName = null, bestScore = -1, bestPos = {};
   for (const file of faceFiles) {

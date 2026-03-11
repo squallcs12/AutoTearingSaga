@@ -7,7 +7,7 @@ const fs = require('node:fs')
 function bringEmulatorBeside(win, { activate = false } = {}) {
   const [appX, appY] = win.getPosition()
   const [appW] = win.getSize()
-  const targetX = appX + appW
+  const targetX = appX + appW - 8  // compensate for Windows invisible border shadow
   const targetY = appY
   const fgLine = activate
     ? `[Win32]::SetForegroundWindow($h)`
@@ -34,6 +34,11 @@ Get-Process | Where-Object { $_.MainWindowTitle -match 'Android Emulator' } | Fo
 let runningProcess = null
 const PROJECT_ROOT = path.join(__dirname, '..')
 const BOUNDS_FILE = path.join(__dirname, '.window-bounds.json')
+const LAST_RANDOM_FILE = path.join(__dirname, '.last-random.json')
+
+function loadLastRandom() {
+  try { return JSON.parse(fs.readFileSync(LAST_RANDOM_FILE, 'utf8')) } catch { return null }
+}
 
 function loadBounds() {
   try { return JSON.parse(fs.readFileSync(BOUNDS_FILE, 'utf8')) } catch { return null }
@@ -76,6 +81,8 @@ const createWindow = () => {
 }
 
 app.whenReady().then(() => {
+  ipcMain.handle('get-last-random', () => loadLastRandom()?.value || null)
+
   ipcMain.handle('get-characters', () => {
     const growthDir = path.join(PROJECT_ROOT, 'game-logic', 'characters', 'growth')
     return fs.readdirSync(growthDir)
@@ -165,6 +172,7 @@ app.whenReady().then(() => {
         if (result === '1') {
           clearInterval(poll)
           win.webContents.send('avd-ready')
+          bringEmulatorBeside(win, { activate: true })
         }
       } catch {}
     }, 3000)

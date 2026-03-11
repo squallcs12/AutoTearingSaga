@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const { detectMovableGrid } = require('../scene-detection/check-movement');
 const { sleep, statOrder } = require('../utils');
 const { buildFallbackCondition, createNearMissTracker, detectCharacter, statLogLine, performSteps } = require('./shared');
@@ -262,6 +263,8 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
     workingRandomSteps = await detectRandomTriggerSteps(
       PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, grid, initStat, goodCondition, detectedName
     );
+    const randomSuggestion = workingRandomSteps.slice(0, -4).join(',');
+    fs.writeFileSync(path.join(__dirname, '..', 'app', '.last-random.json'), JSON.stringify({ value: randomSuggestion }));
   }
   const failedStepsSet = [];
 
