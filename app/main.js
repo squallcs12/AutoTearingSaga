@@ -33,11 +33,26 @@ Get-Process | Where-Object { $_.MainWindowTitle -match 'Android Emulator' } | Fo
 
 let runningProcess = null
 const PROJECT_ROOT = path.join(__dirname, '..')
+const BOUNDS_FILE = path.join(__dirname, '.window-bounds.json')
+
+function loadBounds() {
+  try { return JSON.parse(fs.readFileSync(BOUNDS_FILE, 'utf8')) } catch { return null }
+}
+
+function saveBounds(win) {
+  if (win.isMinimized() || win.isMaximized()) return
+  fs.writeFileSync(BOUNDS_FILE, JSON.stringify(win.getBounds()))
+}
 
 const createWindow = () => {
+  const saved = loadBounds()
   const win = new BrowserWindow({
-    width: 900,
-    height: 700,
+    width: saved?.width || 900,
+    height: saved?.height || 930,
+    x: saved?.x,
+    y: saved?.y,
+    minWidth: 360,
+    minHeight: 600,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js')
     }
@@ -46,7 +61,9 @@ const createWindow = () => {
   win.loadFile(path.join(__dirname, 'index.html'))
 
   let focusTimer = null
-  win.on('moved', () => bringEmulatorBeside(win))
+  win.on('moved', () => { saveBounds(win); bringEmulatorBeside(win) })
+  win.on('resized', () => saveBounds(win))
+  win.on('close', () => saveBounds(win))
   win.on('will-move', () => { clearTimeout(focusTimer) })
   win.on('focus', () => {
     focusTimer = setTimeout(() => bringEmulatorBeside(win, { activate: true }), 500)

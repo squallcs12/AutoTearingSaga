@@ -4,3 +4,6 @@ tmp/*.jpg
 xxx*-*.jpg
 config.js
 logs/*.log
+
+# Electron app window state
+app/.window-bounds.json
