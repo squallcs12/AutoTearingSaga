@@ -237,21 +237,30 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
   console.log('[levelup] goodCondition:', JSON.stringify(goodCondition));
   await PlayingPage.perform('save');
 
-  const grid = await detectMoveableGrid(PlayingPage, saveScreenshot);
+  let workingRandomSteps;
+  if (process.env.RANDOM_OVERRIDE) {
+    // Parse comma-separated steps from --random override
+    workingRandomSteps = process.env.RANDOM_OVERRIDE.split(',').map(s => s.trim()).filter(s => s.length > 0);
+    // Add confirm/cancel to make it a movement trigger
+    workingRandomSteps.push('O', 'wait', 'X', 'wait');
+    console.log('[levelup] using --random override:', workingRandomSteps.join(', '));
+  } else {
+    const grid = await detectMoveableGrid(PlayingPage, saveScreenshot);
 
-  // Baseline: fight with no random steps to record init stat
-  await performFight(PlayingPage, battle, isBoss);
-  const { isGood: initGood, statIncreased: initStat } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
-  console.log('[levelup] initStat:', JSON.stringify(initStat));
-  if (initGood) {
-    console.log('[levelup] baseline fight already has good stats, no need to farm!');
-    await saveGoodResult(PlayingPage);
-    return;
+    // Baseline: fight with no random steps to record init stat
+    await performFight(PlayingPage, battle, isBoss);
+    const { isGood: initGood, statIncreased: initStat } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
+    console.log('[levelup] initStat:', JSON.stringify(initStat));
+    if (initGood) {
+      console.log('[levelup] baseline fight already has good stats, no need to farm!');
+      await saveGoodResult(PlayingPage);
+      return;
+    }
+
+    workingRandomSteps = await detectRandomTriggerSteps(
+      PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, grid, initStat, goodCondition, detectedName
+    );
   }
-
-  let workingRandomSteps = await detectRandomTriggerSteps(
-    PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, grid, initStat, goodCondition, detectedName
-  );
   const failedStepsSet = [];
 
   // Phase 2: farm good condition using the working random steps
