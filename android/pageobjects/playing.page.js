@@ -47,11 +47,11 @@ class PlayingPage extends Page {
   }
 
   get buttonLoadState () {
-    return $('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/androidx.recyclerview.widget.RecyclerView/android.widget.LinearLayout[1]/android.widget.RelativeLayout')
+    return $('android=new UiSelector().text("Load State")');
   }
 
   get buttonSaveState () {
-    return $('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/androidx.recyclerview.widget.RecyclerView/android.widget.LinearLayout[2]/android.widget.RelativeLayout')
+    return $('android=new UiSelector().text("Save State")');
   }
 
   get buttonQuickSave () {
