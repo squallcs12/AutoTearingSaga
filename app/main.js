@@ -36,6 +36,13 @@ app.whenReady().then(() => {
     const args = []
     const env = { ...process.env }
 
+    // Common env vars (work for both android and desktop via game-logic/shared)
+    if (options.name) env.CHAR_NAME = options.name
+    if (options.skip > 0) env.SKIP_COUNT = String(options.skip)
+    if (options.fixedTier) env.NO_FALLBACK = '1'
+    if (options.tier && options.tier !== 'auto') env.TIER_OVERRIDE = options.tier
+    if (options.random) env.RANDOM_OVERRIDE = options.random
+
     if (platform === 'android') {
       const script = mode === 'level' ? 'scripts/level.js' : 'scripts/arena.js'
       args.push(script)
@@ -62,12 +69,6 @@ app.whenReady().then(() => {
     } else {
       const script = mode === 'level' ? 'desktop/levelup.js' : 'desktop/arena.js'
       args.push(script)
-
-      if (options.name) env.CHAR_NAME = options.name
-      if (options.skip > 0) env.SKIP_COUNT = String(options.skip)
-      if (options.fixedTier) env.NO_FALLBACK = '1'
-      if (options.tier && options.tier !== 'auto') env.TIER_OVERRIDE = options.tier
-      if (mode === 'level' && options.random) env.RANDOM_OVERRIDE = options.random
     }
 
     runningProcess = spawn('node', args, {

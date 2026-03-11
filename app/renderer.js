@@ -2,6 +2,7 @@ const output = document.getElementById('output')
 const status = document.getElementById('status')
 const btnRun = document.getElementById('btn-run')
 const btnStop = document.getElementById('btn-stop')
+const outputDot = document.getElementById('output-dot')
 
 // Populate character dropdown
 window.api.getCharacters().then(chars => {
@@ -31,15 +32,22 @@ document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener(
 document.querySelectorAll('input[name="platform"]').forEach(r => r.addEventListener('change', updateVisibility))
 updateVisibility()
 
+function setStatus(text, type) {
+  status.textContent = text
+  status.className = type || ''
+}
+
 function setRunning() {
   btnRun.disabled = true
   btnStop.disabled = false
   output.textContent = ''
+  outputDot.classList.add('active')
 }
 
 function setReady() {
   btnRun.disabled = false
   btnStop.disabled = true
+  outputDot.classList.remove('active')
 }
 
 btnRun.addEventListener('click', async () => {
@@ -57,18 +65,18 @@ btnRun.addEventListener('click', async () => {
   }
 
   setRunning()
-  status.textContent = `Running: ${mode} (${platform})`
+  setStatus(`Running: ${mode} (${platform})`, 'running')
 
   const result = await window.api.runCommand({ mode, platform, options })
   if (result.error) {
-    status.textContent = result.error
+    setStatus(result.error, 'error')
     setReady()
   }
 })
 
 btnStop.addEventListener('click', async () => {
   await window.api.stopCommand()
-  status.textContent = 'Stopped'
+  setStatus('Stopped', 'error')
   setReady()
 })
 
@@ -78,6 +86,9 @@ window.api.onOutput((data) => {
 })
 
 window.api.onDone((code) => {
-  status.textContent = code === 0 ? 'Done - Good stats found!' : `Exited (code ${code})`
+  setStatus(
+    code === 0 ? 'Done - Good stats found!' : `Exited (code ${code})`,
+    code === 0 ? 'success' : 'error'
+  )
   setReady()
 })

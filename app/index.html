@@ -4,122 +4,280 @@
     <meta charset="UTF-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
     />
     <title>AutoTearingSaga</title>
     <style>
+      @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+      @keyframes slideIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
       * { box-sizing: border-box; margin: 0; padding: 0; }
       body {
-        font-family: system-ui, -apple-system, sans-serif;
-        background: #1a1a2e;
-        color: #e0e0e0;
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        background: #0c0e1a;
+        color: #c8cad0;
         display: flex;
         height: 100vh;
+        overflow: hidden;
       }
 
-      /* Left panel - form */
+      /* ── Left panel ── */
       .panel {
-        width: 280px;
-        min-width: 280px;
-        padding: 16px;
-        background: #16213e;
-        border-right: 1px solid #0f3460;
+        width: 300px;
+        min-width: 300px;
+        padding: 20px;
+        background: linear-gradient(180deg, #121428 0%, #0e1020 100%);
+        border-right: 1px solid rgba(99, 102, 241, 0.15);
         overflow-y: auto;
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 16px;
       }
-      h1 { font-size: 16px; color: #e94560; }
+      .panel::-webkit-scrollbar { width: 4px; }
+      .panel::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 2px; }
 
-      .form-group { display: flex; flex-direction: column; gap: 4px; }
-      label { font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
+      .title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      .title-icon {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, #6366f1, #ec4899);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 700;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .title h1 {
+        font-size: 15px;
+        font-weight: 600;
+        color: #e2e4ea;
+        letter-spacing: -0.3px;
+      }
+      .title .subtitle {
+        font-size: 11px;
+        color: #555;
+        font-weight: 400;
+      }
 
-      .radio-group { display: flex; gap: 8px; }
+      /* ── Form groups ── */
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        animation: slideIn 0.2s ease;
+      }
+      label {
+        font-size: 11px;
+        color: #6b7080;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        font-weight: 600;
+      }
+
+      /* ── Radio toggle pills ── */
+      .radio-group { display: flex; gap: 4px; background: rgba(255,255,255,0.03); border-radius: 8px; padding: 3px; }
       .radio-group label {
         flex: 1;
         text-align: center;
-        padding: 6px 0;
-        border: 1px solid #0f3460;
-        border-radius: 4px;
+        padding: 7px 0;
+        border-radius: 6px;
         cursor: pointer;
-        font-size: 13px;
+        font-size: 12px;
+        font-weight: 500;
         text-transform: none;
-        color: #ccc;
-        transition: all 0.15s;
+        letter-spacing: 0;
+        color: #777;
+        transition: all 0.2s ease;
+        user-select: none;
       }
+      .radio-group label:hover { color: #aaa; background: rgba(255,255,255,0.03); }
       .radio-group input { display: none; }
       .radio-group input:checked + label {
-        background: #0f3460;
-        border-color: #e94560;
-        color: #fff;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(139, 92, 246, 0.2));
+        color: #a5b4fc;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05);
       }
 
+      /* ── Select & inputs ── */
       select, input[type="number"], input[type="text"] {
-        background: #1a1a2e;
-        border: 1px solid #0f3460;
-        border-radius: 4px;
-        padding: 6px 8px;
-        color: #e0e0e0;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 8px;
+        padding: 8px 10px;
+        color: #c8cad0;
         font-size: 13px;
+        font-family: inherit;
+        transition: all 0.2s;
       }
-      select:focus, input:focus { outline: none; border-color: #e94560; }
+      select:hover, input[type="number"]:hover, input[type="text"]:hover {
+        border-color: rgba(99, 102, 241, 0.3);
+      }
+      select:focus, input:focus {
+        outline: none;
+        border-color: rgba(99, 102, 241, 0.5);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      }
+      select option { background: #1a1c2e; }
 
+      /* ── Checkbox ── */
       .checkbox-row {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
         font-size: 13px;
+        padding: 4px 0;
       }
-      .checkbox-row input[type="checkbox"] { accent-color: #e94560; }
+      .checkbox-row input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: #6366f1;
+        cursor: pointer;
+      }
+      .checkbox-row label {
+        text-transform: none;
+        letter-spacing: 0;
+        color: #999;
+        font-weight: 400;
+        font-size: 13px;
+        cursor: pointer;
+      }
 
-      .actions { display: flex; gap: 8px; margin-top: auto; }
+      /* ── Separator ── */
+      .separator {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.05);
+        margin: 2px 0;
+      }
+
+      /* ── Buttons ── */
+      .actions { display: flex; gap: 8px; margin-top: auto; padding-top: 8px; }
       button {
         flex: 1;
-        padding: 8px;
+        padding: 10px;
         border: none;
-        border-radius: 4px;
+        border-radius: 8px;
         font-size: 13px;
         font-weight: 600;
+        font-family: inherit;
         cursor: pointer;
-        transition: opacity 0.15s;
+        transition: all 0.2s;
+        position: relative;
+        overflow: hidden;
       }
-      button:disabled { opacity: 0.3; cursor: not-allowed; }
-      .btn-run { background: #e94560; color: #fff; }
-      .btn-run:hover:not(:disabled) { opacity: 0.85; }
-      .btn-stop { background: #333; color: #e94560; border: 1px solid #e94560; }
-      .btn-stop:hover:not(:disabled) { background: #3a1c1c; }
+      button:disabled { opacity: 0.25; cursor: not-allowed; }
+      .btn-run {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+      }
+      .btn-run:hover:not(:disabled) {
+        box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+        transform: translateY(-1px);
+      }
+      .btn-run:active:not(:disabled) { transform: translateY(0); }
+      .btn-stop {
+        background: rgba(239, 68, 68, 0.1);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+      }
+      .btn-stop:hover:not(:disabled) {
+        background: rgba(239, 68, 68, 0.15);
+        border-color: rgba(239, 68, 68, 0.35);
+      }
 
+      /* ── Status ── */
       #status {
         font-size: 11px;
-        padding: 4px 0;
-        color: #666;
+        padding: 6px 10px;
+        color: #555;
         text-align: center;
+        border-radius: 6px;
+        background: rgba(255,255,255,0.02);
+      }
+      #status.running {
+        color: #a5b4fc;
+        background: rgba(99, 102, 241, 0.08);
+        animation: pulse 2s ease-in-out infinite;
+      }
+      #status.success {
+        color: #86efac;
+        background: rgba(34, 197, 94, 0.08);
+      }
+      #status.error {
+        color: #fca5a5;
+        background: rgba(239, 68, 68, 0.08);
       }
 
-      /* Right panel - output */
+      /* ── Right panel - output ── */
       .output-panel {
         flex: 1;
         display: flex;
         flex-direction: column;
+        background: #08090f;
+      }
+      .output-header {
+        padding: 12px 16px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: #444;
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .output-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #333;
+      }
+      .output-dot.active {
+        background: #22c55e;
+        box-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
       }
       #output {
         flex: 1;
-        background: #0a0a1a;
-        padding: 12px;
-        font-family: 'Cascadia Code', 'Consolas', monospace;
+        padding: 16px;
+        font-family: 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Consolas, monospace;
         font-size: 12px;
         white-space: pre-wrap;
         overflow-y: auto;
-        line-height: 1.5;
+        line-height: 1.6;
+        color: #9ca3af;
+      }
+      #output::-webkit-scrollbar { width: 6px; }
+      #output::-webkit-scrollbar-track { background: transparent; }
+      #output::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+      #output::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.12); }
+      #output:empty::before {
+        content: 'Output will appear here...';
+        color: #333;
+        font-style: italic;
       }
 
-      .android-only, .level-only { transition: opacity 0.2s; }
       .hidden { display: none !important; }
     </style>
   </head>
   <body>
     <div class="panel">
-      <h1>AutoTearingSaga</h1>
+      <div class="title">
+        <div class="title-icon">TS</div>
+        <div>
+          <h1>AutoTearingSaga</h1>
+          <div class="subtitle">Stat farming automation</div>
+        </div>
+      </div>
 
       <div class="form-group">
         <label>Mode</label>
@@ -134,12 +292,14 @@
       <div class="form-group">
         <label>Platform</label>
         <div class="radio-group">
-          <input type="radio" name="platform" id="plat-desktop" value="desktop" checked />
+          <input type="radio" name="platform" id="plat-desktop" value="desktop" />
           <label for="plat-desktop">Desktop</label>
-          <input type="radio" name="platform" id="plat-android" value="android" />
+          <input type="radio" name="platform" id="plat-android" value="android" checked />
           <label for="plat-android">Android</label>
         </div>
       </div>
+
+      <div class="separator"></div>
 
       <div class="form-group">
         <label>Character</label>
@@ -148,7 +308,7 @@
         </select>
       </div>
 
-      <div class="form-group level-only">
+      <div class="form-group">
         <label>Tier</label>
         <div class="radio-group">
           <input type="radio" name="tier" id="tier-auto" value="auto" checked />
@@ -162,10 +322,12 @@
         </div>
       </div>
 
-      <div class="form-group checkbox-row level-only">
+      <div class="form-group checkbox-row">
         <input type="checkbox" id="fixed-tier" />
-        <label for="fixed-tier" style="text-transform:none;color:#ccc">Fixed tier (no fallback)</label>
+        <label for="fixed-tier">Fixed tier (no fallback)</label>
       </div>
+
+      <div class="separator"></div>
 
       <div class="form-group android-only">
         <label>Retries</label>
@@ -190,6 +352,10 @@
     </div>
 
     <div class="output-panel">
+      <div class="output-header">
+        <div class="output-dot" id="output-dot"></div>
+        Output
+      </div>
       <div id="output"></div>
     </div>
 
