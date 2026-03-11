@@ -224,8 +224,10 @@ async function detectRandomTriggerSteps(PlayingPage, saveScreenshot, checkLevelU
 }
 
 async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight, isBoss) {
-  const sessionTime = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const logFile = `logs/levelup-${sessionTime}.log`;
+  const logFileName = process.env.__DEBUG__
+    ? `levelup-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.log`
+    : 'levelup.log';
+  const logFile = `logs/${logFileName}`;
   fs.writeFileSync(logFile, '');
   const battle = parse(fight);
   await PlayingPage.perform('load-game');

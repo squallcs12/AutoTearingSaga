@@ -14,8 +14,10 @@ const env = { ...process.env, ...(tierOverride ? { TIER_OVERRIDE: tierOverride }
 let logFd;
 if (!verbose) {
   const logsDir = path.join(__dirname, '..', 'logs');
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const logFile = path.join(logsDir, `run-${timestamp}.log`);
+  const logFileName = process.env.__DEBUG__
+    ? `run-${new Date().toISOString().replace(/[:.]/g, '-')}.log`
+    : 'run.log';
+  const logFile = path.join(logsDir, logFileName);
   logFd = fs.openSync(logFile, 'a');
 }
 const stdio = verbose ? 'inherit' : ['ignore', logFd, logFd];
