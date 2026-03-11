@@ -60,14 +60,19 @@ const createWindow = () => {
 
   win.loadFile(path.join(__dirname, 'index.html'))
 
-  let focusTimer = null
+  win.once('ready-to-show', () => bringEmulatorBeside(win, { activate: true }))
+
+  let wasBlurred = false
+  win.on('blur', () => { wasBlurred = true })
+  win.on('focus', () => {
+    if (wasBlurred) {
+      wasBlurred = false
+      bringEmulatorBeside(win)
+    }
+  })
   win.on('moved', () => { saveBounds(win); bringEmulatorBeside(win) })
   win.on('resized', () => saveBounds(win))
   win.on('close', () => saveBounds(win))
-  win.on('will-move', () => { clearTimeout(focusTimer) })
-  win.on('focus', () => {
-    focusTimer = setTimeout(() => bringEmulatorBeside(win, { activate: true }), 500)
-  })
 }
 
 app.whenReady().then(() => {
