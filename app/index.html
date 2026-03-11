@@ -266,6 +266,27 @@
         font-style: italic;
       }
 
+      .btn-avd {
+        padding: 8px 12px;
+        background: rgba(34, 197, 94, 0.1);
+        color: #86efac;
+        border: 1px solid rgba(34, 197, 94, 0.2);
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .btn-avd:hover:not(:disabled) {
+        background: rgba(34, 197, 94, 0.15);
+        border-color: rgba(34, 197, 94, 0.35);
+      }
+      .btn-avd:disabled { opacity: 0.4; cursor: not-allowed; }
+      .btn-avd.booting {
+        animation: pulse 2s ease-in-out infinite;
+      }
+
       .hidden { display: none !important; }
     </style>
   </head>
@@ -297,6 +318,10 @@
           <input type="radio" name="platform" id="plat-android" value="android" checked />
           <label for="plat-android">Android</label>
         </div>
+      </div>
+
+      <div class="form-group android-only">
+        <button class="btn-avd" id="btn-avd">Start AVD</button>
       </div>
 
       <div class="separator"></div>

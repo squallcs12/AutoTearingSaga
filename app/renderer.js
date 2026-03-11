@@ -50,6 +50,26 @@ function setReady() {
   outputDot.classList.remove('active')
 }
 
+// Start AVD
+const btnAvd = document.getElementById('btn-avd')
+btnAvd.addEventListener('click', async () => {
+  btnAvd.disabled = true
+  btnAvd.classList.add('booting')
+  btnAvd.textContent = 'Starting AVD...'
+  output.textContent = ''
+  outputDot.classList.add('active')
+  setStatus('Booting emulator...', 'running')
+  await window.api.startAvd()
+})
+
+window.api.onAvdReady(() => {
+  btnAvd.disabled = false
+  btnAvd.classList.remove('booting')
+  btnAvd.textContent = 'Start AVD'
+  outputDot.classList.remove('active')
+  setStatus('AVD ready', 'success')
+})
+
 btnRun.addEventListener('click', async () => {
   const mode = document.querySelector('input[name="mode"]:checked').value
   const platform = document.querySelector('input[name="platform"]:checked').value

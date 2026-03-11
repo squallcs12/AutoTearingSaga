@@ -1,7 +1,35 @@
 const { app, BrowserWindow, ipcMain } = require('electron/main')
 const path = require('node:path')
-const { spawn } = require('node:child_process')
+const { spawn, execSync } = require('node:child_process')
 const fs = require('node:fs')
+
+// Move the emulator window next to the app window using PowerShell + Win32 API
+function bringEmulatorBeside(win, { activate = false } = {}) {
+  const [appX, appY] = win.getPosition()
+  const [appW] = win.getSize()
+  const targetX = appX + appW
+  const targetY = appY
+  const fgLine = activate
+    ? `[Win32]::SetForegroundWindow($h)`
+    : ''
+  const ps = `
+Add-Type @"
+using System; using System.Runtime.InteropServices;
+public class Win32 {
+  [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr a, int x, int y, int w, int h2, uint f);
+  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+}
+"@
+Get-Process | Where-Object { $_.MainWindowTitle -match 'Android Emulator' } | ForEach-Object {
+  $h = $_.MainWindowHandle
+  if ($h -ne [IntPtr]::Zero) {
+    [Win32]::SetWindowPos($h, [IntPtr]::Zero, ${targetX}, ${targetY}, 0, 0, 0x0001 -bor 0x0004)
+    ${fgLine}
+  }
+}
+`.trim()
+  spawn('powershell', ['-NoProfile', '-Command', ps], { shell: false, stdio: 'ignore' }).unref()
+}
 
 let runningProcess = null
 const PROJECT_ROOT = path.join(__dirname, '..')
@@ -16,6 +44,13 @@ const createWindow = () => {
   })
 
   win.loadFile(path.join(__dirname, 'index.html'))
+
+  let focusTimer = null
+  win.on('moved', () => bringEmulatorBeside(win))
+  win.on('will-move', () => { clearTimeout(focusTimer) })
+  win.on('focus', () => {
+    focusTimer = setTimeout(() => bringEmulatorBeside(win, { activate: true }), 500)
+  })
 }
 
 app.whenReady().then(() => {
@@ -94,10 +129,36 @@ app.whenReady().then(() => {
     return { started: true }
   })
 
+  ipcMain.handle('start-avd', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    const avd = spawn('emulator', ['-avd', 'Medium_Phone'], { shell: true, stdio: ['ignore', 'pipe', 'pipe'], detached: true })
+    avd.stdout.on('data', (data) => win.webContents.send('command-output', data.toString()))
+    avd.stderr.on('data', (data) => win.webContents.send('command-output', data.toString()))
+    avd.unref()
+
+    // Poll for boot completion
+    const poll = setInterval(() => {
+      try {
+        const result = require('child_process').execSync('adb shell getprop sys.boot_completed', { encoding: 'utf8', timeout: 5000 }).trim()
+        if (result === '1') {
+          clearInterval(poll)
+          win.webContents.send('avd-ready')
+        }
+      } catch {}
+    }, 3000)
+
+    // Timeout after 120s
+    setTimeout(() => clearInterval(poll), 120000)
+
+    return { started: true }
+  })
+
   ipcMain.handle('stop-command', () => {
     if (runningProcess) {
-      runningProcess.kill()
+      const pid = runningProcess.pid
       runningProcess = null
+      // Kill entire process tree on Windows (shell: true spawns cmd which spawns node)
+      spawn('taskkill', ['/pid', String(pid), '/f', '/t'], { shell: true })
       return { stopped: true }
     }
     return { error: 'No command running' }
