@@ -48,6 +48,49 @@ function statsDiffer(a, b) {
   return false;
 }
 
+function statToKey(statIncreased) {
+  const parts = [statIncreased.count];
+  for (const name of statOrder) {
+    if (statIncreased[name]) parts.push(name);
+  }
+  return parts.join(',');
+}
+
+// Detect if stat history is cycling (same sequence repeating)
+// Returns cycle length if found, null otherwise
+function detectCycle(history, minWindow = 10) {
+  if (history.length < minWindow * 2) return null;
+  // Try cycle lengths from minWindow up to half the history
+  for (let cycleLen = minWindow; cycleLen <= Math.floor(history.length / 2); cycleLen++) {
+    let matched = true;
+    for (let i = 0; i < minWindow; i++) {
+      if (history[history.length - 1 - i] !== history[history.length - 1 - i - cycleLen]) {
+        matched = false;
+        break;
+      }
+    }
+    if (matched) return cycleLen;
+  }
+  return null;
+}
+
+// Detect fake random trigger by high repeat rate (adjacent turns with same stats)
+// Returns true if repeat rate exceeds threshold over the last windowSize turns
+function detectHighRepeatRate(history, windowSize = 30, threshold = 0.6) {
+  if (history.length < windowSize) return false;
+  const window = history.slice(-windowSize);
+  let repeats = 0;
+  for (let i = 1; i < window.length; i++) {
+    if (window[i] === window[i - 1]) repeats++;
+  }
+  const rate = repeats / (window.length - 1);
+  if (rate >= threshold) {
+    console.log(`[levelup] high repeat rate: ${(rate * 100).toFixed(0)}% (${repeats}/${window.length - 1}) in last ${windowSize} turns`);
+    return true;
+  }
+  return false;
+}
+
 async function saveGoodResult(PlayingPage) {
   await PlayingPage.perform('save');
   await PlayingPage.perform('save1');
@@ -96,60 +139,88 @@ async function detectMoveableGrid(PlayingPage, saveScreenshot) {
   return grid;
 }
 
-async function detectRandomTriggerSteps(PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, grid, initStat, goodCondition, detectedName) {
+async function detectRandomTriggerSteps(PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, grid, initStat, goodCondition, detectedName, failedStepsSet = []) {
   const { charRow, charCol, byDist, maxDist } = parseGridTiles(grid);
-  const allTiles = [];
+  // Try single tiles, shuffled within each distance
+  const tiles = [];
   for (let dist = 1; dist <= maxDist; dist++) {
-    if (byDist[dist]) allTiles.push(...byDist[dist]);
+    if (byDist[dist]) {
+      const shuffled = [...byDist[dist]].sort(() => Math.random() - 0.5);
+      tiles.push(...shuffled);
+    }
   }
 
-  const MAX_MULTI_COMBOS = 50;
-  for (let numMoves = 1; numMoves <= 3; numMoves++) {
-    console.log(`[levelup] trying ${numMoves}-move combinations...`);
-    let combos;
-    if (numMoves === 1) {
-      // Try single tiles, shuffled within each distance
-      combos = [];
-      for (let dist = 1; dist <= maxDist; dist++) {
-        const tiles = byDist[dist];
-        if (!tiles || tiles.length === 0) continue;
-        const shuffled = [...tiles].sort(() => Math.random() - 0.5);
-        combos.push(...shuffled.map(t => [t]));
-      }
-    } else {
-      // Random sampling for multi-move combinations
-      combos = [];
-      for (let i = 0; i < MAX_MULTI_COMBOS; i++) {
-        const combo = [];
-        for (let j = 0; j < numMoves; j++) {
-          combo.push(allTiles[Math.floor(Math.random() * allTiles.length)]);
-        }
-        combos.push(combo);
-      }
+  for (const tile of tiles) {
+    const steps = buildStepsToTile(charRow, charCol, tile);
+    if (failedStepsSet.includes(steps.join(','))) {
+      continue;
+    }
+    console.log(`[levelup] tile (${tile.r},${tile.c}):`, steps.join(', '));
+
+    // First attempt: check if steps produce different stat from baseline
+    await PlayingPage.perform('reload');
+    await performSteps(PlayingPage, steps);
+    await performFight(PlayingPage, battle, isBoss);
+    const { statIncreased: stat1 } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
+
+    if (!statsDiffer(stat1, initStat)) {
+      console.log(`[levelup] no change, trying next...`);
+      continue;
     }
 
-    for (const combo of combos) {
-      const steps = combo.flatMap(tile => buildStepsToTile(charRow, charCol, tile));
-      const label = combo.map(t => `(${t.r},${t.c})`).join('→');
-      console.log(`[levelup] ${numMoves}-move ${label}:`, steps.join(', '));
-
+    // Verify: run steps 2x and 3x, need at least 2 results different from initStat
+    const allStats = [stat1];
+    for (let repeat = 2; repeat <= 3; repeat++) {
       await PlayingPage.perform('reload');
-      await performSteps(PlayingPage, steps);
-
+      for (let r = 0; r < repeat; r++) {
+        await performSteps(PlayingPage, steps);
+      }
       await performFight(PlayingPage, battle, isBoss);
       const { statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
+      allStats.push(statIncreased);
+    }
+    const diffFromInit = allStats.filter(s => statsDiffer(s, initStat)).length;
+    if (diffFromInit >= 2) {
+      console.log(`[levelup] verified: tile (${tile.r},${tile.c}) has ${diffFromInit}/3 results different from baseline`);
+      return steps;
+    }
+    console.log(`[levelup] fake trigger: only ${diffFromInit}/3 results differ from baseline, trying next...`);
+  }
 
-      if (statsDiffer(statIncreased, initStat)) {
-        console.log(`[levelup] found working ${numMoves}-move combination`);
-        return steps;
+  // No verified random trigger found — pick best fake trigger by testing multipliers
+  console.log('[levelup] no verified random trigger found, testing fake triggers with multipliers...');
+  const fallbackTiles = byDist[1] || Object.values(byDist)[0];
+  const baseSteps = buildStepsToTile(charRow, charCol, fallbackTiles[0]);
+  const EVAL_TURNS = 10;
+  let bestMultiplier = 1;
+  let bestUniqueRate = 0;
+
+  for (let multiplier = 1; multiplier <= 5; multiplier++) {
+    const multiSteps = [];
+    for (let m = 0; m < multiplier; m++) multiSteps.push(...baseSteps);
+
+    const seen = new Set();
+    for (let t = 1; t <= EVAL_TURNS; t++) {
+      await PlayingPage.perform('reload');
+      for (let r = 0; r < t; r++) {
+        await performSteps(PlayingPage, multiSteps);
       }
-      console.log(`[levelup] no change, trying next...`);
+      await performFight(PlayingPage, battle, isBoss);
+      const { statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
+      seen.add(statToKey(statIncreased));
+    }
+    const uniqueRate = seen.size / EVAL_TURNS;
+    console.log(`[levelup] fallback ${multiplier}x: ${seen.size}/${EVAL_TURNS} unique results (${(uniqueRate * 100).toFixed(0)}%)`);
+    if (uniqueRate > bestUniqueRate) {
+      bestUniqueRate = uniqueRate;
+      bestMultiplier = multiplier;
     }
   }
 
-  console.log('[levelup] exhausted all combinations, using fallback...');
-  const fallbackTiles = byDist[1] || Object.values(byDist)[0];
-  return buildStepsToTile(charRow, charCol, fallbackTiles[0]);
+  const result = [];
+  for (let m = 0; m < bestMultiplier; m++) result.push(...baseSteps);
+  console.log(`[levelup] using ${bestMultiplier}x fallback steps (${(bestUniqueRate * 100).toFixed(0)}% unique rate)`);
+  return result;
 }
 
 async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight, isBoss) {
@@ -178,9 +249,10 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
     return;
   }
 
-  const workingRandomSteps = await detectRandomTriggerSteps(
+  let workingRandomSteps = await detectRandomTriggerSteps(
     PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, grid, initStat, goodCondition, detectedName
   );
+  const failedStepsSet = [];
 
   // Phase 2: farm good condition using the working random steps
   let skipCount = parseInt(process.env.SKIP_COUNT || '0', 10);
@@ -189,6 +261,7 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
   let turn = 0;
   let lastChangeTurn = skipCount;
   let prevStat = null;
+  const statHistory = [];
   const STALE_LIMIT = 10;
   const fallbackCondition = buildFallbackCondition(goodCondition);
   const nearMiss = createNearMissTracker(goodCondition, fallbackCondition);
@@ -224,10 +297,40 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
       break;
     }
 
+    statHistory.push(statToKey(statIncreased));
+
     if (prevStat && statIncreased.count > 0 && statsDiffer(statIncreased, prevStat)) {
       lastChangeTurn = turn;
     }
     prevStat = statIncreased;
+
+    // Detect fake random trigger: cycle or high repeat rate
+    const cycleLen = detectCycle(statHistory);
+    const highRepeat = detectHighRepeatRate(statHistory);
+    if (cycleLen || highRepeat) {
+      if (cycleLen) console.log(`[levelup] FAKE RANDOM detected: stat sequence repeats every ${cycleLen} turns`);
+      console.log('[levelup] current random steps are not effective, finding new ones...');
+      failedStepsSet.push(workingRandomSteps.join(','));
+
+      // Reload and re-detect movement grid + new random steps
+      await PlayingPage.perform('reload');
+      const newGrid = await detectMoveableGrid(PlayingPage, saveScreenshot);
+      workingRandomSteps = await detectRandomTriggerSteps(
+        PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, newGrid, initStat, goodCondition, detectedName,
+        failedStepsSet
+      );
+      console.log('[levelup] new random steps:', workingRandomSteps.join(', '));
+
+      // Reset phase 2 state
+      await PlayingPage.perform('reload');
+      await PlayingPage.perform('save2');
+      skipCount = 0;
+      turn = 0;
+      lastChangeTurn = 0;
+      prevStat = null;
+      statHistory.length = 0;
+      continue;
+    }
 
     if (turn - lastChangeTurn >= STALE_LIMIT) {
       console.log(`[levelup] no stat change in ${STALE_LIMIT} turns, reloading from save2 and skipping to turn ${lastChangeTurn}`);
