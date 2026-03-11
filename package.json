@@ -1,4 +1,5 @@
 {
+    "main": "app/main.js",
     "license": "MIT",
     "dependencies": {
         "@wdio/appium-service": "^7.25.1",
@@ -11,7 +12,8 @@
         "sharp": "^0.31.1"
     },
     "devDependencies": {
-        "@wdio/cli": "^7.25.1"
+        "@wdio/cli": "^7.25.1",
+        "electron": "^33.4.11"
     },
     "scripts": {
         "wdio": "wdio run wdio.conf.js",
@@ -23,6 +25,7 @@
         "bluestack-arena": "node bluestack/arena.js",
         "pull": "node scripts/pull.js",
         "push": "node scripts/push.js",
-        "sync": "node sync.js"
+        "sync": "node sync.js",
+        "app": "electron app/main.js"
     }
 }
