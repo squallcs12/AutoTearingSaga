@@ -108,7 +108,8 @@ app.whenReady().then(() => {
 
     const win = BrowserWindow.fromWebContents(event.sender)
     const args = []
-    const env = { ...process.env }
+    // Strip yarn/npm config env vars to avoid "Unknown env config" warnings in child processes
+    const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('npm_config_')))
 
     // Common env vars (work for both android and desktop via game-logic/shared)
     if (options.name) env.CHAR_NAME = options.name
