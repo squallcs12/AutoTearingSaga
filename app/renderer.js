@@ -133,7 +133,7 @@ btnRun.addEventListener('click', async () => {
     fight: document.getElementById('fight').value.trim() || null,
     isBoss: document.getElementById('is-boss').checked,
     syncGithub: document.getElementById('sync-github').checked,
-    levelsToGain: parseInt(document.getElementById('levels-to-gain').value, 10) || null
+    levelsToGain: mode === 'arena' ? (parseInt(document.getElementById('levels-to-gain').value, 10) || null) : null
   }
 
   setRunning()
