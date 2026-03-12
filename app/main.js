@@ -150,6 +150,13 @@ app.whenReady().then(() => {
       args.push(script)
     }
 
+    // Log the command so the user can reproduce it manually
+    const envPrefix = ['CHAR_NAME', 'SKIP_COUNT', 'NO_FALLBACK', 'TIER_OVERRIDE', 'RANDOM_OVERRIDE', 'FIGHT_OVERRIDE', 'IS_BOSS', 'SYNC_GITHUB', 'LEVELS_TO_GAIN', 'TARGET_DEVICE']
+      .filter(k => env[k]).map(k => `${k}=${env[k]}`).join(' ')
+    const cmdLine = `${envPrefix ? envPrefix + ' ' : ''}node ${args.join(' ')}`
+    const win2 = BrowserWindow.fromWebContents(event.sender)
+    if (win2) win2.webContents.send('command-output', `> ${cmdLine}\n`)
+
     runningProcess = spawn('node', args, {
       cwd: PROJECT_ROOT,
       shell: true,
@@ -178,20 +185,33 @@ app.whenReady().then(() => {
   ipcMain.handle('start-avd', (event) => {
     const win = BrowserWindow.fromWebContents(event.sender)
 
-    // Check if AVD is already running
+    // Check if an emulator is already connected (booted or still booting)
+    let emulatorConnected = false
     try {
-      const result = execSync('adb shell getprop sys.boot_completed', { encoding: 'utf8', timeout: 5000 }).trim()
-      if (result === '1') {
-        win.webContents.send('avd-ready')
-        bringEmulatorBeside(win, { activate: true })
-        return { started: true, alreadyRunning: true }
-      }
+      const devices = execSync('adb devices', { encoding: 'utf8', timeout: 5000 })
+      emulatorConnected = /emulator-\d+\s+(device|offline)/.test(devices)
     } catch {}
 
-    const avd = spawn('emulator', ['-avd', 'Medium_Phone'], { shell: true, stdio: ['ignore', 'pipe', 'pipe'], detached: true })
-    avd.stdout.on('data', (data) => win.webContents.send('command-output', data.toString()))
-    avd.stderr.on('data', (data) => win.webContents.send('command-output', data.toString()))
-    avd.unref()
+    if (emulatorConnected) {
+      // Already running — check if fully booted
+      try {
+        const result = execSync('adb shell getprop sys.boot_completed', { encoding: 'utf8', timeout: 5000 }).trim()
+        if (result === '1') {
+          win.webContents.send('avd-ready')
+          bringEmulatorBeside(win, { activate: true })
+          return { started: true, alreadyRunning: true }
+        }
+      } catch {}
+      // Still booting — skip spawn, just poll below
+      win.webContents.send('command-output', 'Emulator already running, waiting for boot...\n')
+    }
+
+    if (!emulatorConnected) {
+      const avd = spawn('emulator', ['-avd', 'Medium_Phone'], { shell: true, stdio: ['ignore', 'pipe', 'pipe'], detached: true })
+      avd.stdout.on('data', (data) => win.webContents.send('command-output', data.toString()))
+      avd.stderr.on('data', (data) => win.webContents.send('command-output', data.toString()))
+      avd.unref()
+    }
 
     // Poll for boot completion
     const poll = setInterval(() => {

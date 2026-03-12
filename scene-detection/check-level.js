@@ -1,5 +1,4 @@
 const sharp = require('sharp');
-const _ = require('lodash');
 const { exec, execSync } = require('child_process');
 const { exportSave } = require('../android/specs/transfer-save');
 
@@ -11,42 +10,49 @@ sharp.cache(false);
 
 const debug = false;
 
-const findColor = (color, colors) => {
-  for (let i = 0; i < colors.length; i++) {
-    if (_.isEqual(colors[i], color)) {
-      return true;
-    }
+const path = require('path');
+
+// Load reference label images (stat name columns) for template matching
+const refDir = path.join(__dirname, '..', 'example', 'level-up');
+const loadRef = async (file) => {
+  const img = sharp(path.join(refDir, file));
+  const meta = await img.metadata();
+  const buf = await img.greyscale().raw().toBuffer();
+  return { buf, width: meta.width, height: meta.height };
+};
+const refLeftPromise  = loadRef('col-left-half.png');
+const refRightPromise = loadRef('col-right-half.png');
+
+// Positions of label columns relative to panel origin (panelStart)
+const labelLeft  = { x: 420 - 140, y: 270 - 227 }; // (280, 43)
+const labelRight = { x: 700 - 140, y: 270 - 227 }; // (560, 43)
+
+const matchRegion = async (panelImage, ref, pos, s) => {
+  const left   = Math.round(pos.x * s);
+  const top    = Math.round(pos.y * s);
+  const width  = Math.round(ref.width * s);
+  const height = Math.round(ref.height * s);
+  const region = await panelImage.clone()
+    .extract({ left, top, width, height })
+    .resize(ref.width, ref.height)
+    .greyscale().raw().toBuffer();
+  let match = 0;
+  for (let i = 0; i < region.length; i++) {
+    if (Math.abs(region[i] - ref.buf[i]) <= 30) match++;
   }
-  return false;
+  return match / region.length;
 };
 
-const loadSampleColors = async () => {
-  const raw = await sharp('example/level-up/level-up.jpg').greyscale().raw().toBuffer();
-  const colorCount = {};
-  for (let i = 0; i < raw.length; i++) {
-    colorCount[raw[i]] = (colorCount[raw[i]] || 0) + 1;
-  }
-  const sorted = Object.entries(colorCount).sort((a, b) => b[1] - a[1]);
-  let sum = 0;
-  const sampleColors = [];
-  for (const [color, count] of sorted) {
-    sum += count;
-    sampleColors.push(parseInt(color, 10));
-    if (sum / raw.length > 0.8) break;
-  }
-  return sampleColors;
-};
+const MATCH_THRESHOLD = 0.75;
 
-const sampleColorsPromise = loadSampleColors();
-
-const checkIsLevelUp = async (newImage) => {
-  const sampleColors = await sampleColorsPromise;
-  newImage = await newImage.clone().greyscale().raw().toBuffer();
-  let count = 0;
-  for (let j = 0; j < newImage.length; j++) {
-    if (sampleColors.includes(newImage[j])) count += 1;
-  }
-  return count / newImage.length >= 0.5;
+const checkIsLevelUp = async (panelImage, s = 1) => {
+  const [refLeft, refRight] = await Promise.all([refLeftPromise, refRightPromise]);
+  const [scoreL, scoreR] = await Promise.all([
+    matchRegion(panelImage, refLeft, labelLeft, s),
+    matchRegion(panelImage, refRight, labelRight, s),
+  ]);
+  if (debug) console.log(`[checkIsLevelUp] left=${scoreL.toFixed(3)} right=${scoreR.toFixed(3)}`);
+  return scoreL >= MATCH_THRESHOLD && scoreR >= MATCH_THRESHOLD;
 };
 
 // avd
@@ -186,7 +192,7 @@ const checkIsLevelUpByIndex = async (i) => {
   const { image, s } = await cropGameArea(sharp(`tmp/level-up-${i}.png`));
   const panelPipeline = await extractLevelUpPanel(image, s);
   const panelBuf = await panelPipeline.toBuffer();
-  return checkIsLevelUp(sharp(panelBuf));
+  return checkIsLevelUp(sharp(panelBuf), s);
 };
 
 const checkLevelUpgrade = async (required, saveScreenshot, characterName) => {
@@ -230,8 +236,8 @@ const waitLevelUp = async (playing, { sleepMs = 500 } = {}) => {
   for (let i = 0; i < 30; i++) {
     await playing.saveScreenshot('current.png');
     const { image, s } = await cropGameArea(sharp('tmp/current.png'));
-    const cropImage = await extractLevelUpPanel(image, s);
-    if (await checkIsLevelUp(cropImage)) {
+    const panelBuf = await (await extractLevelUpPanel(image, s)).toBuffer();
+    if (await checkIsLevelUp(sharp(panelBuf), s)) {
       console.log(`[waitLevelUp] detected at i=${i} +${Date.now() - start}ms`);
       return true;
     }
@@ -242,7 +248,7 @@ const waitLevelUp = async (playing, { sleepMs = 500 } = {}) => {
   return false;
 };
 
-module.exports = { checkIsGoodLevelUp, statSummary, checkGoodCondition, checkIsLevelUp, findColor, extractLevelUpPanel, checkLevelUpgrade, waitLevelUp };
+module.exports = { checkIsGoodLevelUp, statSummary, checkGoodCondition, checkIsLevelUp, extractLevelUpPanel, checkLevelUpgrade, waitLevelUp };
 
 if (debug) {
   (async () => {
