@@ -19,8 +19,11 @@ window.api.getLastRandom().then(value => {
 const status = document.getElementById('status')
 const btnRun = document.getElementById('btn-run')
 const btnStop = document.getElementById('btn-stop')
-const btnPull = document.getElementById('btn-pull')
-const btnPush = document.getElementById('btn-push')
+const btnPullEmu = document.getElementById('btn-pull-emu')
+const btnPushEmu = document.getElementById('btn-push-emu')
+const btnPullPhone = document.getElementById('btn-pull-phone')
+const btnPushPhone = document.getElementById('btn-push-phone')
+const syncBtns = [btnPullEmu, btnPushEmu, btnPullPhone, btnPushPhone]
 const outputDot = document.getElementById('output-dot')
 const infoChar = document.getElementById('info-char')
 const infoTier = document.getElementById('info-tier')
@@ -74,8 +77,7 @@ function setStatus(text, type) {
 function setRunning() {
   btnRun.disabled = true
   btnStop.disabled = false
-  btnPull.disabled = true
-  btnPush.disabled = true
+  syncBtns.forEach(b => b.disabled = true)
   output.textContent = ''
   outputDot.classList.add('active')
   infoChar.textContent = ''
@@ -89,8 +91,7 @@ function setRunning() {
 function setReady() {
   btnRun.disabled = false
   btnStop.disabled = true
-  btnPull.disabled = false
-  btnPush.disabled = false
+  syncBtns.forEach(b => b.disabled = false)
   outputDot.classList.remove('active')
 }
 
@@ -138,18 +139,21 @@ btnRun.addEventListener('click', async () => {
   }
 })
 
-async function runSync(direction) {
+async function runSync(direction, target) {
   setRunning()
-  setStatus(`${direction === 'pull' ? 'Pulling' : 'Pushing'} save...`, 'running')
-  const result = await window.api.syncCommand(direction)
+  const label = `${direction === 'pull' ? 'Pulling from' : 'Pushing to'} ${target}...`
+  setStatus(label, 'running')
+  const result = await window.api.syncCommand({ direction, target })
   if (result.error) {
     setStatus(result.error, 'error')
     setReady()
   }
 }
 
-btnPull.addEventListener('click', () => runSync('pull'))
-btnPush.addEventListener('click', () => runSync('push'))
+btnPullEmu.addEventListener('click', () => runSync('pull', 'emulator'))
+btnPushEmu.addEventListener('click', () => runSync('push', 'emulator'))
+btnPullPhone.addEventListener('click', () => runSync('pull', 'phone'))
+btnPushPhone.addEventListener('click', () => runSync('push', 'phone'))
 
 btnStop.addEventListener('click', async () => {
   await window.api.stopCommand()

@@ -204,11 +204,12 @@ app.whenReady().then(() => {
     return { started: true }
   })
 
-  ipcMain.handle('sync-command', (event, direction) => {
+  ipcMain.handle('sync-command', (event, { direction, target }) => {
     if (runningProcess) return { error: 'A command is already running' }
     const win = BrowserWindow.fromWebContents(event.sender)
     const script = direction === 'pull' ? 'scripts/pull.js' : 'scripts/push.js'
     const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('npm_config_')))
+    if (target === 'phone') env.TARGET_DEVICE = 'phone'
     runningProcess = spawn('node', [script], {
       cwd: PROJECT_ROOT,
       shell: true,
