@@ -119,18 +119,12 @@ const checkIsGoodLevelUpImg = async (i, startStat) => {
 const getStatIncreased = async (total, { expectMove = false } = {}) => {
   const increased = { count: 0 };
   const stopIdx = expectMove ? statOrder.length : statOrder.indexOf('move');
-  let lastStatIdx = 0;
-  for (let i = 1; i <= total; i++) {
-    const findIncreased = await checkIsGoodLevelUpImg(i, lastStatIdx);
-    if (!findIncreased) continue;
-    for (let k = lastStatIdx; k < stopIdx; k++) {
+  const findIncreased = await checkIsGoodLevelUpImg(total, 0);
+  if (findIncreased) {
+    for (let k = 0; k < stopIdx; k++) {
       const name = statOrder[k];
-      if (findIncreased[name]) {
-        increased[name] = 1;
-        lastStatIdx = k + 1;
-      }
+      if (findIncreased[name]) increased[name] = 1;
     }
-    if (lastStatIdx >= stopIdx) break;
   }
   for (const name of statOrder) {
     if (increased[name]) increased.count += 1;

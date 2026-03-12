@@ -1,5 +1,6 @@
-const { app, BrowserWindow, ipcMain, screen } = require('electron/main')
+const { app, BrowserWindow, ipcMain, screen, nativeImage } = require('electron/main')
 
+app.setName('AutoTearingSaga')
 app.setAppUserModelId('com.autotearingsaga.app')
 const path = require('node:path')
 const { spawn, execSync } = require('node:child_process')
@@ -77,6 +78,9 @@ const createWindow = () => {
   })
 
   win.loadFile(path.join(__dirname, 'index.html'))
+  if (process.platform === 'linux') {
+    win.setIcon(nativeImage.createFromPath(path.join(__dirname, 'icon.png')))
+  }
 
   win.once('ready-to-show', () => bringEmulatorBeside(win, { activate: true }))
 
