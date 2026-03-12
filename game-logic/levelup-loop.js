@@ -235,8 +235,9 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
   await performSteps(PlayingPage, ['X', 'X', 'X', 'X']);
 
   await PlayingPage.perform('O'); // select character
-  const { detectedName, goodCondition } = await detectCharacter(saveScreenshot);
+  const { detectedName, goodCondition, tier } = await detectCharacter(saveScreenshot);
   console.log(`[levelup] detected character: ${detectedName}${process.env.CHAR_NAME ? ' (override)' : ''}`);
+  console.log(`[levelup] tier: ${tier}`);
   console.log('[levelup] goodCondition:', JSON.stringify(goodCondition));
   await PlayingPage.perform('save');
 

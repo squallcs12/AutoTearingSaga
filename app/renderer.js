@@ -20,6 +20,22 @@ const status = document.getElementById('status')
 const btnRun = document.getElementById('btn-run')
 const btnStop = document.getElementById('btn-stop')
 const outputDot = document.getElementById('output-dot')
+const runInfo = document.getElementById('run-info')
+const infoChar = document.getElementById('info-char')
+const infoTier = document.getElementById('info-tier')
+const infoCondition = document.getElementById('info-condition')
+
+function formatCondition(conditions) {
+  return conditions.map(c => {
+    const parts = [`≥${c.count}`]
+    for (const [k, v] of Object.entries(c)) {
+      if (k === 'count') continue
+      if (v === 1) parts.push(`+${k}`)
+      else if (v === -1) parts.push(`-${k}`)
+    }
+    return parts.join(' ')
+  }).join('  |  ')
+}
 
 // Populate character dropdown
 window.api.getCharacters().then(chars => {
@@ -59,6 +75,10 @@ function setRunning() {
   btnStop.disabled = false
   output.textContent = ''
   outputDot.classList.add('active')
+  runInfo.classList.add('hidden')
+  infoChar.textContent = ''
+  infoTier.textContent = ''
+  infoCondition.textContent = ''
 }
 
 function setReady() {
@@ -118,6 +138,24 @@ btnStop.addEventListener('click', async () => {
 })
 
 window.api.onOutput((data) => {
+  const charMatch = data.match(/\[levelup\] detected character: (\w+)/)
+  if (charMatch) {
+    const name = charMatch[1]
+    infoChar.textContent = name.charAt(0).toUpperCase() + name.slice(1)
+    runInfo.classList.remove('hidden')
+  }
+  const tierMatch = data.match(/\[levelup\] tier: (\w+)/)
+  if (tierMatch) {
+    const tier = tierMatch[1]
+    infoTier.textContent = tier
+    infoTier.className = `info-badge info-tier-${tier}`
+  }
+  const condMatch = data.match(/\[levelup\] goodCondition: (.+)/)
+  if (condMatch) {
+    try {
+      infoCondition.textContent = formatCondition(JSON.parse(condMatch[1]))
+    } catch {}
+  }
   output.textContent += data
   output.scrollTop = output.scrollHeight
 })

@@ -35,7 +35,9 @@ async function detectCharacter(saveScreenshot) {
   const detectedName = process.env.CHAR_NAME || await identifyCharacter('tmp/current-char-raw.png');
   if (!detectedName) throw new Error('Could not identify character face (no match above 95%). Add face image to game-logic/characters/faces/ or use -name <char>');
   const goodCondition = getGoodCondition(detectedName);
-  return { detectedName, goodCondition };
+  const charData = require(`./characters/growth/${detectedName}.json`);
+  const tier = process.env.TIER_OVERRIDE || charData.tier;
+  return { detectedName, goodCondition, tier };
 }
 
 function statLogLine(statIncreased) {

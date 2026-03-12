@@ -246,6 +246,31 @@
         background: #22c55e;
         box-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
       }
+
+      /* ── Run info strip ── */
+      .run-info {
+        padding: 8px 16px;
+        background: rgba(99, 102, 241, 0.05);
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        font-size: 12px;
+      }
+      .info-badge {
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-weight: 600;
+        font-size: 11px;
+        text-transform: capitalize;
+      }
+      .info-char { background: rgba(99, 102, 241, 0.15); color: #a5b4fc; }
+      .info-tier-good { background: rgba(34, 197, 94, 0.12); color: #86efac; }
+      .info-tier-avg  { background: rgba(234, 179, 8, 0.12); color: #fde047; }
+      .info-tier-bad  { background: rgba(239, 68, 68, 0.12); color: #fca5a5; }
+      #info-condition { color: #6b7080; font-size: 11px; }
+
       #output {
         flex: 1;
         padding: 16px;
@@ -383,6 +408,11 @@
       <div class="output-header">
         <div class="output-dot" id="output-dot"></div>
         Output
+      </div>
+      <div id="run-info" class="run-info hidden">
+        <span id="info-char" class="info-badge info-char"></span>
+        <span id="info-tier" class="info-badge"></span>
+        <span id="info-condition"></span>
       </div>
       <div id="output"></div>
     </div>
