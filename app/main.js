@@ -127,9 +127,6 @@ app.whenReady().then(() => {
       if (options.fixedTier) {
         args.push('--fixed-tier')
       }
-      if (mode === 'level' && options.random) {
-        args.push('--random', options.random)
-      }
     } else {
       const script = mode === 'level' ? 'desktop/levelup.js' : 'desktop/arena.js'
       args.push(script)
