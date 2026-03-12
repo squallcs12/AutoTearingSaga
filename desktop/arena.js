@@ -4,10 +4,10 @@
 const { arenaLoop } = require('../game-logic/arena-loop');
 const { checkLevelUpgrade } = require('./check-level');
 const PlayingPage = require('./playing');
-const { sleep, takeScreenshot } = require('./common');
+const { takeScreenshot } = require('./common');
 const { levelsToGain } = require('../config');
 
-arenaLoop(PlayingPage, sleep, takeScreenshot, checkLevelUpgrade, levelsToGain).catch(err => {
+arenaLoop(PlayingPage, takeScreenshot, checkLevelUpgrade, levelsToGain).catch(err => {
   console.error('[fatal]', err);
   process.exit(1);
 });

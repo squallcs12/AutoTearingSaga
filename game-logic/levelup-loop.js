@@ -224,62 +224,73 @@ async function detectRandomTriggerSteps(PlayingPage, saveScreenshot, checkLevelU
   return result;
 }
 
-async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight, isBoss) {
+async function setupRun(PlayingPage, saveScreenshot, fight) {
   const logFileName = process.env.__DEBUG__
     ? `levelup-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.log`
     : 'levelup.log';
   const logFile = `logs/${logFileName}`;
   fs.writeFileSync(logFile, '');
   const battle = parse(fight);
+
   await PlayingPage.perform('load-game');
   await performSteps(PlayingPage, ['X', 'X', 'X', 'X']);
-
   await PlayingPage.perform('O'); // select character
+
   const { detectedName, goodCondition, tier } = await detectCharacter(saveScreenshot);
   console.log(`[levelup] detected character: ${detectedName}${process.env.CHAR_NAME ? ' (override)' : ''}`);
   console.log(`[levelup] tier: ${tier}`);
   console.log('[levelup] goodCondition:', JSON.stringify(goodCondition));
   await PlayingPage.perform('save');
 
-  let workingRandomSteps;
+  return { battle, logFile, detectedName, goodCondition };
+}
+
+// Phase 1: resolve which random steps to use.
+// Returns { workingRandomSteps, initStat } or null if baseline is already good.
+async function phase1FindRandomSteps(PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, goodCondition, detectedName) {
   if (process.env.RANDOM_OVERRIDE) {
-    // Parse comma-separated steps from --random override
-    workingRandomSteps = process.env.RANDOM_OVERRIDE.split(',').map(s => s.trim()).filter(s => s.length > 0);
-    // Add confirm/cancel to make it a movement trigger
+    const workingRandomSteps = process.env.RANDOM_OVERRIDE.split(',').map(s => s.trim()).filter(s => s.length > 0);
     workingRandomSteps.push('O', 'wait', 'X', 'wait');
     console.log('[levelup] using --random override:', workingRandomSteps.join(', '));
-  } else {
-    const grid = await detectMoveableGrid(PlayingPage, saveScreenshot);
-
-    // Baseline: fight with no random steps to record init stat
-    await performFight(PlayingPage, battle, isBoss);
-    const { isGood: initGood, statIncreased: initStat } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
-    console.log('[levelup] initStat:', JSON.stringify(initStat));
-    if (initGood) {
-      console.log('[levelup] baseline fight already has good stats, no need to farm!');
-      await saveGoodResult(PlayingPage);
-      return;
-    }
-
-    workingRandomSteps = await detectRandomTriggerSteps(
-      PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, grid, initStat, goodCondition, detectedName
-    );
-    const randomSuggestion = workingRandomSteps.slice(0, -4).join(',');
-    fs.writeFileSync(path.join(__dirname, '..', 'app', '.last-random.json'), JSON.stringify({ value: randomSuggestion }));
+    return { workingRandomSteps, initStat: null };
   }
+
+  const grid = await detectMoveableGrid(PlayingPage, saveScreenshot);
+
+  // Baseline fight: record init stat before any RNG manipulation
+  await performFight(PlayingPage, battle, isBoss);
+  const { isGood: initGood, statIncreased: initStat } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
+  console.log('[levelup] initStat:', JSON.stringify(initStat));
+  if (initGood) {
+    console.log('[levelup] baseline fight already has good stats, no need to farm!');
+    await saveGoodResult(PlayingPage);
+    return null;
+  }
+
+  const workingRandomSteps = await detectRandomTriggerSteps(
+    PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, grid, initStat, goodCondition, detectedName
+  );
+  const randomSuggestion = workingRandomSteps.slice(0, -4).join(',');
+  fs.writeFileSync(path.join(__dirname, '..', 'app', '.last-random.json'), JSON.stringify({ value: randomSuggestion }));
+  return { workingRandomSteps, initStat };
+}
+
+// Phase 2: repeatedly apply random steps + fight until good stats roll.
+async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, workingRandomSteps, initStat, goodCondition, detectedName, logFile) {
+  const STALE_LIMIT = 10;
+  const fallbackCondition = buildFallbackCondition(goodCondition);
+  const nearMiss = createNearMissTracker(goodCondition, fallbackCondition);
   const failedStepsSet = [];
 
-  // Phase 2: farm good condition using the working random steps
   let skipCount = parseInt(process.env.SKIP_COUNT || '0', 10);
-  await PlayingPage.perform('reload');
-  await PlayingPage.perform('save2');
   let turn = 0;
   let lastChangeTurn = skipCount;
   let prevStat = null;
   const statHistory = [];
-  const STALE_LIMIT = 10;
-  const fallbackCondition = buildFallbackCondition(goodCondition);
-  const nearMiss = createNearMissTracker(goodCondition, fallbackCondition);
+
+  await PlayingPage.perform('reload');
+  await PlayingPage.perform('save2');
+
   while (true) {
     turn++;
     if (turn > skipCount) {
@@ -319,7 +330,7 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
     }
     prevStat = statIncreased;
 
-    // Detect fake random trigger: cycle or high repeat rate
+    // Detect fake random trigger: cycle or high repeat rate → find new steps
     const cycleLen = detectCycle(statHistory);
     const highRepeat = detectHighRepeatRate(statHistory);
     if (cycleLen || highRepeat) {
@@ -327,7 +338,6 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
       console.log('[levelup] current random steps are not effective, finding new ones...');
       failedStepsSet.push(workingRandomSteps.join(','));
 
-      // Reload and re-detect movement grid + new random steps
       await PlayingPage.perform('reload');
       const newGrid = await detectMoveableGrid(PlayingPage, saveScreenshot);
       workingRandomSteps = await detectRandomTriggerSteps(
@@ -336,7 +346,6 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
       );
       console.log('[levelup] new random steps:', workingRandomSteps.join(', '));
 
-      // Reset phase 2 state
       await PlayingPage.perform('reload');
       await PlayingPage.perform('save2');
       skipCount = 0;
@@ -357,6 +366,21 @@ async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight
       prevStat = null;
     }
   }
+}
+
+async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight, isBoss) {
+  const { battle, logFile, detectedName, goodCondition } = await setupRun(PlayingPage, saveScreenshot, fight);
+
+  const phase1Result = await phase1FindRandomSteps(
+    PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, goodCondition, detectedName
+  );
+  if (!phase1Result) return; // baseline was already good
+
+  const { workingRandomSteps, initStat } = phase1Result;
+  await phase2FarmLoop(
+    PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss,
+    workingRandomSteps, initStat, goodCondition, detectedName, logFile
+  );
 
   console.log('Done! Good level-up stats found.');
 }

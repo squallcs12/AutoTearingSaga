@@ -178,6 +178,7 @@ class PlayingPage extends Page {
     const destPath = path.join('tmp', filename);
     await driver.saveScreenshot(destPath);
     debugCopyScreenshot(destPath);
+    return destPath;
   }
 
   async takePic() {

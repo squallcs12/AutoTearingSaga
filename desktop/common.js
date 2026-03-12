@@ -144,7 +144,7 @@ async function takeScreenshot(filename) {
       fs.copyFileSync(fullPath, destPath);
       fs.unlinkSync(fullPath);
       debugCopyScreenshot(destPath);
-      return;
+      return destPath;
     }
   }
   const files = fs.readdirSync(SCREENSHOT_DIR);
