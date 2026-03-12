@@ -130,9 +130,9 @@ btnRun.addEventListener('click', async () => {
     retries: parseInt(document.getElementById('retries').value, 10) || 4,
     skip: parseInt(document.getElementById('skip').value, 10) || 0,
     random: document.getElementById('random').value.trim() || null,
-    fight: document.getElementById('fight').value.trim() || null,
-    isBoss: document.getElementById('is-boss').checked,
-    syncGithub: document.getElementById('sync-github').checked,
+    fight: mode === 'level' ? (document.getElementById('fight').value.trim() || null) : null,
+    isBoss: mode === 'level' ? document.getElementById('is-boss').checked : false,
+    syncGithub: mode === 'level' ? document.getElementById('sync-github').checked : false,
     levelsToGain: mode === 'arena' ? (parseInt(document.getElementById('levels-to-gain').value, 10) || null) : null
   }
 
