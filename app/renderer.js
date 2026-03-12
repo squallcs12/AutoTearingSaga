@@ -19,6 +19,8 @@ window.api.getLastRandom().then(value => {
 const status = document.getElementById('status')
 const btnRun = document.getElementById('btn-run')
 const btnStop = document.getElementById('btn-stop')
+const btnPull = document.getElementById('btn-pull')
+const btnPush = document.getElementById('btn-push')
 const outputDot = document.getElementById('output-dot')
 const infoChar = document.getElementById('info-char')
 const infoTier = document.getElementById('info-tier')
@@ -72,6 +74,8 @@ function setStatus(text, type) {
 function setRunning() {
   btnRun.disabled = true
   btnStop.disabled = false
+  btnPull.disabled = true
+  btnPush.disabled = true
   output.textContent = ''
   outputDot.classList.add('active')
   infoChar.textContent = ''
@@ -85,6 +89,8 @@ function setRunning() {
 function setReady() {
   btnRun.disabled = false
   btnStop.disabled = true
+  btnPull.disabled = false
+  btnPush.disabled = false
   outputDot.classList.remove('active')
 }
 
@@ -131,6 +137,19 @@ btnRun.addEventListener('click', async () => {
     setReady()
   }
 })
+
+async function runSync(direction) {
+  setRunning()
+  setStatus(`${direction === 'pull' ? 'Pulling' : 'Pushing'} save...`, 'running')
+  const result = await window.api.syncCommand(direction)
+  if (result.error) {
+    setStatus(result.error, 'error')
+    setReady()
+  }
+}
+
+btnPull.addEventListener('click', () => runSync('pull'))
+btnPush.addEventListener('click', () => runSync('push'))
 
 btnStop.addEventListener('click', async () => {
   await window.api.stopCommand()

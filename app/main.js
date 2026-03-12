@@ -204,6 +204,24 @@ app.whenReady().then(() => {
     return { started: true }
   })
 
+  ipcMain.handle('sync-command', (event, direction) => {
+    if (runningProcess) return { error: 'A command is already running' }
+    const win = BrowserWindow.fromWebContents(event.sender)
+    const script = direction === 'pull' ? 'scripts/pull.js' : 'scripts/push.js'
+    const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('npm_config_')))
+    runningProcess = spawn('node', [script], {
+      cwd: PROJECT_ROOT,
+      shell: true,
+      env,
+      detached: process.platform !== 'win32',
+      stdio: ['ignore', 'pipe', 'pipe']
+    })
+    runningProcess.stdout.on('data', (data) => win.webContents.send('command-output', data.toString()))
+    runningProcess.stderr.on('data', (data) => win.webContents.send('command-output', data.toString()))
+    runningProcess.on('close', (code) => { runningProcess = null; win.webContents.send('command-done', code) })
+    return { started: true }
+  })
+
   ipcMain.handle('stop-command', () => {
     if (runningProcess) {
       const pid = runningProcess.pid
