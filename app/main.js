@@ -1,18 +1,18 @@
-const { app, BrowserWindow, ipcMain } = require('electron/main')
+const { app, BrowserWindow, ipcMain, screen } = require('electron/main')
 const path = require('node:path')
 const { spawn, execSync } = require('node:child_process')
 const fs = require('node:fs')
 
-// Move the emulator window next to the app window using PowerShell + Win32 API
+// Move the emulator window next to the app window
 function bringEmulatorBeside(win, { activate = false } = {}) {
   const [appX, appY] = win.getPosition()
   const [appW] = win.getSize()
-  const targetX = appX + appW - 8  // compensate for Windows invisible border shadow
+  const targetX = appX + appW - (process.platform === 'win32' ? 8 : 0)  // -8 compensates for Windows invisible border shadow
   const targetY = appY
-  const fgLine = activate
-    ? `[Win32]::SetForegroundWindow($h)`
-    : ''
-  const ps = `
+
+  if (process.platform === 'win32') {
+    const fgLine = activate ? `[Win32]::SetForegroundWindow($h)` : ''
+    const ps = `
 Add-Type @"
 using System; using System.Runtime.InteropServices;
 public class Win32 {
@@ -28,7 +28,17 @@ Get-Process | Where-Object { $_.MainWindowTitle -match 'Android Emulator' } | Fo
   }
 }
 `.trim()
-  spawn('powershell', ['-NoProfile', '-Command', ps], { shell: false, stdio: 'ignore' }).unref()
+    spawn('powershell', ['-NoProfile', '-Command', ps], { shell: false, stdio: 'ignore' }).unref()
+  } else if (process.platform === 'linux') {
+    // wmctrl uses physical X11 pixels; Electron reports logical pixels — scale accordingly
+    const sf = screen.getDisplayMatching(win.getBounds()).scaleFactor
+    const px = Math.round(targetX * sf)
+    const py = Math.round(targetY * sf)
+    spawn('wmctrl', ['-r', 'Android Emulator', '-e', `0,${px},${py},-1,-1`], { stdio: 'ignore' }).unref()
+    if (activate) {
+      spawn('wmctrl', ['-a', 'Android Emulator'], { stdio: 'ignore' }).unref()
+    }
+  }
 }
 
 let runningProcess = null
@@ -195,8 +205,12 @@ app.whenReady().then(() => {
     if (runningProcess) {
       const pid = runningProcess.pid
       runningProcess = null
-      // Kill entire process tree on Windows (shell: true spawns cmd which spawns node)
-      spawn('taskkill', ['/pid', String(pid), '/f', '/t'], { shell: true })
+      if (process.platform === 'win32') {
+        // Kill entire process tree on Windows (shell: true spawns cmd which spawns node)
+        spawn('taskkill', ['/pid', String(pid), '/f', '/t'], { shell: true })
+      } else {
+        spawn('kill', ['-9', String(pid)], { shell: true })
+      }
       return { stopped: true }
     }
     return { error: 'No command running' }
