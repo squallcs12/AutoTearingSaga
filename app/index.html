@@ -247,29 +247,21 @@
         box-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
       }
 
-      /* ── Run info strip ── */
-      .run-info {
-        padding: 8px 16px;
-        background: rgba(99, 102, 241, 0.05);
-        border-bottom: 1px solid rgba(255,255,255,0.04);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-        font-size: 12px;
-      }
+      /* ── Run info badges ── */
       .info-badge {
-        padding: 2px 8px;
+        padding: 1px 6px;
         border-radius: 4px;
         font-weight: 600;
-        font-size: 11px;
+        font-size: 10px;
         text-transform: capitalize;
+        vertical-align: middle;
+        margin-left: 4px;
       }
       .info-char { background: rgba(99, 102, 241, 0.15); color: #a5b4fc; }
       .info-tier-good { background: rgba(34, 197, 94, 0.12); color: #86efac; }
       .info-tier-avg  { background: rgba(234, 179, 8, 0.12); color: #fde047; }
       .info-tier-bad  { background: rgba(239, 68, 68, 0.12); color: #fca5a5; }
-      #info-condition { color: #6b7080; font-size: 11px; }
+      #info-condition { font-size: 11px; color: #555; margin-top: 2px; }
 
       #output {
         flex: 1;
@@ -352,14 +344,14 @@
       <div class="separator"></div>
 
       <div class="form-group">
-        <label>Character</label>
+        <label>Character <span id="info-char" class="info-badge info-char hidden"></span></label>
         <select id="char-name">
           <option value="">Auto-detect</option>
         </select>
       </div>
 
       <div class="form-group">
-        <label>Tier</label>
+        <label>Tier <span id="info-tier" class="info-badge hidden"></span></label>
         <div class="radio-group">
           <input type="radio" name="tier" id="tier-auto" value="auto" checked />
           <label for="tier-auto">Auto</label>
@@ -371,6 +363,8 @@
           <label for="tier-bad">Bad</label>
         </div>
       </div>
+
+      <div id="info-condition" class="hidden"></div>
 
       <div class="form-group checkbox-row">
         <input type="checkbox" id="fixed-tier" />
@@ -408,11 +402,6 @@
       <div class="output-header">
         <div class="output-dot" id="output-dot"></div>
         Output
-      </div>
-      <div id="run-info" class="run-info hidden">
-        <span id="info-char" class="info-badge info-char"></span>
-        <span id="info-tier" class="info-badge"></span>
-        <span id="info-condition"></span>
       </div>
       <div id="output"></div>
     </div>

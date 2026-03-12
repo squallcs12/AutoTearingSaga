@@ -20,7 +20,6 @@ const status = document.getElementById('status')
 const btnRun = document.getElementById('btn-run')
 const btnStop = document.getElementById('btn-stop')
 const outputDot = document.getElementById('output-dot')
-const runInfo = document.getElementById('run-info')
 const infoChar = document.getElementById('info-char')
 const infoTier = document.getElementById('info-tier')
 const infoCondition = document.getElementById('info-condition')
@@ -75,10 +74,12 @@ function setRunning() {
   btnStop.disabled = false
   output.textContent = ''
   outputDot.classList.add('active')
-  runInfo.classList.add('hidden')
   infoChar.textContent = ''
+  infoChar.classList.add('hidden')
   infoTier.textContent = ''
+  infoTier.className = 'info-badge hidden'
   infoCondition.textContent = ''
+  infoCondition.classList.add('hidden')
 }
 
 function setReady() {
@@ -142,7 +143,7 @@ window.api.onOutput((data) => {
   if (charMatch) {
     const name = charMatch[1]
     infoChar.textContent = name.charAt(0).toUpperCase() + name.slice(1)
-    runInfo.classList.remove('hidden')
+    infoChar.classList.remove('hidden')
   }
   const tierMatch = data.match(/\[levelup\] tier: (\w+)/)
   if (tierMatch) {
@@ -154,6 +155,7 @@ window.api.onOutput((data) => {
   if (condMatch) {
     try {
       infoCondition.textContent = formatCondition(JSON.parse(condMatch[1]))
+      infoCondition.classList.remove('hidden')
     } catch {}
   }
   output.textContent += data
