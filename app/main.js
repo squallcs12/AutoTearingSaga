@@ -157,6 +157,17 @@ app.whenReady().then(() => {
 
   ipcMain.handle('start-avd', (event) => {
     const win = BrowserWindow.fromWebContents(event.sender)
+
+    // Check if AVD is already running
+    try {
+      const result = execSync('adb shell getprop sys.boot_completed', { encoding: 'utf8', timeout: 5000 }).trim()
+      if (result === '1') {
+        win.webContents.send('avd-ready')
+        bringEmulatorBeside(win, { activate: true })
+        return { started: true, alreadyRunning: true }
+      }
+    } catch {}
+
     const avd = spawn('emulator', ['-avd', 'Medium_Phone'], { shell: true, stdio: ['ignore', 'pipe', 'pipe'], detached: true })
     avd.stdout.on('data', (data) => win.webContents.send('command-output', data.toString()))
     avd.stderr.on('data', (data) => win.webContents.send('command-output', data.toString()))
@@ -165,7 +176,7 @@ app.whenReady().then(() => {
     // Poll for boot completion
     const poll = setInterval(() => {
       try {
-        const result = require('child_process').execSync('adb shell getprop sys.boot_completed', { encoding: 'utf8', timeout: 5000 }).trim()
+        const result = execSync('adb shell getprop sys.boot_completed', { encoding: 'utf8', timeout: 5000 }).trim()
         if (result === '1') {
           clearInterval(poll)
           win.webContents.send('avd-ready')

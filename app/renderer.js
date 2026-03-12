@@ -88,22 +88,22 @@ function setReady() {
   outputDot.classList.remove('active')
 }
 
-// Start AVD
+// Launch AVD (start or bring to front)
 const btnAvd = document.getElementById('btn-avd')
 btnAvd.addEventListener('click', async () => {
   btnAvd.disabled = true
   btnAvd.classList.add('booting')
-  btnAvd.textContent = 'Starting AVD...'
+  btnAvd.textContent = 'Launching...'
   output.textContent = ''
   outputDot.classList.add('active')
-  setStatus('Booting emulator...', 'running')
+  setStatus('Launching emulator...', 'running')
   await window.api.startAvd()
 })
 
 window.api.onAvdReady(() => {
   btnAvd.disabled = false
   btnAvd.classList.remove('booting')
-  btnAvd.textContent = 'Start AVD'
+  btnAvd.textContent = 'Launch AVD'
   outputDot.classList.remove('active')
   setStatus('AVD ready', 'success')
 })
