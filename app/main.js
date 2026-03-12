@@ -123,7 +123,9 @@ app.whenReady().then(() => {
     if (options.syncGithub) env.SYNC_GITHUB = '1'
     if (options.levelsToGain) env.LEVELS_TO_GAIN = String(options.levelsToGain)
 
-    if (platform === 'android') {
+    if (platform === 'phone') env.TARGET_DEVICE = 'phone'
+
+    if (platform === 'android' || platform === 'phone') {
       const script = mode === 'level' ? 'scripts/level.js' : 'scripts/arena.js'
       args.push(script)
       args.push('-v') // always verbose to stream output

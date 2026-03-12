@@ -88,7 +88,11 @@ function updateVisibility() {
   document.querySelectorAll('.arena-only').forEach(el => {
     el.style.display = mode === 'arena' ? '' : 'none'
   })
+  const isAndroid = platform === 'android' || platform === 'phone'
   document.querySelectorAll('.android-only').forEach(el => {
+    el.style.display = isAndroid ? '' : 'none'
+  })
+  document.querySelectorAll('.emulator-only').forEach(el => {
     el.style.display = platform === 'android' ? '' : 'none'
   })
 }
