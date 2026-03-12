@@ -224,7 +224,7 @@
         background: #08090f;
       }
       .output-header {
-        padding: 12px 16px;
+        padding: 8px 16px;
         font-size: 11px;
         font-weight: 600;
         text-transform: uppercase;
@@ -234,6 +234,61 @@
         display: flex;
         align-items: center;
         gap: 8px;
+      }
+
+      /* ── Tabs ── */
+      .tab-bar {
+        display: flex;
+        gap: 2px;
+      }
+      .tab-btn {
+        padding: 3px 10px;
+        border: none;
+        border-radius: 5px;
+        background: transparent;
+        color: #555;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.15s;
+        flex: none;
+      }
+      .tab-btn:hover { color: #888; background: rgba(255,255,255,0.03); }
+      .tab-btn.active { color: #a5b4fc; background: rgba(99,102,241,0.12); }
+
+      /* ── Summary tab ── */
+      #summary {
+        flex: 1;
+        padding: 12px 16px;
+        overflow-y: auto;
+        display: none;
+        flex-direction: column;
+        gap: 4px;
+      }
+      #summary::-webkit-scrollbar { width: 6px; }
+      #summary::-webkit-scrollbar-track { background: transparent; }
+      #summary::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+      .summary-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+        font-size: 12px;
+        line-height: 1.5;
+        animation: slideIn 0.15s ease;
+      }
+      .summary-turn { color: #6b7080; min-width: 72px; }
+      .summary-count { color: #a5b4fc; font-weight: 700; min-width: 18px; text-align: right; }
+      .summary-stats { color: #c8cad0; }
+      #summary:empty::before {
+        content: 'Stat summary will appear here...';
+        color: #333;
+        font-style: italic;
+        font-family: 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
+        font-size: 12px;
       }
       .output-dot {
         width: 6px;
@@ -449,7 +504,10 @@
     <div class="output-panel">
       <div class="output-header">
         <div class="output-dot" id="output-dot"></div>
-        Output
+        <div class="tab-bar">
+          <button class="tab-btn active" id="tab-log">Log</button>
+          <button class="tab-btn" id="tab-summary">Summary</button>
+        </div>
         <div id="run-info">
           <span id="info-char" class="info-badge info-char hidden"></span>
           <span id="info-tier" class="info-badge hidden"></span>
@@ -457,6 +515,7 @@
         </div>
       </div>
       <div id="output"></div>
+      <div id="summary"></div>
     </div>
 
     <script src="./renderer.js"></script>

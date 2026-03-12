@@ -1,4 +1,29 @@
 const output = document.getElementById('output')
+const summary = document.getElementById('summary')
+const tabLog = document.getElementById('tab-log')
+const tabSummary = document.getElementById('tab-summary')
+
+tabLog.addEventListener('click', () => {
+  tabLog.classList.add('active')
+  tabSummary.classList.remove('active')
+  output.style.display = ''
+  summary.style.display = 'none'
+})
+tabSummary.addEventListener('click', () => {
+  tabSummary.classList.add('active')
+  tabLog.classList.remove('active')
+  output.style.display = 'none'
+  summary.style.display = 'flex'
+})
+
+function addSummaryRow(turnLabel, count, stats) {
+  const row = document.createElement('div')
+  row.className = 'summary-row'
+  row.innerHTML = `<span class="summary-turn">${turnLabel}</span><span class="summary-count">${count}</span><span class="summary-stats">${stats.join(' ')}</span>`
+  summary.appendChild(row)
+  summary.scrollTop = summary.scrollHeight
+}
+
 const randomInput = document.getElementById('random')
 const randomSuggestion = document.getElementById('random-suggestion')
 const randomSuggestionValue = document.getElementById('random-suggestion-value')
@@ -82,6 +107,7 @@ function setRunning() {
   btnStop.disabled = false
   syncBtns.forEach(b => b.disabled = true)
   output.textContent = ''
+  summary.innerHTML = ''
   outputDot.classList.add('active')
   infoChar.textContent = ''
   infoChar.classList.add('hidden')
@@ -188,6 +214,15 @@ window.api.onOutput((data) => {
       infoCondition.classList.remove('hidden')
     } catch {}
   }
+  // Parse turn/level_attempt stat lines: "turn=N stats=count,s1,s2,..."
+  const statMatch = data.match(/\b(turn|level_attempt)=(\d+)\s+stats=(\d+)(?:,([^\s]*))?/)
+  if (statMatch) {
+    const turnLabel = `${statMatch[1]}=${statMatch[2]}`
+    const count = statMatch[3]
+    const statNames = statMatch[4] ? statMatch[4].split(',').filter(Boolean) : []
+    addSummaryRow(turnLabel, count, statNames)
+  }
+
   output.textContent += data
   output.scrollTop = output.scrollHeight
 })
