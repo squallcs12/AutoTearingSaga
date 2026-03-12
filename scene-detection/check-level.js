@@ -98,13 +98,13 @@ const findTotalStatIncrease = async (newImage, startIdx, s = 1) => {
   for (let i = 0; i < 5; i++) {
     if (i < startIdx) continue;
     const statImage = await newImage.clone().extract({ left: x1, top: y0 + i * dh, width: sw, height: sh });
-    if (debug) await statImage.toFormat('jpg').toFile(`xxx1-${i}.jpg`);
+    if (debug) await statImage.png().toFile(`xxx1-${i}.png`);
     if (await hasIncrease(statImage)) increase[statOrder[i]] = 1;
   }
   for (let i = 0; i < 4; i++) {
     if (i + 5 < startIdx) continue;
     const statImage = await newImage.clone().extract({ left: x2, top: y0 + i * dh, width: sw, height: sh });
-    if (debug) await statImage.toFormat('jpg').toFile(`xxx2-${i}.jpg`);
+    if (debug) await statImage.png().toFile(`xxx2-${i}.png`);
     if (await hasIncrease(statImage)) increase[statOrder[i + 5]] = 1;
   }
   return increase;
@@ -116,7 +116,7 @@ const checkIsGoodLevelUpImg = async (i, startStat) => {
   // Materialize to buffer so subsequent .extract() calls work on the cropped panel,
   // not the original image (Sharp chains extracts against the source, not the prior extract)
   const panelBuf = await panelPipeline.toBuffer();
-  if (debug) await sharp(panelBuf).toFormat('jpg').toFile(`crop-level-up-${i}.jpg`);
+  if (debug) await sharp(panelBuf).png().toFile(`crop-level-up-${i}.png`);
   return findTotalStatIncrease(sharp(panelBuf), startStat, s);
 };
 
