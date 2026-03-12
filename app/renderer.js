@@ -60,6 +60,9 @@ function updateVisibility() {
   document.querySelectorAll('.level-only').forEach(el => {
     el.style.display = mode === 'level' ? '' : 'none'
   })
+  document.querySelectorAll('.arena-only').forEach(el => {
+    el.style.display = mode === 'arena' ? '' : 'none'
+  })
   document.querySelectorAll('.android-only').forEach(el => {
     el.style.display = platform === 'android' ? '' : 'none'
   })
@@ -126,7 +129,11 @@ btnRun.addEventListener('click', async () => {
     fixedTier: document.getElementById('fixed-tier').checked,
     retries: parseInt(document.getElementById('retries').value, 10) || 4,
     skip: parseInt(document.getElementById('skip').value, 10) || 0,
-    random: document.getElementById('random').value.trim() || null
+    random: document.getElementById('random').value.trim() || null,
+    fight: document.getElementById('fight').value.trim() || null,
+    isBoss: document.getElementById('is-boss').checked,
+    syncGithub: document.getElementById('sync-github').checked,
+    levelsToGain: parseInt(document.getElementById('levels-to-gain').value, 10) || null
   }
 
   setRunning()

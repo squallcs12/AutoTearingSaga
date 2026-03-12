@@ -117,6 +117,10 @@ app.whenReady().then(() => {
     if (options.fixedTier) env.NO_FALLBACK = '1'
     if (options.tier && options.tier !== 'auto') env.TIER_OVERRIDE = options.tier
     if (options.random) env.RANDOM_OVERRIDE = options.random
+    if (options.fight) env.FIGHT_OVERRIDE = options.fight
+    if (options.isBoss) env.IS_BOSS = '1'
+    if (options.syncGithub) env.SYNC_GITHUB = '1'
+    if (options.levelsToGain) env.LEVELS_TO_GAIN = String(options.levelsToGain)
 
     if (platform === 'android') {
       const script = mode === 'level' ? 'scripts/level.js' : 'scripts/arena.js'
