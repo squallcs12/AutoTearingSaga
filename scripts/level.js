@@ -15,7 +15,8 @@ const randomOverride = randomIdx !== -1 ? args[randomIdx + 1] : null;
 const positional = args.filter((a, i) => a !== '-v' && a !== '--skip' && a !== '-name' && a !== '--fixed-tier' && a !== '--random' && (skipIdx === -1 || i !== skipIdx + 1) && (nameIdx === -1 || i !== nameIdx + 1) && (randomIdx === -1 || i !== randomIdx + 1));
 const tierOverride = TIERS.includes(positional[0]) ? positional[0] : null;
 const N = parseInt(tierOverride ? (positional[1] || '4') : (positional[0] || '4'), 10);
-const env = { ...process.env, ...(tierOverride ? { TIER_OVERRIDE: tierOverride } : {}), SKIP_COUNT: skipCount, ...(nameOverride ? { CHAR_NAME: nameOverride } : {}), ...(noFallback ? { NO_FALLBACK: '1' } : {}), ...(randomOverride ? { RANDOM_OVERRIDE: randomOverride } : {}) };
+const filteredEnv = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('npm_config_')));
+const env = { ...filteredEnv, ...(tierOverride ? { TIER_OVERRIDE: tierOverride } : {}), SKIP_COUNT: skipCount, ...(nameOverride ? { CHAR_NAME: nameOverride } : {}), ...(noFallback ? { NO_FALLBACK: '1' } : {}), ...(randomOverride ? { RANDOM_OVERRIDE: randomOverride } : {}) };
 
 let logFd;
 if (!verbose) {
