@@ -146,6 +146,8 @@ app.whenReady().then(() => {
       cwd: PROJECT_ROOT,
       shell: true,
       env,
+      // detached creates a new process group on Linux so we can kill the whole tree
+      detached: process.platform !== 'win32',
       stdio: ['ignore', 'pipe', 'pipe']
     })
 
@@ -209,7 +211,8 @@ app.whenReady().then(() => {
         // Kill entire process tree on Windows (shell: true spawns cmd which spawns node)
         spawn('taskkill', ['/pid', String(pid), '/f', '/t'], { shell: true })
       } else {
-        spawn('kill', ['-9', String(pid)], { shell: true })
+        // Negative PID kills the entire process group (shell + node child)
+        try { process.kill(-pid, 'SIGKILL') } catch { process.kill(pid, 'SIGKILL') }
       }
       return { stopped: true }
     }
