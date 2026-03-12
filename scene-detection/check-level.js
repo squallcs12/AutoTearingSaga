@@ -3,7 +3,8 @@ const _ = require('lodash');
 const { exec, execSync } = require('child_process');
 const { exportSave } = require('../android/specs/transfer-save');
 
-const { goodCondition, syncGithub } = require('../config');
+const { goodCondition, syncGithub: configSyncGithub } = require('../config');
+const syncGithub = process.env.SYNC_GITHUB ? process.env.SYNC_GITHUB === '1' : configSyncGithub;
 const { sleep, statOrder } = require('../utils');
 const { cropGameArea } = require('./calib');
 sharp.cache(false);

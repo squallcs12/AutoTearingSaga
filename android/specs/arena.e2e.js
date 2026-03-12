@@ -1,7 +1,8 @@
 const { arenaLoop } = require('../../game-logic/arena-loop');
 const { checkLevelUpgrade } = require('../../scene-detection/check-level');
 const PlayingPage = require('../pageobjects/playing.page');
-const { levelsToGain } = require('../../config');
+const { levelsToGain: configLevelsToGain } = require('../../config');
+const levelsToGain = process.env.LEVELS_TO_GAIN ? parseInt(process.env.LEVELS_TO_GAIN, 10) : configLevelsToGain;
 
 
 describe('Run auto', () => {
