@@ -219,9 +219,11 @@
       /* ── Right panel - output ── */
       .output-panel {
         flex: 1;
+        min-width: 0;
         display: flex;
         flex-direction: column;
         background: #08090f;
+        overflow: hidden;
       }
       .output-header {
         padding: 8px 16px;
@@ -510,6 +512,7 @@
         </div>
       </div>
 
+
       <div class="separator"></div>
 
       <div style="display:flex;gap:8px;">
@@ -517,15 +520,27 @@
           <label>Retries</label>
           <input type="number" id="retries" value="4" min="1" max="20" />
         </div>
-        <div class="form-group" style="flex:1">
+        <div class="form-group" style="flex:0 0 72px">
           <label>Skip turns</label>
-          <input type="number" id="skip" value="0" min="0" />
+          <input type="number" id="skip" value="0" min="0" max="500" step="1" />
         </div>
+        <div class="form-group" style="flex:0 0 56px">
+          <label>Speed</label>
+          <input type="number" id="emulator-speed" placeholder="1" min="1" max="4" step="1" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>LvUp timeout (ms)</label>
+        <input type="number" id="wait-levelup-timeout" placeholder="15000" min="1000" step="1000" />
       </div>
 
       <div class="form-group level-only">
         <label>Random override</label>
-        <input type="text" id="random" placeholder="e.g. up,down,left" />
+        <div style="display:flex;gap:4px;">
+          <input type="text" id="random" placeholder="e.g. up,down,left" style="flex:1" />
+          <button type="button" id="btn-clear-random" style="flex:none;padding:5px 8px;font-size:11px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#555;cursor:pointer;">✕</button>
+        </div>
         <div id="random-suggestion" class="hidden" style="font-size:11px;color:#6366f1;cursor:pointer;padding:2px 0;">
           Last detected: <span id="random-suggestion-value"></span>
         </div>
@@ -534,7 +549,10 @@
       <div class="separator"></div>
 
       <div class="form-group level-only">
-        <label>Fight steps</label>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <label>Fight steps</label>
+          <button type="button" id="btn-clear-fight" style="padding:2px 7px;font-size:11px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#555;cursor:pointer;">✕</button>
+        </div>
         <textarea id="fight" rows="3" placeholder="e.g. left 2&#10;O&#10;wait&#10;O" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:5px 8px;color:#c8cad0;font-size:12px;font-family:'Cascadia Code','JetBrains Mono',Consolas,monospace;resize:vertical;transition:all 0.2s;"></textarea>
       </div>
 
@@ -547,6 +565,14 @@
         <div class="checkbox-row level-only">
           <input type="checkbox" id="is-boss" />
           <label for="is-boss">Boss fight</label>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="sync-github" />
+          <label for="sync-github">Sync GitHub</label>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="debug-mode" />
+          <label for="debug-mode">Debug</label>
         </div>
       </div>
 

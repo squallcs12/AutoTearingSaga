@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('api', {
   syncCommand: (direction) => ipcRenderer.invoke('sync-command', direction),
   commitSave: (opts) => ipcRenderer.invoke('commit-save', opts),
   getLastRandom: () => ipcRenderer.invoke('get-last-random'),
+  getLastOptions: () => ipcRenderer.invoke('get-last-options'),
+  saveLastOptions: (data) => ipcRenderer.invoke('save-last-options', data),
   onAvdReady: (callback) => ipcRenderer.on('avd-ready', () => callback()),
   onOutput: (callback) => ipcRenderer.on('command-output', (_, data) => callback(data)),
   onDone: (callback) => ipcRenderer.on('command-done', (_, code) => callback(code))

@@ -37,9 +37,51 @@ randomSuggestion.addEventListener('click', () => {
   randomInput.value = randomSuggestionValue.textContent
 })
 
+document.getElementById('btn-clear-random').addEventListener('click', () => { randomInput.value = '' })
+document.getElementById('btn-clear-fight').addEventListener('click', () => { document.getElementById('fight').value = '' })
+
 window.api.getLastRandom().then(value => {
   if (value) showRandomSuggestion(value)
 })
+
+function collectOptions() {
+  return {
+    mode: document.querySelector('input[name="mode"]:checked').value,
+    platform: document.querySelector('input[name="platform"]:checked').value,
+    tier: document.querySelector('input[name="tier"]:checked').value,
+    name: document.getElementById('char-name').value || null,
+    retries: document.getElementById('retries').value,
+    skip: document.getElementById('skip').value,
+    waitLevelUpTimeout: document.getElementById('wait-levelup-timeout').value,
+    emulatorSpeed: document.getElementById('emulator-speed').value,
+    random: document.getElementById('random').value,
+    fight: document.getElementById('fight').value,
+    isBoss: document.getElementById('is-boss').checked,
+    syncGithub: document.getElementById('sync-github').checked,
+    debug: document.getElementById('debug-mode').checked,
+    levelsToGain: document.getElementById('levels-to-gain').value,
+  }
+}
+
+function applyOptions(o) {
+  if (!o) return
+  if (o.mode) document.querySelector(`input[name="mode"][value="${o.mode}"]`)?.click()
+  if (o.platform) document.querySelector(`input[name="platform"][value="${o.platform}"]`)?.click()
+  if (o.tier) document.querySelector(`input[name="tier"][value="${o.tier}"]`)?.click()
+  if (o.name) document.getElementById('char-name').value = o.name
+  if (o.retries) document.getElementById('retries').value = o.retries
+  if (o.skip) document.getElementById('skip').value = o.skip
+  if (o.waitLevelUpTimeout) document.getElementById('wait-levelup-timeout').value = o.waitLevelUpTimeout
+  if (o.emulatorSpeed) document.getElementById('emulator-speed').value = o.emulatorSpeed
+  if (o.random) document.getElementById('random').value = o.random
+  if (o.fight) document.getElementById('fight').value = o.fight
+  document.getElementById('is-boss').checked = !!o.isBoss
+  document.getElementById('sync-github').checked = !!o.syncGithub
+  document.getElementById('debug-mode').checked = !!o.debug
+  if (o.levelsToGain) document.getElementById('levels-to-gain').value = o.levelsToGain
+}
+
+window.api.getLastOptions().then(applyOptions)
 
 const status = document.getElementById('status')
 const btnRun = document.getElementById('btn-run')
@@ -200,9 +242,14 @@ btnRun.addEventListener('click', async () => {
     random: document.getElementById('random').value.trim() || null,
     fight: mode === 'level' ? (document.getElementById('fight').value.trim() || null) : null,
     isBoss: mode === 'level' ? document.getElementById('is-boss').checked : false,
+    syncGithub: document.getElementById('sync-github').checked,
+    debug: document.getElementById('debug-mode').checked,
+    waitLevelUpTimeout: parseInt(document.getElementById('wait-levelup-timeout').value, 10) || null,
+    emulatorSpeed: parseInt(document.getElementById('emulator-speed').value, 10) || null,
     levelsToGain: mode === 'arena' ? (parseInt(document.getElementById('levels-to-gain').value, 10) || null) : null
   }
 
+  await window.api.saveLastOptions(collectOptions())
   setRunning()
   postRunState = null
   runPlatform = platform

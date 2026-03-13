@@ -48,9 +48,18 @@ let runningProcess = null
 const PROJECT_ROOT = path.join(__dirname, '..')
 const BOUNDS_FILE = path.join(__dirname, '.window-bounds.json')
 const LAST_RANDOM_FILE = path.join(__dirname, '.last-random.json')
+const LAST_OPTIONS_FILE = path.join(__dirname, '.last-options.json')
 
 function loadLastRandom() {
   try { return JSON.parse(fs.readFileSync(LAST_RANDOM_FILE, 'utf8')) } catch { return null }
+}
+
+function loadLastOptions() {
+  try { return JSON.parse(fs.readFileSync(LAST_OPTIONS_FILE, 'utf8')) } catch { return null }
+}
+
+function saveLastOptions(data) {
+  try { fs.writeFileSync(LAST_OPTIONS_FILE, JSON.stringify(data)) } catch {}
 }
 
 function loadBounds() {
@@ -99,6 +108,8 @@ const createWindow = () => {
 
 app.whenReady().then(() => {
   ipcMain.handle('get-last-random', () => loadLastRandom()?.value || null)
+  ipcMain.handle('get-last-options', () => loadLastOptions())
+  ipcMain.handle('save-last-options', (_, data) => saveLastOptions(data))
 
   ipcMain.handle('rename-character', (_, { oldName, newName }) => {
     const growthDir = path.join(PROJECT_ROOT, 'game-logic', 'characters', 'growth')
@@ -167,6 +178,10 @@ app.whenReady().then(() => {
     if (options.random) env.RANDOM_OVERRIDE = options.random
     if (options.fight) env.FIGHT_OVERRIDE = options.fight
     if (options.isBoss) env.IS_BOSS = '1'
+    if (options.syncGithub) env.SYNC_GITHUB = '1'
+    if (options.debug) env.__DEBUG__ = '1'
+    if (options.waitLevelUpTimeout) env.WAIT_LEVEL_UP_TIMEOUT = String(options.waitLevelUpTimeout)
+    if (options.emulatorSpeed) env.EMULATOR_SPEED = String(options.emulatorSpeed)
     if (options.levelsToGain) env.LEVELS_TO_GAIN = String(options.levelsToGain)
 
     if (platform === 'phone') env.TARGET_DEVICE = 'phone'
@@ -194,7 +209,7 @@ app.whenReady().then(() => {
     }
 
     // Log the command so the user can reproduce it manually
-    const envPrefix = ['CHAR_NAME', 'SKIP_COUNT', 'TIER_OVERRIDE', 'RANDOM_OVERRIDE', 'FIGHT_OVERRIDE', 'IS_BOSS', 'LEVELS_TO_GAIN', 'TARGET_DEVICE']
+    const envPrefix = ['CHAR_NAME', 'SKIP_COUNT', 'TIER_OVERRIDE', 'RANDOM_OVERRIDE', 'FIGHT_OVERRIDE', 'IS_BOSS', 'SYNC_GITHUB', 'LEVELS_TO_GAIN', 'TARGET_DEVICE', '__DEBUG__', 'WAIT_LEVEL_UP_TIMEOUT', 'EMULATOR_SPEED']
       .filter(k => env[k]).map(k => `${k}=${env[k]}`).join(' ')
     const cmdLine = `${envPrefix ? envPrefix + ' ' : ''}node ${args.join(' ')}`
     const win2 = BrowserWindow.fromWebContents(event.sender)

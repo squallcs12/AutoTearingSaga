@@ -6,8 +6,8 @@ const { identifyCharacter, saveFaceFromScreenshot } = require('./identify-charac
 const FACES_DIR = path.join(__dirname, 'characters', 'faces');
 
 async function detectCharacter(saveScreenshot) {
-  await saveScreenshot('current-char-raw.png');
-  const detectedName = process.env.CHAR_NAME || await identifyCharacter('tmp/current-char-raw.png');
+  const charPath = await saveScreenshot('current-char-raw.png');
+  const detectedName = process.env.CHAR_NAME || await identifyCharacter(charPath);
   if (!detectedName) throw new Error('Could not identify character face (no match above 95%). Add face image to game-logic/characters/faces/ or use -name <char>');
 
   // Save face image if name was manually specified and no face file exists

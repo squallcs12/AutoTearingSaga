@@ -6,6 +6,7 @@ sharp.cache(false);
 const debug = false;
 
 const path = require('path');
+const fs = require('fs');
 
 // Load reference label images (stat name columns) for template matching
 const refDir = path.join(__dirname, '..', 'example', 'level-up');
@@ -105,8 +106,8 @@ const findTotalStatIncrease = async (newImage, startIdx, s = 1) => {
   return increase;
 };
 
-const checkIsGoodLevelUpImg = async (i, startStat) => {
-  const { image, s } = await cropGameArea(sharp(`tmp/level-up-${i}.png`));
+const checkIsGoodLevelUpImg = async (filePath, startStat) => {
+  const { image, s } = await cropGameArea(sharp(filePath));
   const panelPipeline = await extractLevelUpPanel(image, s);
   // Materialize to buffer so subsequent .extract() calls work on the cropped panel,
   // not the original image (Sharp chains extracts against the source, not the prior extract)
@@ -115,10 +116,10 @@ const checkIsGoodLevelUpImg = async (i, startStat) => {
   return findTotalStatIncrease(sharp(panelBuf), startStat, s);
 };
 
-const getStatIncreased = async (total, { expectMove = false } = {}) => {
+const getStatIncreased = async (filePath, { expectMove = false } = {}) => {
   const increased = { count: 0 };
   const stopIdx = expectMove ? statOrder.length : statOrder.indexOf('move');
-  const findIncreased = await checkIsGoodLevelUpImg(total, 0);
+  const findIncreased = await checkIsGoodLevelUpImg(filePath, 0);
   if (findIncreased) {
     for (let k = 0; k < stopIdx; k++) {
       const name = statOrder[k];
@@ -157,52 +158,49 @@ const checkGoodCondition = (isGood, required) => {
   return false;
 };
 
-const checkIsGoodLevelUp = async (total, required) => {
+const checkIsGoodLevelUp = async (filePath, required) => {
   const expectMove = required.some(r => r.move === 1);
-  const statIncreased = await getStatIncreased(total, { expectMove });
+  const statIncreased = await getStatIncreased(filePath, { expectMove });
   console.error(statSummary(statIncreased));
   const isGood = checkGoodCondition(statIncreased, required);
   return { isGood, statIncreased };
 };
 
-const checkIsLevelUpByIndex = async (i, cancelled) => {
-  if (cancelled.value) return null;
-  const { image, s } = await cropGameArea(sharp(`tmp/level-up-${i}.png`));
-  if (cancelled.value) return null;
+const checkIsLevelUpByPath = async (filePath) => {
+  const { image, s } = await cropGameArea(sharp(filePath));
   const panelPipeline = await extractLevelUpPanel(image, s);
-  if (cancelled.value) return null;
   const panelBuf = await panelPipeline.toBuffer();
-  if (cancelled.value) return null;
   return checkIsLevelUp(sharp(panelBuf), s);
 };
 
-const checkLevelUpgrade = async (required, saveScreenshot, characterName) => {
+const checkLevelUpgrade = async (required, saveScreenshot, characterName, initialPath = null) => {
   const total = 14;
-  const cancelled = { value: false };
   const checkPromises = [];
 
+  const paths = initialPath ? [initialPath] : [];
+  if (initialPath) {
+    checkPromises.push(checkIsLevelUpByPath(initialPath).then(isLevelUp => isLevelUp ? 0 : null));
+  }
   for (let i = 1; i <= total; i++) {
-    await saveScreenshot(`level-up-${i}.png`);
+    const filePath = await saveScreenshot(`level-up-${i}.png`);
+    const idx = paths.push(filePath) - 1;
     // Fire off level-up check concurrently with next screenshot
     checkPromises.push(
-      checkIsLevelUpByIndex(i, cancelled).then(isLevelUp => isLevelUp ? i : null)
+      checkIsLevelUpByPath(filePath).then(isLevelUp => isLevelUp ? idx : null)
     );
   }
 
-  // Await from latest to earliest, break and cancel remaining as soon as we find a level-up
-  let latestLevelUpIdx = 0;
-  for (let i = checkPromises.length - 1; i >= 0; i--) {
-    const r = await checkPromises[i];
-    if (r !== null) { latestLevelUpIdx = r; cancelled.value = true; break; }
-  }
+  // All screenshots done; wait for any remaining checks
+  const results = await Promise.all(checkPromises);
+  const latestLevelUpIdx = results.reduce((max, r) => r !== null && r > max ? r : max, -1);
 
-  if (latestLevelUpIdx === 0) {
+  if (latestLevelUpIdx === -1) {
     console.error('[checkLevelUpgrade] No level-up panel detected in any screenshot');
     return { isGood: false, statIncreased: { count: 0 } };
   }
 
   console.log(`[checkLevelUpgrade] latest level-up panel at index ${latestLevelUpIdx}`);
-  const { isGood, statIncreased } = await checkIsGoodLevelUp(latestLevelUpIdx, required);
+  const { isGood, statIncreased } = await checkIsGoodLevelUp(paths[latestLevelUpIdx], required);
   if (isGood) {
     console.error('Goooooooooooooodddddddddddddddddd');
   }
@@ -210,15 +208,19 @@ const checkLevelUpgrade = async (required, saveScreenshot, characterName) => {
 };
 
 const waitLevelUp = async (playing, { sleepMs = 500 } = {}) => {
+  const timeoutMs = parseInt(process.env.WAIT_LEVEL_UP_TIMEOUT || '15000', 10);
   const start = Date.now();
-  for (let i = 0; i < 30; i++) {
-    await playing.saveScreenshot('current.png');
+  for (let i = 0; Date.now() - start < timeoutMs; i++) {
+    const screenshotPath = await playing.saveScreenshot('current.png');
     await playing.pressO();
-    const { image, s } = await cropGameArea(sharp('tmp/current.png'));
+    const { image, s } = await cropGameArea(sharp(screenshotPath));
     const panelBuf = await (await extractLevelUpPanel(image, s)).toBuffer();
     if (await checkIsLevelUp(sharp(panelBuf), s)) {
       console.log(`[waitLevelUp] detected at i=${i} +${Date.now() - start}ms`);
-      return true;
+      const suffix = path.basename(screenshotPath, '.png').replace(/^current/, '');
+      const levelUpPath = path.join(path.dirname(screenshotPath), `level-up-1${suffix}.png`);
+      fs.renameSync(screenshotPath, levelUpPath);
+      return levelUpPath;
     }
     await sleep(sleepMs);
   }
@@ -230,7 +232,7 @@ module.exports = { checkIsGoodLevelUp, statSummary, checkGoodCondition, checkIsL
 
 if (debug) {
   (async () => {
-    const { isGood, statIncreased } = await checkIsGoodLevelUp(7, [{ count: 1 }]);
+    const { isGood, statIncreased } = await checkIsGoodLevelUp('tmp/level-up-7.png', [{ count: 1 }]);
     console.log({ isGood, statIncreased });
   })();
 }

@@ -7,3 +7,4 @@ logs/*.log
 
 # Electron app window state
 app/.window-bounds.json
+app/.last-options.json

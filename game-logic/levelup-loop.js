@@ -139,11 +139,11 @@ async function detectMoveableGrid(PlayingPage, saveScreenshot) {
   for (let attempt = 1; attempt <= 100; attempt++) {
     await PlayingPage.perform('left');            // move cursor left (tiles still visible)
     await sleep(1000);
-    await saveScreenshot('movement-fg.png');      // fg: with movement tiles
-    await PlayingPage.perform('X');               // cancel → tiles disappear
+    const fgPath = await saveScreenshot('movement-fg.png');  // fg: with movement tiles
+    await PlayingPage.perform('X');                           // cancel → tiles disappear
     await sleep(1000);
-    await saveScreenshot('movement-bg.png');      // bg: without movement tiles
-    const result = await detectMovableGrid('tmp/movement-bg.png', 'tmp/movement-fg.png');
+    const bgPath = await saveScreenshot('movement-bg.png');  // bg: without movement tiles
+    const result = await detectMovableGrid(bgPath, fgPath);
     grid = result.grid;
     const hasC = grid.some(row => row.includes('C'));
     const hasReachable = grid.some(row => row.split(' ').some(v => v !== '.' && v !== 'C'));
@@ -189,7 +189,7 @@ async function detectRandomTriggerSteps(PlayingPage, saveScreenshot, checkLevelU
     await performFightWithRetry(PlayingPage, battle, isBoss, {
       beforeRetry: () => performSteps(PlayingPage, steps),
     });
-    const { statIncreased: stat1 } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
+    const { statIncreased: stat1 } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName, PlayingPage.lastLevelUpResult);
 
     if (!statsDiffer(stat1, initStat)) {
       console.log(`[levelup] no change, trying next...`);
@@ -206,7 +206,7 @@ async function detectRandomTriggerSteps(PlayingPage, saveScreenshot, checkLevelU
       await performFightWithRetry(PlayingPage, battle, isBoss, {
         beforeRetry: async () => { for (let r = 0; r < repeat; r++) await performSteps(PlayingPage, steps); },
       });
-      const { statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
+      const { statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName, PlayingPage.lastLevelUpResult);
       allStats.push(statIncreased);
     }
     const uniqueKeys = new Set(allStats.map(s => statToKey(s)));
@@ -238,7 +238,7 @@ async function detectRandomTriggerSteps(PlayingPage, saveScreenshot, checkLevelU
       await performFightWithRetry(PlayingPage, battle, isBoss, {
         beforeRetry: async () => { for (let r = 0; r < t; r++) await performSteps(PlayingPage, multiSteps); },
       });
-      const { statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
+      const { statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName, PlayingPage.lastLevelUpResult);
       seen.add(statToKey(statIncreased));
     }
     const uniqueRate = seen.size / EVAL_TURNS;
@@ -289,7 +289,7 @@ async function phase1FindRandomSteps(PlayingPage, saveScreenshot, checkLevelUpgr
 
   // Baseline fight: record init stat before any RNG manipulation
   await performFightWithRetry(PlayingPage, battle, isBoss);
-  const { isGood: initGood, statIncreased: initStat } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
+  const { isGood: initGood, statIncreased: initStat } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName, PlayingPage.lastLevelUpResult);
   console.log('[levelup] initStat:', JSON.stringify(initStat));
   if (initGood) {
     console.log('[levelup] baseline fight already has good stats, no need to farm!');
@@ -342,7 +342,7 @@ async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, ba
       beforeRetry: () => performSteps(PlayingPage, workingRandomSteps),
     });
 
-    const { isGood, statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
+    const { isGood, statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName, PlayingPage.lastLevelUpResult);
     const logLine = `turn=${turn} stats=${statLogLine(statIncreased).join(',')}\n`;
     fs.appendFileSync(logFile, logLine);
     console.error(logLine.trim());

@@ -77,7 +77,7 @@ async function fightAndWaitLevelUp(PlayingPage) {
 // Evaluate level-up stats and log result.
 // Returns { isGood }.
 async function handleLevelUpResult(PlayingPage, saveScreenshot, checkLevelUpgrade, goodCondition, detectedName, levelAttempts) {
-  const { isGood, statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
+  const { isGood, statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName, PlayingPage.lastLevelUpResult);
   const logLine = `turn=${levelAttempts} isGood=${isGood} stats=${statLogLine(statIncreased).join(',')}\n`;
   fs.appendFileSync('logs/arena.log', logLine);
   console.error(logLine.trim());
