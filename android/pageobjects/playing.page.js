@@ -1,9 +1,11 @@
+const fs = require('fs');
 const { waitLevelUp } = require('../../scene-detection/check-level');
 const { sleep } = require('../specs/common');
 const { debugCopyScreenshot } = require('../../utils');
 const path = require('path');
 const Page = require('./page');
 const { addPerform } = require('../../shared/perform');
+const { extractGameArea } = require('../../game-logic/identify-character');
 
 
 
@@ -177,6 +179,8 @@ class PlayingPage extends Page {
   async saveScreenshot(filename) {
     const destPath = path.join('tmp', filename);
     await driver.saveScreenshot(destPath);
+    const buf = await (await extractGameArea(destPath)).png().toBuffer();
+    fs.writeFileSync(destPath, buf);
     debugCopyScreenshot(destPath);
     return destPath;
   }

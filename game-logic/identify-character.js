@@ -8,24 +8,43 @@ const CALIB_H = 810; // 1080 * 3/4
 const MIN_MATCH = 0.95;
 const FACES_DIR = `${__dirname}/characters/faces`;
 
-// Extract the 4:3 game area from the screenshot, normalized to 1080x810
-function extractGameArea(imagePath) {
-  return sharp(imagePath).metadata().then(({ width, height }) => {
-    const isLandscape = width > height;
-    let left, top, w, h;
-    if (isLandscape) {
-      h = height;
-      w = Math.round(h * 4 / 3);
-      left = Math.round((width - w) / 2);
-      top = 0;
-    } else {
-      w = width;
-      h = Math.round(w * 3 / 4);
-      left = 0;
-      top = 0;
+// Find the first non-black row (skip status bar / black bar at top)
+async function findGameTop(imagePath, width, maxScan) {
+  const { data, info } = await sharp(imagePath).removeAlpha()
+    .extract({ left: 0, top: 0, width, height: Math.min(maxScan, 300) })
+    .raw().toBuffer({ resolveWithObject: true });
+  const ch = info.channels;
+  const stride = width * ch;
+  for (let y = 0; y < Math.min(maxScan, 300); y++) {
+    let sum = 0;
+    for (let x = Math.round(width * 0.1); x < Math.round(width * 0.9); x += 10) {
+      const i = y * stride + x * ch;
+      sum += data[i] + data[i + 1] + data[i + 2];
     }
-    return sharp(imagePath).extract({ left, top, width: w, height: h }).resize(CALIB_W, CALIB_H);
-  });
+    const samples = Math.ceil((Math.round(width * 0.9) - Math.round(width * 0.1)) / 10);
+    if (sum / samples > 30) return y;
+  }
+  return 0;
+}
+
+// Extract the 4:3 game area from the screenshot, normalized to 1080x810
+async function extractGameArea(imagePath) {
+  const { width, height } = await sharp(imagePath).metadata();
+  const isLandscape = width > height;
+  let left, top, w, h;
+  if (isLandscape) {
+    h = height;
+    w = Math.round(h * 4 / 3);
+    left = Math.round((width - w) / 2);
+    top = 0;
+  } else {
+    w = width;
+    h = Math.round(w * 3 / 4);
+    left = 0;
+    top = await findGameTop(imagePath, width, height);
+    h = Math.min(h, height - top);
+  }
+  return sharp(imagePath).extract({ left, top, width: w, height: h }).resize(CALIB_W, CALIB_H);
 }
 
 // Find the Y position of the popup's top golden border in 1080x810 space.
@@ -112,7 +131,7 @@ async function identifyCharacter(imagePath) {
     return null;
   }
 
-  const gameImage = await extractGameArea(imagePath);
+  const gameImage = sharp(imagePath).resize(CALIB_W, CALIB_H);
   const borderY = await findPopupBorderY(gameImage);
 
   if (borderY < 0) {
@@ -155,4 +174,4 @@ async function identifyCharacter(imagePath) {
   return bestName;
 }
 
-module.exports = { identifyCharacter };
+module.exports = { identifyCharacter, extractGameArea };

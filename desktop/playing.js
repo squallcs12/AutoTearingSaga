@@ -1,6 +1,8 @@
+const fs = require('fs');
 const { waitLevelUp } = require('../scene-detection/check-level');
 const { sleep, sendKey, takeScreenshot } = require('./common');
 const { addPerform } = require('../shared/perform');
+const { extractGameArea } = require('../game-logic/identify-character');
 
 // Keyboard mappings — update these to match your DuckStation bindings
 const KEYS = {
@@ -64,11 +66,13 @@ class PlayingDesktop {
   async finishBoss() { await sleep(12000); }
 
   async saveScreenshot(filename) {
-    await takeScreenshot(filename);
+    const destPath = await takeScreenshot(filename);
+    const buf = await (await extractGameArea(destPath)).png().toBuffer();
+    fs.writeFileSync(destPath, buf);
   }
 
   async takePic() {
-    await takeScreenshot('current.png');
+    await this.saveScreenshot('current.png');
     await sleep(400);
   }
 

@@ -169,8 +169,8 @@ async function detectRandomTriggerSteps(PlayingPage, saveScreenshot, checkLevelU
       continue;
     }
 
-    // Verify: run steps 2x and 3x, need at least 2 results different from initStat
-    const allStats = [stat1];
+    // Verify: run steps 2x and 3x, need at least 3 distinct results (including baseline)
+    const allStats = [initStat, stat1];
     for (let repeat = 2; repeat <= 3; repeat++) {
       await PlayingPage.perform('reload');
       for (let r = 0; r < repeat; r++) {
@@ -180,12 +180,12 @@ async function detectRandomTriggerSteps(PlayingPage, saveScreenshot, checkLevelU
       const { statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
       allStats.push(statIncreased);
     }
-    const diffFromInit = allStats.filter(s => statsDiffer(s, initStat)).length;
-    if (diffFromInit >= 2) {
-      console.log(`[levelup] verified: tile (${tile.r},${tile.c}) has ${diffFromInit}/3 results different from baseline`);
+    const uniqueKeys = new Set(allStats.map(s => statToKey(s)));
+    if (uniqueKeys.size >= 3) {
+      console.log(`[levelup] verified: tile (${tile.r},${tile.c}) has ${uniqueKeys.size}/4 distinct results (baseline + 3 attempts)`);
       return steps;
     }
-    console.log(`[levelup] fake trigger: only ${diffFromInit}/3 results differ from baseline, trying next...`);
+    console.log(`[levelup] fake trigger: only ${uniqueKeys.size}/4 distinct results, trying next...`);
   }
 
   // No verified random trigger found — pick best fake trigger by testing multipliers

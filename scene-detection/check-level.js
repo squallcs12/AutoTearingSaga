@@ -188,28 +188,36 @@ const syncSave = async (message) => {
   execSync('git push');
 };
 
-const checkIsLevelUpByIndex = async (i) => {
+const checkIsLevelUpByIndex = async (i, cancelled) => {
+  if (cancelled.value) return null;
   const { image, s } = await cropGameArea(sharp(`tmp/level-up-${i}.png`));
+  if (cancelled.value) return null;
   const panelPipeline = await extractLevelUpPanel(image, s);
+  if (cancelled.value) return null;
   const panelBuf = await panelPipeline.toBuffer();
+  if (cancelled.value) return null;
   return checkIsLevelUp(sharp(panelBuf), s);
 };
 
 const checkLevelUpgrade = async (required, saveScreenshot, characterName) => {
   const total = 14;
+  const cancelled = { value: false };
   const checkPromises = [];
 
   for (let i = 1; i <= total; i++) {
     await saveScreenshot(`level-up-${i}.png`);
     // Fire off level-up check concurrently with next screenshot
     checkPromises.push(
-      checkIsLevelUpByIndex(i).then(isLevelUp => isLevelUp ? i : null)
+      checkIsLevelUpByIndex(i, cancelled).then(isLevelUp => isLevelUp ? i : null)
     );
   }
 
-  // All screenshots done; wait for any remaining checks
-  const results = await Promise.all(checkPromises);
-  const latestLevelUpIdx = results.reduce((max, r) => r !== null && r > max ? r : max, 0);
+  // Await from latest to earliest, break and cancel remaining as soon as we find a level-up
+  let latestLevelUpIdx = 0;
+  for (let i = checkPromises.length - 1; i >= 0; i--) {
+    const r = await checkPromises[i];
+    if (r !== null) { latestLevelUpIdx = r; cancelled.value = true; break; }
+  }
 
   if (latestLevelUpIdx === 0) {
     console.error('[checkLevelUpgrade] No level-up panel detected in any screenshot');

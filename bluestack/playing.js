@@ -1,6 +1,8 @@
+const fs = require('fs');
 const { waitLevelUp } = require('../scene-detection/check-level');
 const { sleep, sendKey, takeScreenshot, adbMove } = require('./common');
 const { addPerform } = require('../shared/perform');
+const { extractGameArea } = require('../game-logic/identify-character');
 
 const KEYS = {
   circle:    'c',
@@ -60,10 +62,13 @@ class PlayingBluestack {
 
   async saveScreenshot(filename) {
     await takeScreenshot(filename);
+    const destPath = require('path').join('tmp', filename);
+    const buf = await (await extractGameArea(destPath)).png().toBuffer();
+    fs.writeFileSync(destPath, buf);
   }
 
   async takePic() {
-    await takeScreenshot('current.png');
+    await this.saveScreenshot('current.png');
     await sleep(400);
   }
 
