@@ -1,5 +1,4 @@
 const sharp = require('sharp');
-const { goodCondition } = require('../config');
 const { sleep, statOrder } = require('../utils');
 const { cropGameArea } = require('./calib');
 sharp.cache(false);
@@ -214,6 +213,7 @@ const waitLevelUp = async (playing, { sleepMs = 500 } = {}) => {
   const start = Date.now();
   for (let i = 0; i < 30; i++) {
     await playing.saveScreenshot('current.png');
+    await playing.pressO();
     const { image, s } = await cropGameArea(sharp('tmp/current.png'));
     const panelBuf = await (await extractLevelUpPanel(image, s)).toBuffer();
     if (await checkIsLevelUp(sharp(panelBuf), s)) {
@@ -221,7 +221,6 @@ const waitLevelUp = async (playing, { sleepMs = 500 } = {}) => {
       return true;
     }
     await sleep(sleepMs);
-    await playing.pressO();
   }
   console.log(`[waitLevelUp] gave up after ${Date.now() - start}ms`);
   return false;
@@ -231,7 +230,7 @@ module.exports = { checkIsGoodLevelUp, statSummary, checkGoodCondition, checkIsL
 
 if (debug) {
   (async () => {
-    const { isGood, statIncreased } = await checkIsGoodLevelUp(7, goodCondition);
+    const { isGood, statIncreased } = await checkIsGoodLevelUp(7, [{ count: 1 }]);
     console.log({ isGood, statIncreased });
   })();
 }
