@@ -3,6 +3,7 @@ const path = require('path');
 const { detectMovableGrid } = require('../scene-detection/check-movement');
 const { sleep, statOrder } = require('../utils');
 const { buildFallbackCondition, createNearMissTracker, detectCharacter, statLogLine, performSteps } = require('./shared');
+const { AttackMenuNotFound } = require('../shared/perform');
 const parse = (str) => str.split('\n').map(x => x.trim()).filter(x => x.length > 0);
 
 // Parse grid into tiles grouped by distance from C
@@ -109,6 +110,23 @@ async function performFight(PlayingPage, battle, isBoss) {
   await PlayingPage.perform('wait-level-up');
 }
 
+async function performFightWithRetry(PlayingPage, battle, isBoss, { maxRetries = 3, beforeRetry } = {}) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await performFight(PlayingPage, battle, isBoss);
+      return;
+    } catch (e) {
+      if (e instanceof AttackMenuNotFound && attempt < maxRetries) {
+        console.log(`[performFight] AttackMenuNotFound, retrying (${attempt}/${maxRetries})...`);
+        await PlayingPage.perform('reload');
+        if (beforeRetry) await beforeRetry();
+        continue;
+      }
+      throw e;
+    }
+  }
+}
+
 async function detectMoveableGrid(PlayingPage, saveScreenshot) {
   let grid = [];
   for (let attempt = 1; attempt <= 100; attempt++) {
@@ -161,7 +179,9 @@ async function detectRandomTriggerSteps(PlayingPage, saveScreenshot, checkLevelU
     // First attempt: check if steps produce different stat from baseline
     await PlayingPage.perform('reload');
     await performSteps(PlayingPage, steps);
-    await performFight(PlayingPage, battle, isBoss);
+    await performFightWithRetry(PlayingPage, battle, isBoss, {
+      beforeRetry: () => performSteps(PlayingPage, steps),
+    });
     const { statIncreased: stat1 } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
 
     if (!statsDiffer(stat1, initStat)) {
@@ -176,7 +196,9 @@ async function detectRandomTriggerSteps(PlayingPage, saveScreenshot, checkLevelU
       for (let r = 0; r < repeat; r++) {
         await performSteps(PlayingPage, steps);
       }
-      await performFight(PlayingPage, battle, isBoss);
+      await performFightWithRetry(PlayingPage, battle, isBoss, {
+        beforeRetry: async () => { for (let r = 0; r < repeat; r++) await performSteps(PlayingPage, steps); },
+      });
       const { statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
       allStats.push(statIncreased);
     }
@@ -206,7 +228,9 @@ async function detectRandomTriggerSteps(PlayingPage, saveScreenshot, checkLevelU
       for (let r = 0; r < t; r++) {
         await performSteps(PlayingPage, multiSteps);
       }
-      await performFight(PlayingPage, battle, isBoss);
+      await performFightWithRetry(PlayingPage, battle, isBoss, {
+        beforeRetry: async () => { for (let r = 0; r < t; r++) await performSteps(PlayingPage, multiSteps); },
+      });
       const { statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
       seen.add(statToKey(statIncreased));
     }
@@ -258,7 +282,7 @@ async function phase1FindRandomSteps(PlayingPage, saveScreenshot, checkLevelUpgr
   const grid = await detectMoveableGrid(PlayingPage, saveScreenshot);
 
   // Baseline fight: record init stat before any RNG manipulation
-  await performFight(PlayingPage, battle, isBoss);
+  await performFightWithRetry(PlayingPage, battle, isBoss);
   const { isGood: initGood, statIncreased: initStat } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
   console.log('[levelup] initStat:', JSON.stringify(initStat));
   if (initGood) {
@@ -308,7 +332,9 @@ async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, ba
       await PlayingPage.perform('save');
     }
 
-    await performFight(PlayingPage, battle, isBoss);
+    await performFightWithRetry(PlayingPage, battle, isBoss, {
+      beforeRetry: () => performSteps(PlayingPage, workingRandomSteps),
+    });
 
     const { isGood, statIncreased } = await checkLevelUpgrade(nearMiss.getEffectiveCondition(), saveScreenshot, detectedName);
     const logLine = `turn=${turn} stats=${statLogLine(statIncreased).join(',')}\n`;

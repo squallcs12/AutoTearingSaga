@@ -5,6 +5,11 @@
 // Each method should include its own delay (sleep) as needed.
 
 const { sleep } = require('../utils');
+const { isAttackMenu } = require('../scene-detection/check-attack');
+
+class AttackMenuNotFound extends Error {
+  constructor() { super('Attack menu not detected after pressing O'); this.name = 'AttackMenuNotFound'; }
+}
 
 function addPerform(cls) {
   cls.prototype.perform = async function (step) {
@@ -37,6 +42,14 @@ function addPerform(cls) {
         case 'wait':          await sleep(1000);       break;
         case 'pic':           await this.takePic();    break;
         case 'wait-level-up': await this.waitLevelUp(); break;
+        case 'attack':
+          await this.pressO();
+          await this.saveScreenshot('current.png');
+          if (!await isAttackMenu('tmp/current.png')) {
+            throw new AttackMenuNotFound();
+          }
+          await this.pressO();
+          break;
         case 'reload':  await this.reload(0); break;
         case 'reload1': await this.reload(1); break;
         case 'reload2': await this.reload(2); break;
@@ -48,4 +61,4 @@ function addPerform(cls) {
   };
 }
 
-module.exports = { addPerform };
+module.exports = { addPerform, AttackMenuNotFound };
