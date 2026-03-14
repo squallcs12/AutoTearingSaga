@@ -1,7 +1,7 @@
 const fs = require('fs');
 const { isArenaConfirm, isArenaWin } = require('../scene-detection/check-arena');
 const { checkHp } = require('../scene-detection/check-hp');
-const { buildFallbackCondition, createNearMissTracker, detectCharacter, statLogLine, performSteps } = require('./shared');
+const { detectCharacter, statLogLine, performSteps } = require('./shared');
 const { sleep } = require('../utils');
 
 async function setupRun(PlayingPage, saveScreenshot) {
@@ -15,11 +15,9 @@ async function setupRun(PlayingPage, saveScreenshot) {
   console.log(`[arena] detected character: ${detectedName}${process.env.CHAR_NAME ? ' (override)' : ''}`);
   console.error('[arena] goodCondition:', JSON.stringify(goodCondition));
 
-  const fallbackCondition = buildFallbackCondition(goodCondition);
-  const nearMiss = createNearMissTracker(goodCondition, fallbackCondition);
   await PlayingPage.perform('save2');
 
-  return { detectedName, goodCondition, nearMiss };
+  return { detectedName, goodCondition };
 }
 
 async function healIfNeeded(PlayingPage, hp, consecutiveLosses) {
@@ -82,16 +80,13 @@ async function fightAndWaitLevelUp(PlayingPage) {
   return didLevelUp;
 }
 
-// Evaluate level-up stats, log, and track near misses.
-// Returns { isGood, changeOpponent }.
-async function handleLevelUpResult(PlayingPage, saveScreenshot, checkLevelUpgrade, nearMiss, detectedName, levelAttempts) {
-  const { isGood, statIncreased } = await checkLevelUpgrade(nearMiss.getEffectiveCondition(), saveScreenshot, detectedName);
+// Evaluate level-up stats and log result.
+// Returns { isGood }.
+async function handleLevelUpResult(PlayingPage, saveScreenshot, checkLevelUpgrade, goodCondition, detectedName, levelAttempts) {
+  const { isGood, statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
   const logLine = `turn=${levelAttempts} isGood=${isGood} stats=${statLogLine(statIncreased).join(',')}\n`;
   fs.appendFileSync('logs/arena.log', logLine);
   console.error(logLine.trim());
-
-  const nearMissMsg = nearMiss.track(isGood, statIncreased);
-  if (nearMissMsg) console.log(`[arena] ${nearMissMsg}`);
 
   if (isGood) {
     await PlayingPage.perform('save1');
@@ -136,7 +131,7 @@ async function endTurn(PlayingPage) {
 }
 
 async function arenaLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, levelsToGain) {
-  const { detectedName, nearMiss } = await setupRun(PlayingPage, saveScreenshot);
+  const { detectedName, goodCondition } = await setupRun(PlayingPage, saveScreenshot);
 
   const skipCount = parseInt(process.env.SKIP_COUNT || '0', 10);
   let levelCount = 0;
@@ -183,11 +178,10 @@ async function arenaLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, levelsT
 
     let changeOpponent = false;
     if (didLevelUp) {
-      const { isGood } = await handleLevelUpResult(PlayingPage, saveScreenshot, checkLevelUpgrade, nearMiss, detectedName, levelAttempts);
+      const { isGood } = await handleLevelUpResult(PlayingPage, saveScreenshot, checkLevelUpgrade, goodCondition, detectedName, levelAttempts);
       if (isGood) {
         levelCount++;
         levelAttempts = 0;
-        nearMiss.reset();
         consecutiveLosses = 0;
       } else {
         changeOpponent = true;

@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { detectMovableGrid } = require('../scene-detection/check-movement');
 const { sleep, statOrder } = require('../utils');
-const { buildFallbackCondition, createNearMissTracker, detectCharacter, statLogLine, performSteps } = require('./shared');
+const { detectCharacter, statLogLine, performSteps } = require('./shared');
 const { AttackMenuNotFound } = require('../shared/perform');
 const parse = (str) => str.split('\n').map(x => x.trim()).filter(x => x.length > 0);
 
@@ -302,8 +302,6 @@ async function phase1FindRandomSteps(PlayingPage, saveScreenshot, checkLevelUpgr
 // Phase 2: repeatedly apply random steps + fight until good stats roll.
 async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, workingRandomSteps, initStat, goodCondition, detectedName, logFile) {
   const STALE_LIMIT = 10;
-  const fallbackCondition = buildFallbackCondition(goodCondition);
-  const nearMiss = createNearMissTracker(goodCondition, fallbackCondition);
   const failedStepsSet = [];
 
   let skipCount = parseInt(process.env.SKIP_COUNT || '0', 10);
@@ -336,13 +334,10 @@ async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, ba
       beforeRetry: () => performSteps(PlayingPage, workingRandomSteps),
     });
 
-    const { isGood, statIncreased } = await checkLevelUpgrade(nearMiss.getEffectiveCondition(), saveScreenshot, detectedName);
+    const { isGood, statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName);
     const logLine = `turn=${turn} stats=${statLogLine(statIncreased).join(',')}\n`;
     fs.appendFileSync(logFile, logLine);
     console.error(logLine.trim());
-
-    const nearMissMsg = nearMiss.track(isGood, statIncreased);
-    if (nearMissMsg) console.log(`[levelup] ${nearMissMsg}`);
 
     if (isGood) {
       await saveGoodResult(PlayingPage);

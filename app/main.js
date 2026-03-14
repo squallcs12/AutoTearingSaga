@@ -94,12 +94,54 @@ const createWindow = () => {
 app.whenReady().then(() => {
   ipcMain.handle('get-last-random', () => loadLastRandom()?.value || null)
 
+  ipcMain.handle('rename-character', (_, { oldName, newName }) => {
+    const growthDir = path.join(PROJECT_ROOT, 'game-logic', 'characters', 'growth')
+    const facesDir = path.join(PROJECT_ROOT, 'game-logic', 'characters', 'faces')
+    const oldGrowth = path.join(growthDir, `${oldName}.json`)
+    const newGrowth = path.join(growthDir, `${newName}.json`)
+    const oldFace = path.join(facesDir, `${oldName}.png`)
+    const newFace = path.join(facesDir, `${newName}.png`)
+    try {
+      if (fs.existsSync(oldGrowth)) {
+        const data = JSON.parse(fs.readFileSync(oldGrowth, 'utf8'))
+        data.name = newName.charAt(0).toUpperCase() + newName.slice(1)
+        fs.writeFileSync(newGrowth, JSON.stringify(data, null, 2) + '\n')
+        fs.unlinkSync(oldGrowth)
+      }
+      if (fs.existsSync(oldFace)) fs.renameSync(oldFace, newFace)
+      return { success: true }
+    } catch (e) {
+      return { error: e.message }
+    }
+  })
+
   ipcMain.handle('get-characters', () => {
     const growthDir = path.join(PROJECT_ROOT, 'game-logic', 'characters', 'growth')
     return fs.readdirSync(growthDir)
       .filter(f => f.endsWith('.json'))
       .map(f => f.replace('.json', ''))
       .sort()
+  })
+
+  ipcMain.handle('get-good-condition', (_, { character, tier }) => {
+    try {
+      const oldTier = process.env.TIER_OVERRIDE
+      if (tier) process.env.TIER_OVERRIDE = tier
+      else delete process.env.TIER_OVERRIDE
+      // Clear require cache so tier override takes effect
+      const modPath = require.resolve(path.join(PROJECT_ROOT, 'game-logic', 'characters', 'good-condition'))
+      delete require.cache[modPath]
+      const growthPath = require.resolve(path.join(PROJECT_ROOT, 'game-logic', 'characters', 'growth', `${character}.json`))
+      delete require.cache[growthPath]
+      const { getGoodCondition } = require(modPath)
+      const result = getGoodCondition(character)
+      // Restore
+      if (oldTier) process.env.TIER_OVERRIDE = oldTier
+      else delete process.env.TIER_OVERRIDE
+      return result
+    } catch {
+      return null
+    }
   })
 
   ipcMain.handle('run-command', (event, { mode, platform, options }) => {
@@ -115,7 +157,6 @@ app.whenReady().then(() => {
     // Common env vars (work for both android and desktop via game-logic/shared)
     if (options.name) env.CHAR_NAME = options.name
     if (options.skip > 0) env.SKIP_COUNT = String(options.skip)
-    if (options.fixedTier) env.NO_FALLBACK = '1'
     if (options.tier && options.tier !== 'auto') env.TIER_OVERRIDE = options.tier
     if (options.random) env.RANDOM_OVERRIDE = options.random
     if (options.fight) env.FIGHT_OVERRIDE = options.fight
@@ -142,16 +183,13 @@ app.whenReady().then(() => {
       if (options.skip > 0) {
         args.push('--skip', String(options.skip))
       }
-      if (options.fixedTier) {
-        args.push('--fixed-tier')
-      }
     } else {
       const script = mode === 'level' ? 'desktop/levelup.js' : 'desktop/arena.js'
       args.push(script)
     }
 
     // Log the command so the user can reproduce it manually
-    const envPrefix = ['CHAR_NAME', 'SKIP_COUNT', 'NO_FALLBACK', 'TIER_OVERRIDE', 'RANDOM_OVERRIDE', 'FIGHT_OVERRIDE', 'IS_BOSS', 'SYNC_GITHUB', 'LEVELS_TO_GAIN', 'TARGET_DEVICE']
+    const envPrefix = ['CHAR_NAME', 'SKIP_COUNT', 'TIER_OVERRIDE', 'RANDOM_OVERRIDE', 'FIGHT_OVERRIDE', 'IS_BOSS', 'SYNC_GITHUB', 'LEVELS_TO_GAIN', 'TARGET_DEVICE']
       .filter(k => env[k]).map(k => `${k}=${env[k]}`).join(' ')
     const cmdLine = `${envPrefix ? envPrefix + ' ' : ''}node ${args.join(' ')}`
     const win2 = BrowserWindow.fromWebContents(event.sender)

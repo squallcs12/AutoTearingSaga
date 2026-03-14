@@ -2,14 +2,13 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const TIERS = ['good', 'avg', 'bad'];
+const TIERS = ['S', 'A', 'B', 'C', 'D'];
 const args = process.argv.slice(2);
 const verbose = args.includes('-v');
-const noFallback = args.includes('--fixed-tier');
-const positional = args.filter(a => a !== '-v' && a !== '--fixed-tier');
+const positional = args.filter(a => a !== '-v');
 const tierOverride = TIERS.includes(positional[0]) ? positional[0] : null;
 const N = parseInt(tierOverride ? (positional[1] || '4') : (positional[0] || '4'), 10);
-const env = { ...process.env, ...(tierOverride ? { TIER_OVERRIDE: tierOverride } : {}), ...(noFallback ? { NO_FALLBACK: '1' } : {}) };
+const env = { ...process.env, ...(tierOverride ? { TIER_OVERRIDE: tierOverride } : {}) };
 
 let logFd;
 if (!verbose) {

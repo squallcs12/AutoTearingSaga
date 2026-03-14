@@ -53,6 +53,7 @@ const outputDot = document.getElementById('output-dot')
 const infoChar = document.getElementById('info-char')
 const infoTier = document.getElementById('info-tier')
 const infoCondition = document.getElementById('info-condition')
+let summaryTargetCount = 5 // default, updated when goodCondition is parsed
 
 function formatCondition(conditions) {
   return conditions.map(c => {
@@ -67,13 +68,34 @@ function formatCondition(conditions) {
 }
 
 // Populate character dropdown
-window.api.getCharacters().then(chars => {
-  const select = document.getElementById('char-name')
-  for (const name of chars) {
-    const opt = document.createElement('option')
-    opt.value = name
-    opt.textContent = name.charAt(0).toUpperCase() + name.slice(1)
-    select.appendChild(opt)
+const charSelect = document.getElementById('char-name')
+
+function populateCharacters() {
+  return window.api.getCharacters().then(chars => {
+    const current = charSelect.value
+    while (charSelect.options.length > 1) charSelect.remove(1)
+    for (const name of chars) {
+      const opt = document.createElement('option')
+      opt.value = name
+      opt.textContent = name.charAt(0).toUpperCase() + name.slice(1)
+      charSelect.appendChild(opt)
+    }
+    charSelect.value = current
+  })
+}
+populateCharacters()
+
+document.getElementById('btn-rename-char').addEventListener('click', async () => {
+  const oldName = charSelect.value
+  if (!oldName) return
+  const newName = prompt(`Rename "${oldName}" to:`)
+  if (!newName || newName === oldName) return
+  const result = await window.api.renameCharacter({ oldName, newName: newName.toLowerCase() })
+  if (result.error) {
+    alert('Rename failed: ' + result.error)
+  } else {
+    await populateCharacters()
+    charSelect.value = newName.toLowerCase()
   }
 })
 
@@ -100,6 +122,23 @@ function updateVisibility() {
 document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener('change', updateVisibility))
 document.querySelectorAll('input[name="platform"]').forEach(r => r.addEventListener('change', updateVisibility))
 updateVisibility()
+
+// Show good condition preview when tier or character changes
+const tierConditionEl = document.getElementById('tier-condition')
+
+async function updateTierCondition() {
+  const character = document.getElementById('char-name').value
+  const tier = document.querySelector('input[name="tier"]:checked').value
+  if (!character || tier === 'auto') {
+    tierConditionEl.textContent = ''
+    return
+  }
+  const condition = await window.api.getGoodCondition({ character, tier })
+  tierConditionEl.textContent = condition ? formatCondition(condition) : ''
+}
+
+document.querySelectorAll('input[name="tier"]').forEach(r => r.addEventListener('change', updateTierCondition))
+document.getElementById('char-name').addEventListener('change', updateTierCondition)
 
 function setStatus(text, type) {
   status.textContent = text
@@ -156,7 +195,6 @@ btnRun.addEventListener('click', async () => {
   const options = {
     name: document.getElementById('char-name').value || null,
     tier,
-    fixedTier: document.getElementById('fixed-tier').checked,
     retries: parseInt(document.getElementById('retries').value, 10) || 4,
     skip: parseInt(document.getElementById('skip').value, 10) || 0,
     random: document.getElementById('random').value.trim() || null,
@@ -214,8 +252,10 @@ window.api.onOutput((data) => {
   const condMatch = data.match(/\[levelup\] goodCondition: (.+)/)
   if (condMatch) {
     try {
-      infoCondition.textContent = formatCondition(JSON.parse(condMatch[1]))
+      const parsed = JSON.parse(condMatch[1])
+      infoCondition.textContent = formatCondition(parsed)
       infoCondition.classList.remove('hidden')
+      summaryTargetCount = parsed[0].count
     } catch {}
   }
   // Parse turn/level_attempt stat lines: "turn=N stats=count,s1,s2,..."
@@ -224,7 +264,7 @@ window.api.onOutput((data) => {
     const turnLabel = `${statMatch[1]}=${statMatch[2]}`
     const count = parseInt(statMatch[3], 10)
     const statNames = statMatch[4] ? statMatch[4].split(',').filter(Boolean) : []
-    if (count >= 5) addSummaryRow(turnLabel, count, statNames)
+    if (count >= summaryTargetCount - 1) addSummaryRow(turnLabel, count, statNames)
   }
 
   // If search highlights are active, clear them before appending (re-apply after)
