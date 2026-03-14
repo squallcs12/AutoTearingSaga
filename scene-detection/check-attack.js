@@ -9,7 +9,11 @@ const refPromise = sharp(refPath).greyscale().raw().toBuffer();
 const refSize = { w: 90, h: 30 };
 
 // Region in game area (1080x810 calibration) containing "Attack" text
-const menuCrop = { left: 775, top: 70, width: 90, height: 30 };
+// Menu can appear on right or left side depending on character position
+const menuCrops = [
+  { left: 775, top: 70, width: 90, height: 30 }, // right side
+  { left: 134, top: 70, width: 90, height: 30 }, // left side
+];
 const THRESHOLD = 140;
 const MATCH_THRESHOLD = 0.9;
 
@@ -24,23 +28,25 @@ const binarise = (buf) => {
 const isAttackMenu = async (filename) => {
   const { image, s } = await cropGameArea(sharp(filename));
   const gameBuf = await image.toBuffer();
-  const [refBuf, curRaw] = await Promise.all([
-    refPromise,
-    sharp(gameBuf).extract({
+  const refBuf = await refPromise;
+
+  for (const menuCrop of menuCrops) {
+    const curRaw = await sharp(gameBuf).extract({
       left: Math.round(menuCrop.left * s),
       top: Math.round(menuCrop.top * s),
       width: Math.round(menuCrop.width * s),
       height: Math.round(menuCrop.height * s),
-    }).resize(refSize.w, refSize.h).greyscale().raw().toBuffer(),
-  ]);
-  const curBin = binarise(curRaw);
-  let same = 0;
-  for (let i = 0; i < refBuf.length; i++) {
-    if (refBuf[i] === curBin[i]) same++;
+    }).resize(refSize.w, refSize.h).greyscale().raw().toBuffer();
+    const curBin = binarise(curRaw);
+    let same = 0;
+    for (let i = 0; i < refBuf.length; i++) {
+      if (refBuf[i] === curBin[i]) same++;
+    }
+    const score = same / refBuf.length;
+    if (require.main === module) console.log(`score: ${score.toFixed(4)}`);
+    if (score > MATCH_THRESHOLD) return true;
   }
-  const score = same / refBuf.length;
-  if (require.main === module) console.log(`score: ${score.toFixed(4)}`);
-  return score > MATCH_THRESHOLD;
+  return false;
 };
 
 module.exports = { isAttackMenu };

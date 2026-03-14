@@ -69,6 +69,7 @@ class PlayingDesktop {
     const destPath = await takeScreenshot(filename);
     const buf = await (await extractGameArea(destPath)).png().toBuffer();
     fs.writeFileSync(destPath, buf);
+    return destPath;
   }
 
   async takePic() {

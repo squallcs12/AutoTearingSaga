@@ -65,6 +65,7 @@ class PlayingBluestack {
     const destPath = require('path').join('tmp', filename);
     const buf = await (await extractGameArea(destPath)).png().toBuffer();
     fs.writeFileSync(destPath, buf);
+    return destPath;
   }
 
   async takePic() {
