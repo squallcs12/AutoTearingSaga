@@ -222,13 +222,16 @@ window.api.onOutput((data) => {
   const statMatch = data.match(/\b(turn|level_attempt)=(\d+)\s+stats=(\d+)(?:,([^\s]*))?/)
   if (statMatch) {
     const turnLabel = `${statMatch[1]}=${statMatch[2]}`
-    const count = statMatch[3]
+    const count = parseInt(statMatch[3], 10)
     const statNames = statMatch[4] ? statMatch[4].split(',').filter(Boolean) : []
-    addSummaryRow(turnLabel, count, statNames)
+    if (count >= 5) addSummaryRow(turnLabel, count, statNames)
   }
 
+  // If search highlights are active, clear them before appending (re-apply after)
+  if (searchMarks.length > 0) clearSearchHighlights()
   output.textContent += data
   output.scrollTop = output.scrollHeight
+  if (searchInput.value && searchBar.classList.contains('visible')) performSearch()
 })
 
 window.api.onDone((code) => {
@@ -237,4 +240,113 @@ window.api.onDone((code) => {
     code === 0 ? 'success' : 'error'
   )
   setReady()
+})
+
+// ── Log search ──
+const searchBar = document.getElementById('search-bar')
+const searchInput = document.getElementById('search-input')
+const searchCount = document.getElementById('search-count')
+const searchPrev = document.getElementById('search-prev')
+const searchNext = document.getElementById('search-next')
+const searchClose = document.getElementById('search-close')
+
+let searchCurrentIndex = -1
+let searchMarks = []
+
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function performSearch() {
+  // Restore plain text
+  clearSearchHighlights()
+  const query = searchInput.value
+  if (!query) {
+    searchCount.textContent = ''
+    searchCurrentIndex = -1
+    searchMarks = []
+    return
+  }
+  const regex = new RegExp(escapeRegExp(query), 'gi')
+  const text = output.textContent
+  const parts = []
+  let last = 0
+  let match
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > last) parts.push(document.createTextNode(text.slice(last, match.index)))
+    const mark = document.createElement('mark')
+    mark.className = 'search-hit'
+    mark.textContent = match[0]
+    parts.push(mark)
+    last = regex.lastIndex
+  }
+  if (parts.length === 0) {
+    searchCount.textContent = '0'
+    searchCurrentIndex = -1
+    searchMarks = []
+    return
+  }
+  if (last < text.length) parts.push(document.createTextNode(text.slice(last)))
+  output.textContent = ''
+  for (const p of parts) output.appendChild(p)
+  searchMarks = output.querySelectorAll('mark.search-hit')
+  searchCurrentIndex = searchMarks.length - 1
+  updateSearchCurrent()
+}
+
+function clearSearchHighlights() {
+  if (searchMarks.length === 0) return
+  // Flatten back to text
+  const text = output.textContent
+  output.textContent = text
+  searchMarks = []
+  searchCurrentIndex = -1
+}
+
+function updateSearchCurrent() {
+  searchMarks.forEach(m => m.classList.remove('current'))
+  if (searchCurrentIndex >= 0 && searchCurrentIndex < searchMarks.length) {
+    searchMarks[searchCurrentIndex].classList.add('current')
+    searchMarks[searchCurrentIndex].scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }
+  searchCount.textContent = searchMarks.length > 0 ? `${searchCurrentIndex + 1}/${searchMarks.length}` : '0'
+}
+
+function openSearch() {
+  searchBar.classList.add('visible')
+  searchInput.focus()
+  searchInput.select()
+}
+
+function closeSearch() {
+  searchBar.classList.remove('visible')
+  clearSearchHighlights()
+  searchCount.textContent = ''
+}
+
+searchInput.addEventListener('input', performSearch)
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { closeSearch(); return }
+  if (e.key === 'Enter') {
+    e.preventDefault()
+    if (e.shiftKey) navigateSearch(-1)
+    else navigateSearch(1)
+  }
+})
+
+function navigateSearch(dir) {
+  if (searchMarks.length === 0) return
+  searchCurrentIndex = (searchCurrentIndex + dir + searchMarks.length) % searchMarks.length
+  updateSearchCurrent()
+}
+
+searchNext.addEventListener('click', () => navigateSearch(1))
+searchPrev.addEventListener('click', () => navigateSearch(-1))
+searchClose.addEventListener('click', closeSearch)
+
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+    e.preventDefault()
+    openSearch()
+  }
 })

@@ -332,10 +332,72 @@
       #output::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
       #output::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.12); }
       #output:empty::before {
-        content: 'Output will appear here...';
+        content: 'Ctrl+F to search log';
         color: #333;
         font-style: italic;
       }
+
+      /* ── Search bar ── */
+      .search-bar {
+        display: none;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 16px;
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+        background: rgba(255,255,255,0.02);
+      }
+      .search-bar.visible { display: flex; }
+      .search-bar input {
+        flex: 1;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 5px;
+        padding: 4px 8px;
+        color: #c8cad0;
+        font-size: 12px;
+        font-family: inherit;
+      }
+      .search-bar input:focus {
+        outline: none;
+        border-color: rgba(99,102,241,0.5);
+        box-shadow: 0 0 0 2px rgba(99,102,241,0.1);
+      }
+      .search-count {
+        font-size: 11px;
+        color: #555;
+        min-width: 48px;
+        text-align: center;
+        white-space: nowrap;
+      }
+      .search-nav {
+        background: transparent;
+        border: 1px solid rgba(255,255,255,0.1);
+        color: #888;
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        font-size: 12px;
+        padding: 0;
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      .search-nav:hover:not(:disabled) { background: rgba(255,255,255,0.06); color: #ccc; }
+      .search-close {
+        background: transparent;
+        border: none;
+        color: #666;
+        font-size: 16px;
+        padding: 0 2px;
+        flex: none;
+        cursor: pointer;
+        line-height: 1;
+      }
+      .search-close:hover { color: #ccc; }
+      mark.search-hit { background: rgba(234,179,8,0.35); color: inherit; border-radius: 2px; }
+      mark.search-hit.current { background: rgba(234,179,8,0.7); }
 
       .btn-avd {
         padding: 8px 12px;
@@ -515,6 +577,13 @@
           <span id="info-tier" class="info-badge hidden"></span>
           <span id="info-condition" class="hidden" style="font-size:11px;color:#555;"></span>
         </div>
+      </div>
+      <div class="search-bar" id="search-bar">
+        <input type="text" id="search-input" placeholder="Search log..." />
+        <span class="search-count" id="search-count"></span>
+        <button class="search-nav" id="search-prev" title="Previous (Shift+Enter)">&#9650;</button>
+        <button class="search-nav" id="search-next" title="Next (Enter)">&#9660;</button>
+        <button class="search-close" id="search-close" title="Close (Esc)">&times;</button>
       </div>
       <div id="output"></div>
       <div id="summary"></div>
