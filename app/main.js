@@ -294,10 +294,10 @@ app.whenReady().then(() => {
   ipcMain.handle('commit-save', (event, { message }) => {
     if (runningProcess) return { error: 'A command is already running' }
     const win = BrowserWindow.fromWebContents(event.sender)
-    const addProc = spawn('git', ['add', 'SLPS-03177_0.sav'], { cwd: PROJECT_ROOT, shell: true })
+    const addProc = spawn('git', ['add', 'SLPS-03177_0.sav'], { cwd: PROJECT_ROOT })
     addProc.on('close', (addCode) => {
       if (addCode !== 0) { win.webContents.send('command-done', addCode); return }
-      runningProcess = spawn('git', ['commit', '-m', message], { cwd: PROJECT_ROOT, shell: true, stdio: ['ignore', 'pipe', 'pipe'] })
+      runningProcess = spawn('git', ['commit', '-m', message], { cwd: PROJECT_ROOT, stdio: ['ignore', 'pipe', 'pipe'] })
       runningProcess.stdout.on('data', (data) => win.webContents.send('command-output', data.toString()))
       runningProcess.stderr.on('data', (data) => win.webContents.send('command-output', data.toString()))
       runningProcess.on('close', (code) => { runningProcess = null; win.webContents.send('command-done', code) })
