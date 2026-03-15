@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('api', {
   stopCommand: () => ipcRenderer.invoke('stop-command'),
   startAvd: () => ipcRenderer.invoke('start-avd'),
   syncCommand: (direction) => ipcRenderer.invoke('sync-command', direction),
+  commitSave: (opts) => ipcRenderer.invoke('commit-save', opts),
   getLastRandom: () => ipcRenderer.invoke('get-last-random'),
   onAvdReady: (callback) => ipcRenderer.on('avd-ready', () => callback()),
   onOutput: (callback) => ipcRenderer.on('command-output', (_, data) => callback(data)),

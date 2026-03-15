@@ -190,7 +190,7 @@ app.whenReady().then(() => {
     }
 
     // Log the command so the user can reproduce it manually
-    const envPrefix = ['CHAR_NAME', 'SKIP_COUNT', 'TIER_OVERRIDE', 'RANDOM_OVERRIDE', 'FIGHT_OVERRIDE', 'IS_BOSS', 'SYNC_GITHUB', 'LEVELS_TO_GAIN', 'TARGET_DEVICE']
+    const envPrefix = ['CHAR_NAME', 'SKIP_COUNT', 'TIER_OVERRIDE', 'RANDOM_OVERRIDE', 'FIGHT_OVERRIDE', 'IS_BOSS', 'LEVELS_TO_GAIN', 'TARGET_DEVICE']
       .filter(k => env[k]).map(k => `${k}=${env[k]}`).join(' ')
     const cmdLine = `${envPrefix ? envPrefix + ' ' : ''}node ${args.join(' ')}`
     const win2 = BrowserWindow.fromWebContents(event.sender)
@@ -276,7 +276,9 @@ app.whenReady().then(() => {
     const script = direction === 'pull' ? 'scripts/pull.js' : 'scripts/push.js'
     const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('npm_config_')))
     if (target === 'phone') env.TARGET_DEVICE = 'phone'
-    runningProcess = spawn('node', [script], {
+    const args = [script]
+    if (target) args.push(target)
+    runningProcess = spawn('node', args, {
       cwd: PROJECT_ROOT,
       shell: true,
       env,
@@ -286,6 +288,20 @@ app.whenReady().then(() => {
     runningProcess.stdout.on('data', (data) => win.webContents.send('command-output', data.toString()))
     runningProcess.stderr.on('data', (data) => win.webContents.send('command-output', data.toString()))
     runningProcess.on('close', (code) => { runningProcess = null; win.webContents.send('command-done', code) })
+    return { started: true }
+  })
+
+  ipcMain.handle('commit-save', (event, { message }) => {
+    if (runningProcess) return { error: 'A command is already running' }
+    const win = BrowserWindow.fromWebContents(event.sender)
+    const addProc = spawn('git', ['add', 'SLPS-03177_0.sav'], { cwd: PROJECT_ROOT, shell: true })
+    addProc.on('close', (addCode) => {
+      if (addCode !== 0) { win.webContents.send('command-done', addCode); return }
+      runningProcess = spawn('git', ['commit', '-m', message], { cwd: PROJECT_ROOT, shell: true, stdio: ['ignore', 'pipe', 'pipe'] })
+      runningProcess.stdout.on('data', (data) => win.webContents.send('command-output', data.toString()))
+      runningProcess.stderr.on('data', (data) => win.webContents.send('command-output', data.toString()))
+      runningProcess.on('close', (code) => { runningProcess = null; win.webContents.send('command-done', code) })
+    })
     return { started: true }
   })
 

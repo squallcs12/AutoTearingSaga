@@ -204,6 +204,10 @@ btnRun.addEventListener('click', async () => {
   }
 
   setRunning()
+  postRunState = null
+  runPlatform = platform
+  lastCharName = null
+  lastStatLine = null
   setStatus(`Running: ${mode} (${platform})`, 'running')
 
   const result = await window.api.runCommand({ mode, platform, options })
@@ -230,15 +234,23 @@ btnPullPhone.addEventListener('click', () => runSync('pull', 'phone'))
 btnPushPhone.addEventListener('click', () => runSync('push', 'phone'))
 
 btnStop.addEventListener('click', async () => {
+  postRunState = null
   await window.api.stopCommand()
   setStatus('Stopped', 'error')
   setReady()
 })
 
+// ── Post-run state machine: run success → pull save → git commit ──
+let postRunState = null // null | 'pulling' | 'committing'
+let runPlatform = null
+let lastCharName = null
+let lastStatLine = null
+
 window.api.onOutput((data) => {
   const charMatch = data.match(/\[levelup\] detected character: (\w+)/)
   if (charMatch) {
     const name = charMatch[1]
+    lastCharName = name
     infoChar.textContent = name.charAt(0).toUpperCase() + name.slice(1)
     infoChar.classList.remove('hidden')
   }
@@ -263,6 +275,7 @@ window.api.onOutput((data) => {
     const turnLabel = `${statMatch[1]}=${statMatch[2]}`
     const count = parseInt(statMatch[3], 10)
     const statNames = statMatch[4] ? statMatch[4].split(',').filter(Boolean) : []
+    lastStatLine = `${count} ${statNames.join(',')}`
     if (count >= summaryTargetCount - 1) addSummaryRow(turnLabel, count, statNames)
   }
 
@@ -273,12 +286,49 @@ window.api.onOutput((data) => {
   if (searchInput.value && searchBar.classList.contains('visible')) performSearch()
 })
 
-window.api.onDone((code) => {
-  setStatus(
-    code === 0 ? 'Done - Good stats found!' : `Exited (code ${code})`,
-    code === 0 ? 'success' : 'error'
-  )
-  setReady()
+window.api.onDone(async (code) => {
+  if (code === 0 && postRunState === null) {
+    // Run succeeded — pull save from device
+    const pullTarget = runPlatform === 'phone' ? 'phone' : runPlatform === 'desktop' ? 'desktop' : 'emulator'
+    postRunState = 'pulling'
+    setStatus(`Pulling save from ${pullTarget}...`, 'running')
+    const result = await window.api.syncCommand({ direction: 'pull', target: pullTarget })
+    if (result.error) {
+      postRunState = null
+      setStatus(`Done - pull failed: ${result.error}`, 'error')
+      setReady()
+    }
+  } else if (code === 0 && postRunState === 'pulling') {
+    // Pull succeeded — commit the save file
+    const name = lastCharName ? lastCharName.charAt(0).toUpperCase() + lastCharName.slice(1) : 'Unknown'
+    const stats = lastStatLine || ''
+    const message = `Level up ${name}: ${stats}`
+    postRunState = 'committing'
+    setStatus('Committing save...', 'running')
+    const result = await window.api.commitSave({ message })
+    if (result.error) {
+      postRunState = null
+      setStatus(`Done - commit failed: ${result.error}`, 'error')
+      setReady()
+    }
+  } else if (postRunState === 'committing') {
+    postRunState = null
+    setStatus(code === 0 ? 'Done - saved & committed!' : 'Done - commit failed', code === 0 ? 'success' : 'error')
+    setReady()
+  } else if (postRunState !== null && code !== 0) {
+    // Pull or other step failed
+    const failedStep = postRunState
+    postRunState = null
+    setStatus(`Done - ${failedStep} failed (code ${code})`, 'error')
+    setReady()
+  } else {
+    // Normal exit (non-success or manual sync)
+    setStatus(
+      code === 0 ? 'Done' : `Exited (code ${code})`,
+      code === 0 ? 'success' : 'error'
+    )
+    setReady()
+  }
 })
 
 // ── Log search ──
