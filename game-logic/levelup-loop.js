@@ -4,6 +4,8 @@ const { detectMovableGrid } = require('../scene-detection/check-movement');
 const { sleep, statOrder } = require('../utils');
 const { statLogLine, performSteps, initGame } = require('./shared');
 const { AttackMenuNotFound } = require('../shared/perform');
+const { checkGoodCondition } = require('../scene-detection/check-level');
+const { getGoodCondition, getNextTier } = require('./characters/good-condition');
 const parse = (str) => str.split('\n').map(x => x.trim()).filter(x => x.length > 0);
 
 // Parse grid into tiles grouped by distance from C
@@ -313,6 +315,8 @@ async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, ba
   let lastChangeTurn = skipCount;
   let prevStat = null;
   const statHistory = [];
+  let savedSlot4 = false;
+  let plusOneTurnStart = 0;
 
   await PlayingPage.perform('reload');
   await PlayingPage.perform('save2');
@@ -344,7 +348,33 @@ async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, ba
     console.error(logLine.trim());
 
     if (isGood) {
-      await saveGoodResult(PlayingPage);
+      // Check if result also meets +1 tier condition
+      const nextTier = getNextTier(detectedName);
+      if (nextTier) {
+        const plusOneCondition = getGoodCondition(detectedName, nextTier);
+        const isPlusOneTier = checkGoodCondition(statIncreased, plusOneCondition);
+        if (isPlusOneTier) {
+          console.log(`[levelup] result meets +1 tier (${nextTier}) condition, stopping!`);
+          await saveGoodResult(PlayingPage);
+          break;
+        }
+        // Save to slot 4 as fallback, then try 50 more turns for +1 tier
+        if (!savedSlot4) {
+          console.log(`[levelup] good result but not +1 tier (${nextTier}), saving to slot 4 and trying 50 more turns...`);
+          await PlayingPage.perform('save');
+          await PlayingPage.perform('save4');
+          savedSlot4 = true;
+          plusOneTurnStart = turn;
+        }
+      } else {
+        // Already at S tier, no +1 tier to check
+        await saveGoodResult(PlayingPage);
+        break;
+      }
+    }
+
+    if (savedSlot4 && turn - plusOneTurnStart >= 50) {
+      console.log('[levelup] 50 turns since first good result, accepting slot 4 result');
       break;
     }
 

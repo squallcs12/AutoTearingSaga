@@ -20,6 +20,7 @@ const KEYS = {
   saveSlot1: 'f1', loadSlot1: 'shift+f1',
   saveSlot2: 'f2', loadSlot2: 'shift+f2',
   saveSlot3: 'f3', loadSlot3: 'shift+f3',
+  saveSlot4: 'f5', loadSlot4: 'shift+f5',
 };
 
 class PlayingDesktop {

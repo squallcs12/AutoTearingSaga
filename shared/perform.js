@@ -36,6 +36,7 @@ function addPerform(cls) {
         case 'save1':      await this.quicksave(1);    break;
         case 'save2':      await this.quicksave(2);    break;
         case 'save3':      await this.quicksave(3);    break;
+        case 'save4':      await this.quicksave(4);    break;
         case 'confirm':       await this.spamO();      break;
         case 'boss':          await this.finishBoss(); break;
         case 'finish':        await this.finish();     break;
@@ -53,6 +54,7 @@ function addPerform(cls) {
         case 'reload1': await this.reload(1); break;
         case 'reload2': await this.reload(2); break;
         case 'reload3': await this.reload(3); break;
+        case 'reload4': await this.reload(4); break;
         case 'load-game': await this.loadGameAndLoadQuickSave(); break;
         default: break;
       }

@@ -3,12 +3,14 @@
 //   S — cnt>=7, A — cnt>=6, B — cnt>=5, C — cnt>=4, D — cnt>=3
 // +hp required.
 // If move > 0, move is always required and count is reduced by 1.
-const getGoodCondition = (character) => {
+const tierConfig = { S: 7, A: 6, B: 5, C: 4, D: 3 };
+const tierOrder = ['D', 'C', 'B', 'A', 'S'];
+
+const getGoodCondition = (character, tierOverride) => {
   const data = require(`./growth/${character}.json`);
   const g = data.growthRates;
-  const tier = process.env.TIER_OVERRIDE || data.tier;
+  const tier = tierOverride || process.env.TIER_OVERRIDE || data.tier;
 
-  const tierConfig = { S: 7, A: 6, B: 5, C: 4, D: 3 };
   const cond = { count: tierConfig[tier], hp: 1 };
 
   if (g.move > 0) {
@@ -19,4 +21,13 @@ const getGoodCondition = (character) => {
   return [cond];
 };
 
-module.exports = { getGoodCondition };
+// Returns the next tier up, or null if already at S
+const getNextTier = (character) => {
+  const data = require(`./growth/${character}.json`);
+  const tier = process.env.TIER_OVERRIDE || data.tier;
+  const idx = tierOrder.indexOf(tier);
+  if (idx < 0 || idx >= tierOrder.length - 1) return null;
+  return tierOrder[idx + 1];
+};
+
+module.exports = { getGoodCondition, getNextTier };
