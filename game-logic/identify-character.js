@@ -175,18 +175,12 @@ async function identifyCharacter(imagePath) {
 }
 
 async function saveFaceFromScreenshot(imagePath, outputPath) {
-  const gameImage = sharp(imagePath).resize(CALIB_W, CALIB_H);
-  const borderY = await findPopupBorderY(gameImage);
-
-  // Face position relative to popup border
-  // Top popup: face at ~(450, borderY+5), Bottom popup: face at ~(450, borderY+5)
-  const faceX = 450;
-  const faceY = borderY >= 0 ? borderY + 5 : 40;
+  const gameImage = await extractGameArea(imagePath);
 
   await gameImage.clone()
-    .extract({ left: faceX, top: faceY, width: FACE_W, height: FACE_H })
+    .extract({ left: 450, top: 40, width: FACE_W, height: FACE_H })
     .toFile(outputPath);
-  console.log(`[levelup] face saved to ${outputPath} (from ${faceX},${faceY})`);
+  console.log(`[levelup] face saved to ${outputPath}`);
 }
 
 module.exports = { identifyCharacter, extractGameArea, saveFaceFromScreenshot };

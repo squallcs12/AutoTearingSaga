@@ -1,4 +1,6 @@
 const { app, BrowserWindow, ipcMain, screen } = require('electron/main')
+
+app.setAppUserModelId('com.autotearingsaga.app')
 const path = require('node:path')
 const { spawn, execSync } = require('node:child_process')
 const fs = require('node:fs')

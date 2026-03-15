@@ -1,4 +1,5 @@
 {
+    "name": "auto-tearing-saga",
     "main": "app/main.js",
     "license": "MIT",
     "dependencies": {
