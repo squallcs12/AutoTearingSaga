@@ -18,13 +18,10 @@ const goodCondition = [
   { count: 6 },          // at least 6 stats (any combination)
 ];
 
-// Set to true to automatically pull the save, git add, commit and push when a good result is found.
-const syncGithub = false;
-
 // Character name (used in commit messages and save tracking)
 const characterName = 'kreiss';
 
 // Number of levels to gain when running arena.e2e.js
 const levelsToGain = 3;
 
-module.exports = { fight, isBoss, goodCondition, syncGithub, characterName, levelsToGain };
+module.exports = { fight, isBoss, goodCondition, characterName, levelsToGain };

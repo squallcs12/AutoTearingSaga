@@ -163,7 +163,6 @@ app.whenReady().then(() => {
     if (options.random) env.RANDOM_OVERRIDE = options.random
     if (options.fight) env.FIGHT_OVERRIDE = options.fight
     if (options.isBoss) env.IS_BOSS = '1'
-    if (options.syncGithub) env.SYNC_GITHUB = '1'
     if (options.levelsToGain) env.LEVELS_TO_GAIN = String(options.levelsToGain)
 
     if (platform === 'phone') env.TARGET_DEVICE = 'phone'

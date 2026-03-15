@@ -55,8 +55,6 @@ Before running, ensure:
 - `fight` — string of battle action steps
 - `isBoss` — boolean, whether the enemy is a boss (longer finish wait)
 - `goodCondition` — object or array of objects defining required stat increases
-- `syncGithub` — boolean, whether to auto-commit+push the save file on success
-
 Example:
 ```js
 const forceRandom = `up\ndown\n...`; // input sequence for RNG manipulation
@@ -64,8 +62,7 @@ const fight = `O\nO\n...`;           // input sequence through battle menus
 const isBoss = false;                 // true for boss fights (longer finish wait)
 const goodCondition = { count: 3, 1: 1, 3: 1 }; // e.g. need strength+speed + 1 more
 // or array: [{ count: 3, 1: 1 }, { count: 4 }]
-const syncGithub = false;             // set true to auto-commit save on success
-module.exports = { forceRandom, fight, isBoss, goodCondition, syncGithub };
+module.exports = { forceRandom, fight, isBoss, goodCondition };
 ```
 
 ## Architecture
@@ -96,7 +93,6 @@ The main loop:
 4. Scans specific pixel regions for green pixels (RGB thresholds) to detect which of 9 stats increased
 5. Stats 1–5 are in the left column (starting at x=420), stats 6–9 in the right column (x=700)
 6. Evaluates result against `goodCondition`: `count` sets minimum total increases; individual stat keys use `1` (must increase) or `-1` (must NOT increase)
-7. On success + `syncGithub=true`: auto-pulls save file via adb and git commits/pushes
 
 ### Movement Detection (`scene-detection/check-movement.js`)
 

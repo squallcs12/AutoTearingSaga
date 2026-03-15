@@ -1,9 +1,5 @@
 const sharp = require('sharp');
-const { exec, execSync } = require('child_process');
-const { exportSave } = require('../android/specs/transfer-save');
-
-const { goodCondition, syncGithub: configSyncGithub } = require('../config');
-const syncGithub = process.env.SYNC_GITHUB ? process.env.SYNC_GITHUB === '1' : configSyncGithub;
+const { goodCondition } = require('../config');
 const { sleep, statOrder } = require('../utils');
 const { cropGameArea } = require('./calib');
 sharp.cache(false);
@@ -176,18 +172,6 @@ const checkIsGoodLevelUp = async (total, required) => {
   return { isGood, statIncreased };
 };
 
-const syncSave = async (message) => {
-  execSync('git pull');
-  await $('id=com.github.stenzek.duckstation:id/controller_button_pause').touchAction({ action: 'tap', x: 10, y: 10 });
-  await sleep(500);
-  await $('android=new UiSelector().text("Exit Game")').click();
-  await exportSave();
-  execSync('adb -s emulator-5554 pull /sdcard/Download/duckstation/savestates/SLPS-03177_0.sav SLPS-03177_0.sav');
-  execSync('git add .');
-  execSync(`git cm -m "${message}"`);
-  execSync('git push');
-};
-
 const checkIsLevelUpByIndex = async (i, cancelled) => {
   if (cancelled.value) return null;
   const { image, s } = await cropGameArea(sharp(`tmp/level-up-${i}.png`));
@@ -228,13 +212,6 @@ const checkLevelUpgrade = async (required, saveScreenshot, characterName) => {
   const { isGood, statIncreased } = await checkIsGoodLevelUp(latestLevelUpIdx, required);
   if (isGood) {
     console.error('Goooooooooooooodddddddddddddddddd');
-    if (syncGithub) {
-      try {
-        await syncSave(`Level up ${characterName}: ${statSummary(statIncreased).join(' ')}`);
-      } catch (e) {
-        console.error('[syncSave] failed:', e.message);
-      }
-    }
   }
   return { isGood, statIncreased };
 };
