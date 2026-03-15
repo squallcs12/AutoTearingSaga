@@ -33,4 +33,15 @@ async function performSteps(PlayingPage, steps) {
   }
 }
 
-module.exports = { detectCharacter, statLogLine, performSteps };
+// Common game initialization: load game, dismiss dialogs, select character, detect who it is
+async function initGame(PlayingPage, saveScreenshot) {
+  await PlayingPage.perform('load-game');
+  await performSteps(PlayingPage, ['X', 'X', 'X', 'X']);
+  await PlayingPage.perform('O'); // select character
+
+  const { detectedName, goodCondition, tier } = await detectCharacter(saveScreenshot);
+  console.log(`[loop] detected character: ${detectedName}${process.env.CHAR_NAME ? ' (override)' : ''}`);
+  return { detectedName, goodCondition, tier };
+}
+
+module.exports = { detectCharacter, statLogLine, performSteps, initGame };

@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { detectMovableGrid } = require('../scene-detection/check-movement');
 const { sleep, statOrder } = require('../utils');
-const { detectCharacter, statLogLine, performSteps } = require('./shared');
+const { statLogLine, performSteps, initGame } = require('./shared');
 const { AttackMenuNotFound } = require('../shared/perform');
 const parse = (str) => str.split('\n').map(x => x.trim()).filter(x => x.length > 0);
 
@@ -261,12 +261,7 @@ async function setupRun(PlayingPage, saveScreenshot, fight) {
   fs.writeFileSync(logFile, '');
   const battle = parse(fight);
 
-  await PlayingPage.perform('load-game');
-  await performSteps(PlayingPage, ['X', 'X', 'X', 'X']);
-  await PlayingPage.perform('O'); // select character
-
-  const { detectedName, goodCondition, tier } = await detectCharacter(saveScreenshot);
-  console.log(`[levelup] detected character: ${detectedName}${process.env.CHAR_NAME ? ' (override)' : ''}`);
+  const { detectedName, goodCondition, tier } = await initGame(PlayingPage, saveScreenshot);
   console.log(`[levelup] tier: ${tier}`);
   console.log('[levelup] goodCondition:', JSON.stringify(goodCondition));
   await PlayingPage.perform('save');

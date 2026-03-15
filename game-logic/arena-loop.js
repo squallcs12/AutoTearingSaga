@@ -1,18 +1,12 @@
 const fs = require('fs');
 const { isArenaConfirm, isArenaWin } = require('../scene-detection/check-arena');
 const { checkHp } = require('../scene-detection/check-hp');
-const { detectCharacter, statLogLine, performSteps } = require('./shared');
+const { statLogLine, performSteps, initGame } = require('./shared');
 const { sleep } = require('../utils');
 
 async function setupRun(PlayingPage, saveScreenshot) {
   console.log('[arena] reload');
-  await PlayingPage.perform('load-game');
-  await sleep(2000);
-  await performSteps(PlayingPage, ['X', 'X', 'X', 'X']);
-  await PlayingPage.perform('O'); // select character
-
-  const { detectedName, goodCondition } = await detectCharacter(saveScreenshot);
-  console.log(`[arena] detected character: ${detectedName}${process.env.CHAR_NAME ? ' (override)' : ''}`);
+  const { detectedName, goodCondition } = await initGame(PlayingPage, saveScreenshot);
   console.error('[arena] goodCondition:', JSON.stringify(goodCondition));
 
   await PlayingPage.perform('save2');
