@@ -174,4 +174,19 @@ async function identifyCharacter(imagePath) {
   return bestName;
 }
 
-module.exports = { identifyCharacter, extractGameArea };
+async function saveFaceFromScreenshot(imagePath, outputPath) {
+  const gameImage = sharp(imagePath).resize(CALIB_W, CALIB_H);
+  const borderY = await findPopupBorderY(gameImage);
+
+  // Face position relative to popup border
+  // Top popup: face at ~(450, borderY+5), Bottom popup: face at ~(450, borderY+5)
+  const faceX = 450;
+  const faceY = borderY >= 0 ? borderY + 5 : 40;
+
+  await gameImage.clone()
+    .extract({ left: faceX, top: faceY, width: FACE_W, height: FACE_H })
+    .toFile(outputPath);
+  console.log(`[levelup] face saved to ${outputPath} (from ${faceX},${faceY})`);
+}
+
+module.exports = { identifyCharacter, extractGameArea, saveFaceFromScreenshot };
