@@ -43,7 +43,6 @@ function addPerform(cls) {
         case 'pic':           await this.takePic();    break;
         case 'wait-level-up': await this.waitLevelUp(); break;
         case 'attack':
-          await this.pressO();
           const screenshotPath = await this.saveScreenshot('current.png');
           if (!await isAttackMenu(screenshotPath)) {
             throw new AttackMenuNotFound();
