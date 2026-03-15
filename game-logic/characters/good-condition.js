@@ -1,5 +1,5 @@
 // Generate goodCondition from a character's growth JSON.
-// Tiers based on max reachable stat increases (>=1% chance):
+// Tiers based on max reachable stat increases (>2% chance):
 //   S — cnt>=7, A — cnt>=6, B — cnt>=5, C — cnt>=4, D — cnt>=3
 // +hp required.
 // If move > 0, move is always required and count is reduced by 1.
