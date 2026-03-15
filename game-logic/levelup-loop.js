@@ -38,7 +38,12 @@ function buildStepsToTile(charRow, charCol, target) {
   const steps = [];
   for (let i = 0; i < Math.abs(dy); i++) steps.push(dy > 0 ? 'down' : 'up');
   for (let i = 0; i < Math.abs(dx); i++) steps.push(dx > 0 ? 'right' : 'left');
-  steps.push('O', 'wait', 'X', 'wait');
+  const moveCount = Math.abs(dy) + Math.abs(dx);
+  if (moveCount >= 3) {
+    steps.push('O', 'wait', 'X', 'wait');
+  } else {
+    steps.push('O', 'X');
+  }
   return steps;
 }
 
@@ -274,7 +279,11 @@ async function setupRun(PlayingPage, saveScreenshot, fight) {
 async function phase1FindRandomSteps(PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, goodCondition, detectedName) {
   if (process.env.RANDOM_OVERRIDE) {
     const workingRandomSteps = process.env.RANDOM_OVERRIDE.split(',').map(s => s.trim()).filter(s => s.length > 0);
-    workingRandomSteps.push('O', 'wait', 'X', 'wait');
+    if (workingRandomSteps.length >= 3) {
+      workingRandomSteps.push('O', 'wait', 'X', 'wait');
+    } else {
+      workingRandomSteps.push('O', 'X');
+    }
     console.log('[levelup] using --random override:', workingRandomSteps.join(', '));
     return { workingRandomSteps, initStat: null };
   }
