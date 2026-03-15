@@ -7,14 +7,14 @@ Each stat is an independent roll based on the character's growth rate %.
 
 Characters grouped by the maximum stat increase count that has >= 1% chance.
 
-## Tier S — Can reach 7 stats (>=1%) — target >=6
+## Tier S — Can reach 7 stats (>=1%) — target >=7
 
 | Character   | Tier | Stats | Total | Avg  |  >=4  |  >=5  |  >=6  |  >=7  |
 |-------------|------|------:|------:|-----:|------:|------:|------:|------:|
 | Tia         | S    |     8 |  415% | 4.15 | 68.2% | 40.2% | 16.3% |  3.9% |
 | Zeek        | S    |     8 |  380% | 3.80 | 58.5% | 29.9% | 10.1% |  2.0% |
 
-## Tier A — Can reach 6 stats (>=1%) — target >=5
+## Tier A — Can reach 6 stats (>=1%) — target >=6
 
 | Character   | Tier | Stats | Total | Avg  |  >=4  |  >=5  |  >=6  |  >=7  |
 |-------------|------|------:|------:|-----:|------:|------:|------:|------:|
@@ -44,7 +44,7 @@ Characters grouped by the maximum stat increase count that has >= 1% chance.
 | Julia       | A    |     8 |  248% | 2.48 | 20.4% |  5.7% |  1.0% |  0.1% |
 | Sasha       | A    |     8 |  245% | 2.45 | 19.8% |  5.6% |  1.0% |  0.1% |
 
-## Tier B — Can reach 5 stats (>=1%) — target >=4
+## Tier B — Can reach 5 stats (>=1%) — target >=5
 
 | Character   | Tier | Stats | Total | Avg  |  >=4  |  >=5  |  >=6  |  >=7  |
 |-------------|------|------:|------:|-----:|------:|------:|------:|------:|
@@ -76,7 +76,7 @@ Characters grouped by the maximum stat increase count that has >= 1% chance.
 | Narcus      | B    |     8 |  180% | 1.80 |  7.2% |  1.3% |  0.1% |  0.0% |
 | Zachariah   | B    |     8 |  180% | 1.80 |  6.9% |  1.2% |  0.1% |  0.0% |
 
-## Tier C — Can reach 4 stats (>=1%) — target >=3
+## Tier C — Can reach 4 stats (>=1%) — target >=4
 
 | Character   | Tier | Stats | Total | Avg  |  >=4  |  >=5  |  >=6  |  >=7  |
 |-------------|------|------:|------:|-----:|------:|------:|------:|------:|
