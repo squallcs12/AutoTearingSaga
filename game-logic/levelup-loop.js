@@ -6,7 +6,7 @@ const { statLogLine, performSteps, initGame } = require('./shared');
 const { AttackMenuNotFound } = require('../shared/perform');
 const { checkGoodCondition } = require('../scene-detection/check-level');
 const { getGoodCondition, getNextTier } = require('./characters/good-condition');
-const parse = (str) => str.split('\n').map(x => x.trim()).filter(x => x.length > 0);
+const parse = (str) => str.split(',').map(x => x.trim()).filter(x => x.length > 0);
 
 // Parse grid into tiles grouped by distance from C
 function parseGridTiles(grid) {
@@ -209,12 +209,12 @@ async function detectRandomTriggerSteps(PlayingPage, saveScreenshot, checkLevelU
       const { statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName, PlayingPage.lastLevelUpResult);
       allStats.push(statIncreased);
     }
-    const uniqueKeys = new Set(allStats.map(s => statToKey(s)));
-    if (uniqueKeys.size >= 3) {
-      console.log(`[levelup] verified: tile (${tile.r},${tile.c}) has ${uniqueKeys.size}/4 distinct results (baseline + 3 attempts)`);
+    const uniqueCount = new Set([initStat, ...allStats].map(statToKey)).size;
+    if (uniqueCount >= 4) {
+      console.log(`[levelup] verified: tile (${tile.r},${tile.c}) has ${uniqueCount} unique results across baseline+3`);
       return steps;
     }
-    console.log(`[levelup] fake trigger: only ${uniqueKeys.size}/4 distinct results, trying next...`);
+    console.log(`[levelup] fake trigger: only ${uniqueCount}/4 unique results, trying next...`);
   }
 
   // No verified random trigger found — pick best fake trigger by testing multipliers

@@ -40,6 +40,22 @@ randomSuggestion.addEventListener('click', () => {
 document.getElementById('btn-clear-random').addEventListener('click', () => { randomInput.value = '' })
 document.getElementById('btn-clear-fight').addEventListener('click', () => { document.getElementById('fight').value = '' })
 
+document.getElementById('random-pad').addEventListener('click', (e) => {
+  const btn = e.target.closest('.pad-btn')
+  if (!btn) return
+  const step = btn.dataset.step
+  randomInput.value = randomInput.value ? randomInput.value.trimEnd() + ',' + step : step
+})
+
+const fightInput = document.getElementById('fight')
+document.getElementById('fight-pad').addEventListener('click', (e) => {
+  const btn = e.target.closest('.pad-btn')
+  if (!btn) return
+  const step = btn.dataset.step
+  fightInput.value = fightInput.value ? fightInput.value.trimEnd() + ',' + step : step
+  fightInput.scrollTop = fightInput.scrollHeight
+})
+
 window.api.getLastRandom().then(value => {
   if (value) showRandomSuggestion(value)
 })
