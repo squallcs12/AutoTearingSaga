@@ -57,7 +57,6 @@ function collectOptions() {
     random: document.getElementById('random').value,
     fight: document.getElementById('fight').value,
     isBoss: document.getElementById('is-boss').checked,
-    syncGithub: document.getElementById('sync-github').checked,
     debug: document.getElementById('debug-mode').checked,
     levelsToGain: document.getElementById('levels-to-gain').value,
   }
@@ -76,7 +75,6 @@ function applyOptions(o) {
   if (o.random) document.getElementById('random').value = o.random
   if (o.fight) document.getElementById('fight').value = o.fight
   document.getElementById('is-boss').checked = !!o.isBoss
-  document.getElementById('sync-github').checked = !!o.syncGithub
   document.getElementById('debug-mode').checked = !!o.debug
   if (o.levelsToGain) document.getElementById('levels-to-gain').value = o.levelsToGain
 }
@@ -192,6 +190,7 @@ function setRunning() {
   btnStop.disabled = false
   syncBtns.forEach(b => b.disabled = true)
   output.textContent = ''
+  logAtLineStart = true
   summary.innerHTML = ''
   outputDot.classList.add('active')
   infoChar.textContent = ''
@@ -242,7 +241,6 @@ btnRun.addEventListener('click', async () => {
     random: document.getElementById('random').value.trim() || null,
     fight: mode === 'level' ? (document.getElementById('fight').value.trim() || null) : null,
     isBoss: mode === 'level' ? document.getElementById('is-boss').checked : false,
-    syncGithub: document.getElementById('sync-github').checked,
     debug: document.getElementById('debug-mode').checked,
     waitLevelUpTimeout: parseInt(document.getElementById('wait-levelup-timeout').value, 10) || null,
     emulatorSpeed: parseInt(document.getElementById('emulator-speed').value, 10) || null,
@@ -288,6 +286,19 @@ btnStop.addEventListener('click', async () => {
   setReady()
 })
 
+// ── Log timestamp helper ──
+let logAtLineStart = true
+function prependTimestamps(data) {
+  const now = new Date()
+  const ts = now.toTimeString().slice(0, 8) // HH:MM:SS
+  const prefix = `[${ts}] `
+  let result = logAtLineStart ? prefix + data : data
+  // Replace every newline (except a trailing one) with newline + prefix
+  result = result.replace(/\n(?=[\s\S])/g, `\n${prefix}`)
+  logAtLineStart = data.endsWith('\n')
+  return result
+}
+
 // ── Post-run state machine: run success → pull save → git commit ──
 let postRunState = null // null | 'pulling' | 'committing'
 let runPlatform = null
@@ -329,7 +340,7 @@ window.api.onOutput((data) => {
 
   // If search highlights are active, clear them before appending (re-apply after)
   if (searchMarks.length > 0) clearSearchHighlights()
-  output.textContent += data
+  output.textContent += prependTimestamps(data)
   output.scrollTop = output.scrollHeight
   if (searchInput.value && searchBar.classList.contains('visible')) performSearch()
 })
