@@ -131,7 +131,7 @@ async function identifyCharacter(imagePath) {
     return null;
   }
 
-  const gameImage = sharp(imagePath).resize(CALIB_W, CALIB_H);
+  const gameImage = await extractGameArea(imagePath);
   const borderY = await findPopupBorderY(gameImage);
 
   if (borderY < 0) {
