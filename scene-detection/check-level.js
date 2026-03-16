@@ -142,9 +142,14 @@ const statSummary = (stats) => {
 };
 
 const isGoodCondition = (isGood, required) => {
-  if (required.count && isGood.count > required.count) return true; // more than expect
-  if (isGood.count < required.count) return false;
-  for (const k in required) { // equal expect
+  if (required.exact) {
+    if (isGood.count !== required.exact) return false;
+  } else {
+    if (required.count && isGood.count > required.count) return true; // more than expect
+    if (isGood.count < required.count) return false;
+  }
+  for (const k in required) {
+    if (k === 'count' || k === 'exact') continue;
     if (required[k] === -1 && isGood[k]) return false;
     if (required[k] === 1 && !isGood[k]) return false;
   }

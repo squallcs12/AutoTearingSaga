@@ -8,6 +8,11 @@ const tierOrder = ['D', 'C', 'B', 'A', 'S'];
 
 const getGoodCondition = (character, tierOverride) => {
   const data = require(`./growth/${character}.json`);
+
+  if (data.goodCondition && !tierOverride && !process.env.TIER_OVERRIDE) {
+    return data.goodCondition;
+  }
+
   const g = data.growthRates;
   const tier = tierOverride || process.env.TIER_OVERRIDE || data.tier;
 
