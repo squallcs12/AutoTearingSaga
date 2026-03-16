@@ -113,7 +113,7 @@ function collectOptions() {
     name: document.getElementById('char-name').value || null,
     retries: document.getElementById('retries').value,
     skip: document.getElementById('skip').value,
-    waitLevelUpTimeout: document.getElementById('wait-levelup-timeout').value,
+
     emulatorSpeed: document.getElementById('emulator-speed').value,
     random: document.getElementById('random').value,
     fight: document.getElementById('fight').value,
@@ -131,7 +131,7 @@ function applyOptions(o) {
   if (o.name) document.getElementById('char-name').value = o.name
   if (o.retries) document.getElementById('retries').value = o.retries
   if (o.skip) document.getElementById('skip').value = o.skip
-  if (o.waitLevelUpTimeout) document.getElementById('wait-levelup-timeout').value = o.waitLevelUpTimeout
+
   if (o.emulatorSpeed) document.getElementById('emulator-speed').value = o.emulatorSpeed
   if (o.random) document.getElementById('random').value = o.random
   if (o.fight) document.getElementById('fight').value = o.fight
@@ -303,7 +303,7 @@ btnRun.addEventListener('click', async () => {
     fight: mode === 'level' ? (document.getElementById('fight').value.trim() || null) : null,
     isBoss: mode === 'level' ? document.getElementById('is-boss').checked : false,
     debug: document.getElementById('debug-mode').checked,
-    waitLevelUpTimeout: parseInt(document.getElementById('wait-levelup-timeout').value, 10) || null,
+
     emulatorSpeed: parseInt(document.getElementById('emulator-speed').value, 10) || null,
     levelsToGain: mode === 'arena' ? (parseInt(document.getElementById('levels-to-gain').value, 10) || null) : null
   }
