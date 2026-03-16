@@ -265,6 +265,7 @@ btnRun.addEventListener('click', async () => {
 })
 
 async function runSync(direction, target) {
+  postRunState = 'sync'
   setRunning()
   const label = `${direction === 'pull' ? 'Pulling from' : 'Pushing to'} ${target}...`
   setStatus(label, 'running')
@@ -370,6 +371,7 @@ window.api.onDone(async (code) => {
     setReady()
   } else {
     // Normal exit (non-success or manual sync)
+    postRunState = null
     setStatus(
       code === 0 ? 'Done' : `Exited (code ${code})`,
       code === 0 ? 'success' : 'error'
