@@ -1,3 +1,48 @@
+// Electron doesn't support window.prompt()/alert(), use <dialog> instead
+function showInputDialog(message, defaultValue = '') {
+  return new Promise(resolve => {
+    const dialog = document.getElementById('input-dialog')
+    const msg = document.getElementById('input-dialog-msg')
+    const input = document.getElementById('input-dialog-input')
+    const btnOk = document.getElementById('input-dialog-ok')
+    const btnCancel = document.getElementById('input-dialog-cancel')
+    msg.textContent = message
+    input.value = defaultValue
+    dialog.showModal()
+    input.focus()
+    input.select()
+    function cleanup(value) {
+      btnOk.removeEventListener('click', onOk)
+      btnCancel.removeEventListener('click', onCancel)
+      input.removeEventListener('keydown', onKey)
+      dialog.close()
+      resolve(value)
+    }
+    function onOk() { cleanup(input.value.trim()) }
+    function onCancel() { cleanup(null) }
+    function onKey(e) {
+      if (e.key === 'Enter') onOk()
+      if (e.key === 'Escape') onCancel()
+    }
+    btnOk.addEventListener('click', onOk)
+    btnCancel.addEventListener('click', onCancel)
+    input.addEventListener('keydown', onKey)
+  })
+}
+
+function showAlert(message) {
+  const dialog = document.getElementById('input-dialog')
+  const msg = document.getElementById('input-dialog-msg')
+  const input = document.getElementById('input-dialog-input')
+  const btnOk = document.getElementById('input-dialog-ok')
+  const btnCancel = document.getElementById('input-dialog-cancel')
+  msg.textContent = message
+  input.style.display = 'none'
+  btnCancel.style.display = 'none'
+  dialog.showModal()
+  btnOk.onclick = () => { dialog.close(); input.style.display = ''; btnCancel.style.display = '' }
+}
+
 const output = document.getElementById('output')
 const summary = document.getElementById('summary')
 const tabLog = document.getElementById('tab-log')
@@ -144,11 +189,11 @@ populateCharacters()
 document.getElementById('btn-rename-char').addEventListener('click', async () => {
   const oldName = charSelect.value
   if (!oldName) return
-  const newName = prompt(`Rename "${oldName}" to:`)
+  const newName = await showInputDialog(`Rename "${oldName}" to:`, oldName)
   if (!newName || newName === oldName) return
   const result = await window.api.renameCharacter({ oldName, newName: newName.toLowerCase() })
   if (result.error) {
-    alert('Rename failed: ' + result.error)
+    showAlert('Rename failed: ' + result.error)
   } else {
     await populateCharacters()
     charSelect.value = newName.toLowerCase()

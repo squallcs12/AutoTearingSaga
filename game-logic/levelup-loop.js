@@ -316,7 +316,7 @@ async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, ba
   let prevStat = null;
   const statHistory = [];
   let savedSlot4 = false;
-  let plusOneTurnStart = 0;
+
 
   await PlayingPage.perform('reload');
   await PlayingPage.perform('save2');
@@ -358,13 +358,16 @@ async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, ba
           await saveGoodResult(PlayingPage);
           break;
         }
-        // Save to slot 4 as fallback, then try 50 more turns for +1 tier
+        // Save to slot 4 as fallback, then keep trying for +1 tier if early enough
         if (!savedSlot4) {
-          console.log(`[levelup] good result but not +1 tier (${nextTier}), saving to slot 4 and trying 50 more turns...`);
           await PlayingPage.perform('save');
           await PlayingPage.perform('save4');
           savedSlot4 = true;
-          plusOneTurnStart = turn;
+          if (turn >= 25) {
+            console.log(`[levelup] good result at turn ${turn} (>= 25), accepting without +1 tier check`);
+            break;
+          }
+          console.log(`[levelup] good result but not +1 tier (${nextTier}), saving to slot 4 and continuing (turn ${turn} < 25)...`);
         }
       } else {
         // Already at S tier, no +1 tier to check
@@ -373,8 +376,8 @@ async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, ba
       }
     }
 
-    if (savedSlot4 && turn - plusOneTurnStart >= 50) {
-      console.log('[levelup] 50 turns since first good result, accepting slot 4 result');
+    if (savedSlot4 && turn >= 25) {
+      console.log(`[levelup] reached turn ${turn} (>= 25), accepting slot 4 result`);
       break;
     }
 
