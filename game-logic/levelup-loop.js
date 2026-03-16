@@ -360,7 +360,6 @@ async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, ba
         }
         // Save to slot 4 as fallback, then keep trying for +1 tier if early enough
         if (!savedSlot4) {
-          await PlayingPage.perform('save');
           await PlayingPage.perform('save4');
           savedSlot4 = true;
           if (turn >= 25) {
