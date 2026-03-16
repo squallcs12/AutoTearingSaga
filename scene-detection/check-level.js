@@ -175,24 +175,37 @@ const checkIsLevelUpByPath = async (filePath) => {
 
 const checkLevelUpgrade = async (required, saveScreenshot, characterName, initialPath = null) => {
   const total = 14;
-  const checkPromises = [];
-
   const paths = initialPath ? [initialPath] : [];
+  let latestLevelUpIdx = -1;
+  let prevCheckPromise = null;
+
   if (initialPath) {
-    checkPromises.push(checkIsLevelUpByPath(initialPath).then(isLevelUp => isLevelUp ? 0 : null));
+    prevCheckPromise = checkIsLevelUpByPath(initialPath).then(isLevelUp => isLevelUp ? 0 : null);
   }
-  for (let i = 1; i <= total; i++) {
+
+  for (let i = 2; i <= total; i++) {
+    if (prevCheckPromise !== null) {
+      const result = await prevCheckPromise;
+      prevCheckPromise = null;
+      if (result !== null) {
+        latestLevelUpIdx = result;
+      } else if (latestLevelUpIdx !== -1) {
+        // Panel appeared and is now gone — skip remaining screenshots
+        break;
+      }
+    }
+
     const filePath = await saveScreenshot(`level-up-${i}.png`);
     const idx = paths.push(filePath) - 1;
     // Fire off level-up check concurrently with next screenshot
-    checkPromises.push(
-      checkIsLevelUpByPath(filePath).then(isLevelUp => isLevelUp ? idx : null)
-    );
+    prevCheckPromise = checkIsLevelUpByPath(filePath).then(isLevelUp => isLevelUp ? idx : null);
   }
 
-  // All screenshots done; wait for any remaining checks
-  const results = await Promise.all(checkPromises);
-  const latestLevelUpIdx = results.reduce((max, r) => r !== null && r > max ? r : max, -1);
+  // Await the last pending check
+  if (prevCheckPromise !== null) {
+    const result = await prevCheckPromise;
+    if (result !== null) latestLevelUpIdx = result;
+  }
 
   if (latestLevelUpIdx === -1) {
     console.error('[checkLevelUpgrade] No level-up panel detected in any screenshot');
