@@ -11,5 +11,8 @@
     "def": 35,
     "move": 0
   },
-  "tier": "A"
+  "tier": "A",
+  "goodCondition": [
+    {"count":  1, "exact": true}, {"count":  2, "exact":  true}
+  ]
 }
