@@ -117,6 +117,7 @@ function collectOptions() {
     emulatorSpeed: document.getElementById('emulator-speed').value,
     random: document.getElementById('random').value,
     fight: document.getElementById('fight').value,
+    selectSteps: document.getElementById('select-steps').value,
     isBoss: document.getElementById('is-boss').checked,
     debug: document.getElementById('debug-mode').checked,
     levelsToGain: document.getElementById('levels-to-gain').value,
@@ -135,6 +136,7 @@ function applyOptions(o) {
   if (o.emulatorSpeed) document.getElementById('emulator-speed').value = o.emulatorSpeed
   if (o.random) document.getElementById('random').value = o.random
   if (o.fight) document.getElementById('fight').value = o.fight
+  if (o.selectSteps) document.getElementById('select-steps').value = o.selectSteps
   document.getElementById('is-boss').checked = !!o.isBoss
   document.getElementById('debug-mode').checked = !!o.debug
   if (o.levelsToGain) document.getElementById('levels-to-gain').value = o.levelsToGain
@@ -301,6 +303,7 @@ btnRun.addEventListener('click', async () => {
     skip: parseInt(document.getElementById('skip').value, 10) || 0,
     random: document.getElementById('random').value.trim() || null,
     fight: mode === 'level' ? (document.getElementById('fight').value.trim() || null) : null,
+    selectSteps: mode === 'level' ? (document.getElementById('select-steps').value.trim() || null) : null,
     isBoss: mode === 'level' ? document.getElementById('is-boss').checked : false,
     debug: document.getElementById('debug-mode').checked,
 
