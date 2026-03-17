@@ -212,7 +212,7 @@ async function detectRandomTriggerSteps(PlayingPage, saveScreenshot, checkLevelU
       allStats.push(statIncreased);
     }
     const uniqueCount = new Set([initStat, ...allStats].map(statToKey)).size;
-    if (uniqueCount >= 4) {
+    if (uniqueCount >= 3) {
       console.log(`[levelup] verified: tile (${tile.r},${tile.c}) has ${uniqueCount} unique results across baseline+3`);
       return steps;
     }

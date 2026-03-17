@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('api', {
   getCharacters: () => ipcRenderer.invoke('get-characters'),
   getGoodCondition: (opts) => ipcRenderer.invoke('get-good-condition', opts),
   renameCharacter: (opts) => ipcRenderer.invoke('rename-character', opts),
+  takeCharacterPhoto: (opts) => ipcRenderer.invoke('take-character-photo', opts),
   runCommand: (config) => ipcRenderer.invoke('run-command', config),
   stopCommand: () => ipcRenderer.invoke('stop-command'),
   startAvd: () => ipcRenderer.invoke('start-avd'),

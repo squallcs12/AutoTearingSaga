@@ -475,6 +475,25 @@
       }
       .btn-sync:disabled { opacity: 0.25; cursor: not-allowed; }
 
+      .btn-icon {
+        flex: none;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        font-size: 15px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 6px;
+        color: #888;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+      }
+      .btn-icon:hover:not(:disabled) { color: #ddd; background: rgba(255,255,255,0.08); }
+      .btn-icon:disabled { opacity: 0.25; cursor: not-allowed; }
+
       .hidden { display: none !important; }
     </style>
   </head>
@@ -522,7 +541,8 @@
           <select id="char-name" style="flex:1">
             <option value="">Auto-detect</option>
           </select>
-          <button id="btn-rename-char" type="button" title="Rename character">Rename</button>
+          <button id="btn-rename-char" type="button" class="btn-icon" title="Rename character">✏</button>
+          <button id="btn-photo-char" type="button" class="btn-icon" title="Take photo for current character">📷</button>
         </div>
       </div>
 
@@ -598,8 +618,10 @@
         <div style="display:flex;gap:6px;align-items:flex-start;">
           <textarea id="fight" rows="3" placeholder="e.g. left 2,O,wait,O" style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:5px 8px;color:#c8cad0;font-size:12px;font-family:'Cascadia Code','JetBrains Mono',Consolas,monospace;resize:vertical;transition:all 0.2s;"></textarea>
           <div id="fight-pad" style="display:flex;flex-direction:column;gap:3px;">
-            <div style="display:flex;justify-content:center;">
+            <div style="display:flex;gap:3px;justify-content:center;">
+              <button class="pad-btn" data-step="attack" style="width:auto;padding:0 5px;font-size:11px;">A</button>
               <button class="pad-btn" data-step="up">↑</button>
+              <button class="pad-btn" data-step="wait" style="width:auto;padding:0 5px;font-size:11px;">W</button>
             </div>
             <div style="display:flex;gap:3px;">
               <button class="pad-btn" data-step="left">←</button>

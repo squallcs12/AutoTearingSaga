@@ -132,6 +132,22 @@ app.whenReady().then(() => {
     }
   })
 
+  ipcMain.handle('take-character-photo', async (_, { name }) => {
+    const facesDir = path.join(PROJECT_ROOT, 'game-logic', 'characters', 'faces')
+    const os = require('os')
+    const tmpPath = path.join(os.tmpdir(), 'char-photo-raw.png')
+    const outputPath = path.join(facesDir, `${name}.png`)
+    try {
+      const screenshot = execSync('adb exec-out screencap -p', { maxBuffer: 10 * 1024 * 1024 })
+      fs.writeFileSync(tmpPath, screenshot)
+      const { saveFaceFromScreenshot } = require(path.join(PROJECT_ROOT, 'game-logic', 'identify-character'))
+      await saveFaceFromScreenshot(tmpPath, outputPath)
+      return { success: true }
+    } catch (e) {
+      return { error: e.message }
+    }
+  })
+
   ipcMain.handle('get-characters', () => {
     const growthDir = path.join(PROJECT_ROOT, 'game-logic', 'characters', 'growth')
     return fs.readdirSync(growthDir)

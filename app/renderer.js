@@ -188,6 +188,19 @@ function populateCharacters() {
 }
 populateCharacters()
 
+document.getElementById('btn-photo-char').addEventListener('click', async () => {
+  const name = charSelect.value
+  if (!name) return showAlert('Select a character first')
+  const btn = document.getElementById('btn-photo-char')
+  btn.disabled = true
+  btn.textContent = '⏳'
+  const result = await window.api.takeCharacterPhoto({ name })
+  btn.disabled = false
+  btn.textContent = '📷'
+  if (result.error) showAlert('Photo failed: ' + result.error)
+  else showAlert(`Face saved for "${name}"`)
+})
+
 document.getElementById('btn-rename-char').addEventListener('click', async () => {
   const oldName = charSelect.value
   if (!oldName) return
