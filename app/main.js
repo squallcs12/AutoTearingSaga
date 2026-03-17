@@ -132,16 +132,15 @@ app.whenReady().then(() => {
     }
   })
 
-  ipcMain.handle('take-character-photo', async (_, { name }) => {
+  ipcMain.handle('take-character-photo', async (_, { name, platform }) => {
     const facesDir = path.join(PROJECT_ROOT, 'game-logic', 'characters', 'faces')
-    const os = require('os')
-    const tmpPath = path.join(os.tmpdir(), 'char-photo-raw.png')
     const outputPath = path.join(facesDir, `${name}.png`)
+    if (fs.existsSync(outputPath)) {
+      return { error: `Face already exists for "${name}". Delete it first to retake.` }
+    }
     try {
-      const screenshot = execSync('adb exec-out screencap -p', { maxBuffer: 10 * 1024 * 1024 })
-      fs.writeFileSync(tmpPath, screenshot)
-      const { saveFaceFromScreenshot } = require(path.join(PROJECT_ROOT, 'game-logic', 'identify-character'))
-      await saveFaceFromScreenshot(tmpPath, outputPath)
+      const modeFlag = platform
+      execSync(`node scripts/take-face.js ${name} -m ${modeFlag}`, { cwd: PROJECT_ROOT, timeout: 30000 })
       return { success: true }
     } catch (e) {
       return { error: e.message }
@@ -202,7 +201,7 @@ app.whenReady().then(() => {
 
     if (platform === 'phone') env.TARGET_DEVICE = 'phone'
 
-    if (platform === 'android' || platform === 'phone') {
+    if (platform === 'emu' || platform === 'phone') {
       const script = mode === 'level' ? 'scripts/level.js' : 'scripts/arena.js'
       args.push(script)
       args.push('-v') // always verbose to stream output

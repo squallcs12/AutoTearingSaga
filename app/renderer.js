@@ -203,7 +203,8 @@ document.getElementById('btn-photo-char').addEventListener('click', async () => 
   const btn = document.getElementById('btn-photo-char')
   btn.disabled = true
   btn.textContent = '⏳'
-  const result = await window.api.takeCharacterPhoto({ name })
+  const platform = document.querySelector('input[name="platform"]:checked').value
+  const result = await window.api.takeCharacterPhoto({ name, platform })
   btn.disabled = false
   btn.textContent = '📷'
   if (result.error) showAlert('Photo failed: ' + result.error)
@@ -235,12 +236,12 @@ function updateVisibility() {
   document.querySelectorAll('.arena-only').forEach(el => {
     el.style.display = mode === 'arena' ? '' : 'none'
   })
-  const isAndroid = platform === 'android' || platform === 'phone'
+  const isAndroid = platform === 'emu' || platform === 'phone'
   document.querySelectorAll('.android-only').forEach(el => {
     el.style.display = isAndroid ? '' : 'none'
   })
   document.querySelectorAll('.emulator-only').forEach(el => {
-    el.style.display = platform === 'android' ? '' : 'none'
+    el.style.display = platform === 'emu' ? '' : 'none'
   })
 }
 
