@@ -165,7 +165,7 @@ async function detectMoveableGrid(PlayingPage, saveScreenshot) {
   return grid;
 }
 
-async function detectRandomTriggerSteps(PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, grid, initStat, goodCondition, detectedName, failedStepsSet = [], selectSteps = []) {
+async function detectRandomTriggerSteps(PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, grid, initStat, goodCondition, detectedName, failedStepsSet = []) {
   const { charRow, charCol, byDist, maxDist } = parseGridTiles(grid);
   // Try single tiles, shuffled within each distance
   const tiles = [];
@@ -186,11 +186,10 @@ async function detectRandomTriggerSteps(PlayingPage, saveScreenshot, checkLevelU
     // First attempt: check if steps produce different stat from baseline
     await PlayingPage.perform('reload');
     await performSteps(PlayingPage, steps);
-    if (selectSteps.length) await performSteps(PlayingPage, selectSteps);
     await performFightWithRetry(PlayingPage, battle, isBoss, {
-      beforeRetry: async () => { await performSteps(PlayingPage, steps); if (selectSteps.length) await performSteps(PlayingPage, selectSteps); },
+      beforeRetry: async () => { await performSteps(PlayingPage, steps); },
     });
-    const { statIncreased: stat1 } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName, PlayingPage.lastLevelUpResult);
+    const { statIncreased: stat1 } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName, PlayingPage.lastLevelUpResult, PlayingPage);
 
     if (!statsDiffer(stat1, initStat)) {
       console.log(`[levelup] no change, trying next...`);
@@ -204,11 +203,10 @@ async function detectRandomTriggerSteps(PlayingPage, saveScreenshot, checkLevelU
       for (let r = 0; r < repeat; r++) {
         await performSteps(PlayingPage, steps);
       }
-      if (selectSteps.length) await performSteps(PlayingPage, selectSteps);
       await performFightWithRetry(PlayingPage, battle, isBoss, {
-        beforeRetry: async () => { for (let r = 0; r < repeat; r++) await performSteps(PlayingPage, steps); if (selectSteps.length) await performSteps(PlayingPage, selectSteps); },
+        beforeRetry: async () => { for (let r = 0; r < repeat; r++) await performSteps(PlayingPage, steps); },
       });
-      const { statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName, PlayingPage.lastLevelUpResult);
+      const { statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName, PlayingPage.lastLevelUpResult, PlayingPage);
       allStats.push(statIncreased);
     }
     const uniqueCount = new Set([initStat, ...allStats].map(statToKey)).size;
@@ -237,11 +235,10 @@ async function detectRandomTriggerSteps(PlayingPage, saveScreenshot, checkLevelU
       for (let r = 0; r < t; r++) {
         await performSteps(PlayingPage, multiSteps);
       }
-      if (selectSteps.length) await performSteps(PlayingPage, selectSteps);
       await performFightWithRetry(PlayingPage, battle, isBoss, {
-        beforeRetry: async () => { for (let r = 0; r < t; r++) await performSteps(PlayingPage, multiSteps); if (selectSteps.length) await performSteps(PlayingPage, selectSteps); },
+        beforeRetry: async () => { for (let r = 0; r < t; r++) await performSteps(PlayingPage, multiSteps); },
       });
-      const { statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName, PlayingPage.lastLevelUpResult);
+      const { statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName, PlayingPage.lastLevelUpResult, PlayingPage);
       seen.add(statToKey(statIncreased));
     }
     const uniqueRate = seen.size / EVAL_TURNS;
@@ -265,20 +262,18 @@ async function setupRun(PlayingPage, saveScreenshot, fight) {
   const logFile = `logs/${logFileName}`;
   fs.writeFileSync(logFile, '');
   const battle = parse(fight);
-  const selectSteps = process.env.SELECT_STEPS ? parse(process.env.SELECT_STEPS) : [];
 
   const { detectedName, goodCondition, tier } = await initGame(PlayingPage, saveScreenshot);
   console.log(`[levelup] tier: ${tier}`);
   console.log('[levelup] goodCondition:', JSON.stringify(goodCondition));
-  if (selectSteps.length) console.log('[levelup] selectSteps:', selectSteps.join(', '));
   await PlayingPage.perform('save');
 
-  return { battle, selectSteps, logFile, detectedName, goodCondition };
+  return { battle, logFile, detectedName, goodCondition };
 }
 
 // Phase 1: resolve which random steps to use.
 // Returns { workingRandomSteps, initStat } or null if baseline is already good.
-async function phase1FindRandomSteps(PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, goodCondition, detectedName, selectSteps = []) {
+async function phase1FindRandomSteps(PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, goodCondition, detectedName) {
   if (process.env.RANDOM_OVERRIDE) {
     const workingRandomSteps = process.env.RANDOM_OVERRIDE.split(',').map(s => s.trim()).filter(s => s.length > 0);
     if (workingRandomSteps.length >= 3) {
@@ -293,12 +288,11 @@ async function phase1FindRandomSteps(PlayingPage, saveScreenshot, checkLevelUpgr
   const grid = await detectMoveableGrid(PlayingPage, saveScreenshot);
 
   // Baseline fight: record init stat before any RNG manipulation
-  if (selectSteps.length) await performSteps(PlayingPage, selectSteps);
   await PlayingPage.pressTriangle();
-  await saveScreenshot('before-fight.png');
+  const beforeFightPath = await saveScreenshot('before-fight.png');
   await PlayingPage.pressX();
   await performFightWithRetry(PlayingPage, battle, isBoss);
-  const { isGood: initGood, statIncreased: initStat } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName, PlayingPage.lastLevelUpResult);
+  const { isGood: initGood, statIncreased: initStat } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName, PlayingPage.lastLevelUpResult, PlayingPage, beforeFightPath);
   console.log('[levelup] initStat:', JSON.stringify(initStat));
   if (initGood) {
     console.log('[levelup] baseline fight already has good stats, no need to farm!');
@@ -307,7 +301,7 @@ async function phase1FindRandomSteps(PlayingPage, saveScreenshot, checkLevelUpgr
   }
 
   const workingRandomSteps = await detectRandomTriggerSteps(
-    PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, grid, initStat, goodCondition, detectedName, [], selectSteps
+    PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, grid, initStat, goodCondition, detectedName
   );
   const randomSuggestion = workingRandomSteps.slice(0, -4).join(',');
   fs.writeFileSync(path.join(__dirname, '..', 'app', '.last-random.json'), JSON.stringify({ value: randomSuggestion }));
@@ -315,7 +309,7 @@ async function phase1FindRandomSteps(PlayingPage, saveScreenshot, checkLevelUpgr
 }
 
 // Phase 2: repeatedly apply random steps + fight until good stats roll.
-async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, workingRandomSteps, initStat, goodCondition, detectedName, logFile, selectSteps = []) {
+async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, workingRandomSteps, initStat, goodCondition, detectedName, logFile) {
   const STALE_LIMIT = 10;
   const failedStepsSet = [];
 
@@ -347,12 +341,11 @@ async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, ba
       await PlayingPage.perform('save');
     }
 
-    if (selectSteps.length) await performSteps(PlayingPage, selectSteps);
     await performFightWithRetry(PlayingPage, battle, isBoss, {
-      beforeRetry: async () => { await performSteps(PlayingPage, workingRandomSteps); if (selectSteps.length) await performSteps(PlayingPage, selectSteps); },
+      beforeRetry: async () => { await performSteps(PlayingPage, workingRandomSteps); },
     });
 
-    const { isGood, statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName, PlayingPage.lastLevelUpResult);
+    const { isGood, statIncreased } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName, PlayingPage.lastLevelUpResult, PlayingPage);
     const logLine = `turn=${turn} stats=${statLogLine(statIncreased).join(',')}\n`;
     fs.appendFileSync(logFile, logLine);
     console.error(logLine.trim());
@@ -409,7 +402,7 @@ async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, ba
       const newGrid = await detectMoveableGrid(PlayingPage, saveScreenshot);
       workingRandomSteps = await detectRandomTriggerSteps(
         PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, newGrid, initStat, goodCondition, detectedName,
-        failedStepsSet, selectSteps
+        failedStepsSet
       );
       console.log('[levelup] new random steps:', workingRandomSteps.join(', '));
 
@@ -436,17 +429,17 @@ async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, ba
 }
 
 async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight, isBoss) {
-  const { battle, selectSteps, logFile, detectedName, goodCondition } = await setupRun(PlayingPage, saveScreenshot, fight);
+  const { battle, logFile, detectedName, goodCondition } = await setupRun(PlayingPage, saveScreenshot, fight);
 
   const phase1Result = await phase1FindRandomSteps(
-    PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, goodCondition, detectedName, selectSteps
+    PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, goodCondition, detectedName
   );
   if (!phase1Result) return; // baseline was already good
 
   const { workingRandomSteps, initStat } = phase1Result;
   await phase2FarmLoop(
     PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss,
-    workingRandomSteps, initStat, goodCondition, detectedName, logFile, selectSteps
+    workingRandomSteps, initStat, goodCondition, detectedName, logFile
   );
 
   console.log('Done! Good level-up stats found.');

@@ -182,41 +182,41 @@ const checkIsLevelUpByPath = async (filePath, signal) => {
   return checkIsLevelUp(sharp(panelBuf), s);
 };
 
-const checkLevelUpgrade = async (required, saveScreenshot, characterName, initialPath = null) => {
+const checkLevelUpgrade = async (required, saveScreenshot, characterName, initialPath = null, playing, beforeFightPath) => {
   const total = 14;
-  const paths = initialPath ? [initialPath] : [];
+  let seenPanel = false;
+  let i = 1;
 
-  // Take all screenshots first without any processing in between
-  for (let i = 2; i <= total; i++) {
-    paths.push(await saveScreenshot(`level-up-${i}.png`));
+  if (initialPath) {
+    if (await checkIsLevelUpByPath(initialPath)) seenPanel = true;
+    else i = total + 1; // no panel in initial path, skip loop
   }
 
-  // Fire all checks concurrently, then await each in order and stop early
-  const controller = new AbortController();
-  const checks = paths.map((p, idx) => checkIsLevelUpByPath(p, controller.signal).then(isLevelUp => isLevelUp ? idx : null));
-
-  let latestLevelUpIdx = -1;
-  for (const check of checks) {
-    const result = await check;
-    if (result !== null) {
-      latestLevelUpIdx = result;
-    } else if (latestLevelUpIdx !== -1) {
-      // Panel appeared and is now gone — abort remaining checks
-      controller.abort();
+  for (; i <= total; i++) {
+    const p = await saveScreenshot(`level-up-${i + 1}.png`);
+    const isLevelUp = await checkIsLevelUpByPath(p);
+    if (isLevelUp) {
+      seenPanel = true;
+    } else if (seenPanel) {
       break;
     }
   }
 
-  if (latestLevelUpIdx === -1) {
+  if (!seenPanel) {
     console.error('[checkLevelUpgrade] No level-up panel detected in any screenshot');
     return { isGood: false, statIncreased: { count: 0 } };
   }
 
-  console.log(`[checkLevelUpgrade] latest level-up panel at index ${latestLevelUpIdx}`);
-  const { isGood, statIncreased } = await checkIsGoodLevelUp(paths[latestLevelUpIdx], required);
-  if (isGood) {
-    console.error('Goooooooooooooodddddddddddddddddd');
-  }
+  console.log(`[checkLevelUpgrade] panel gone after ${i} screenshots`);
+
+  await playing.pressTriangle();
+  const afterPath = await saveScreenshot('after-fight.png');
+  await playing.pressX();
+  const beforePath = beforeFightPath || path.join(path.dirname(afterPath), 'before-fight.png');
+  const statIncreased = await detectStatChanges(beforePath, afterPath);
+  console.error(statSummary(statIncreased));
+  const isGood = checkGoodCondition(statIncreased, required);
+  if (isGood) console.error('Goooooooooooooodddddddddddddddddd');
   return { isGood, statIncreased };
 };
 
@@ -258,9 +258,13 @@ const WHITE_THRESHOLD = 10;
 const DIFF_THRESHOLD = 20;
 
 const detectStatChanges = async (beforePath, afterPath) => {
+  const [beforeGame, afterGame] = await Promise.all([
+    cropGameArea(sharp(beforePath)),
+    cropGameArea(sharp(afterPath)),
+  ]);
   const [before, after] = await Promise.all([
-    sharp(beforePath).raw().toBuffer({ resolveWithObject: true }),
-    sharp(afterPath).raw().toBuffer({ resolveWithObject: true }),
+    beforeGame.image.raw().toBuffer({ resolveWithObject: true }),
+    afterGame.image.raw().toBuffer({ resolveWithObject: true }),
   ]);
   const { width, height, channels } = before.info;
 
@@ -274,7 +278,7 @@ const detectStatChanges = async (beforePath, afterPath) => {
     }
   }
 
-  const increased = {};
+  const increased = { count: 0 };
   for (const b of statBoxes) {
     let white = 0;
     for (let row = b.y; row < b.y + b.h; row++) {
@@ -282,7 +286,7 @@ const detectStatChanges = async (beforePath, afterPath) => {
         if (diff[row * width + col] === 255) white++;
       }
     }
-    if (white >= WHITE_THRESHOLD) increased[b.stat] = 1;
+    if (white >= WHITE_THRESHOLD) { increased[b.stat] = 1; increased.count++; }
   }
   return increased;
 };
