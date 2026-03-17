@@ -609,7 +609,10 @@
       </div>
 
       <div class="form-group level-only">
-        <label>Select steps</label>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <label>Select steps</label>
+          <button type="button" id="btn-clear-select" class="btn-clear">✕</button>
+        </div>
         <div style="display:flex;gap:4px;align-items:center;">
           <input type="text" id="select-steps" placeholder="e.g. down,O" style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:5px 8px;color:#c8cad0;font-size:12px;font-family:'Cascadia Code','JetBrains Mono',Consolas,monospace;" />
           <div id="select-pad" style="display:flex;flex-direction:column;gap:3px;">

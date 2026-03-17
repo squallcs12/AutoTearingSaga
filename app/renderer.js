@@ -84,6 +84,7 @@ randomSuggestion.addEventListener('click', () => {
 
 document.getElementById('btn-clear-random').addEventListener('click', () => { randomInput.value = '' })
 document.getElementById('btn-clear-fight').addEventListener('click', () => { document.getElementById('fight').value = '' })
+document.getElementById('btn-clear-select').addEventListener('click', () => { selectStepsInput.value = '' })
 
 document.getElementById('random-pad').addEventListener('click', (e) => {
   const btn = e.target.closest('.pad-btn')
