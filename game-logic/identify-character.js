@@ -75,6 +75,7 @@ async function findPopupBorderY(gameImage) {
   return -1;
 }
 
+
 // Normalized Cross-Correlation: compares image structure, invariant to brightness/contrast
 function ncc(a, b) {
   let sumA = 0, sumB = 0;
@@ -174,16 +175,43 @@ async function identifyCharacter(imagePath) {
   return bestName;
 }
 
+async function findFacePosition(imagePath) {
+  const faceFiles = fs.readdirSync(FACES_DIR).filter(f => f.endsWith('.png'));
+  if (faceFiles.length === 0) return null;
+
+  const gameImage = await extractGameArea(imagePath);
+  const gameBuf = await gameImage.clone().greyscale().raw().toBuffer();
+
+  const searchX = 350, searchW = 350;
+  const searchY = 0, searchH = CALIB_H;
+
+  let bestScore = -1, bestPos = {};
+  for (const file of faceFiles) {
+    const refBuf = await sharp(`${FACES_DIR}/${file}`).resize(FACE_W, FACE_H).greyscale().raw().toBuffer();
+    const coarse = slidingNcc(gameBuf, CALIB_W, refBuf, FACE_W, FACE_H, searchX, searchY, searchW, searchH, 10);
+    const rx = Math.max(searchX, coarse.x - 15), ry = Math.max(searchY, coarse.y - 15);
+    const rw = Math.min(30, searchX + searchW - rx), rh = Math.min(30, searchY + searchH - ry);
+    const fine = slidingNcc(gameBuf, CALIB_W, refBuf, FACE_W, FACE_H, rx, ry, rw + FACE_W, rh + FACE_H, 1);
+    if (fine.score > bestScore) {
+      bestScore = fine.score;
+      bestPos = fine;
+    }
+  }
+  console.log(`[face] best position: (${bestPos.x},${bestPos.y}) score=${(bestScore * 100).toFixed(1)}%`);
+  return bestPos;
+}
+
 async function saveFaceFromScreenshot(imagePath, outputPath) {
-  const os = require('os');
-  const tmpPath = require('path').join(os.tmpdir(), 'game-area-tmp.png');
-  await (await extractGameArea(imagePath)).png().toFile(tmpPath);
-  const borderY = await findPopupBorderY(sharp(tmpPath));
-  const faceTop = borderY >= 0 ? borderY + 40 : 40;
-  await sharp(tmpPath)
-    .extract({ left: 450, top: faceTop, width: FACE_W, height: FACE_H })
+  const pos = await findFacePosition(imagePath);
+  if (!pos) {
+    console.log('[face] no existing faces to use as reference — cannot detect face position');
+    return;
+  }
+  const gameImage = await extractGameArea(imagePath);
+  await gameImage.clone()
+    .extract({ left: pos.x, top: pos.y, width: FACE_W, height: FACE_H })
     .toFile(outputPath);
-  console.log(`[levelup] face saved to ${outputPath} (borderY=${borderY}, faceTop=${faceTop})`);
+  console.log(`[face] saved to ${outputPath} at (${pos.x},${pos.y})`);
 }
 
 module.exports = { identifyCharacter, extractGameArea, saveFaceFromScreenshot };
