@@ -584,12 +584,12 @@
 
 
       <div class="form-group level-only">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <label>Random override</label>
-          <button type="button" id="btn-clear-random" class="btn-clear">✕</button>
-        </div>
-        <div style="display:flex;gap:4px;align-items:flex-start;">
+        <div style="display:flex;gap:6px;align-items:flex-start;">
           <div style="flex:1;display:flex;flex-direction:column;gap:3px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <label>Random override</label>
+              <button type="button" id="btn-clear-random" class="btn-clear">✕</button>
+            </div>
             <input type="text" id="random" placeholder="e.g. up,down,left" />
             <div id="random-suggestion" class="hidden" style="font-size:11px;color:#6366f1;cursor:pointer;padding:2px 0;">
               Last detected: <span id="random-suggestion-value"></span>
@@ -609,12 +609,14 @@
       </div>
 
       <div class="form-group level-only">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <label>Select steps</label>
-          <button type="button" id="btn-clear-select" class="btn-clear">✕</button>
-        </div>
-        <div style="display:flex;gap:4px;align-items:center;">
-          <input type="text" id="select-steps" placeholder="e.g. down,O" style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:5px 8px;color:#c8cad0;font-size:12px;font-family:'Cascadia Code','JetBrains Mono',Consolas,monospace;" />
+        <div style="display:flex;gap:6px;align-items:flex-start;">
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <label>Select steps</label>
+              <button type="button" id="btn-clear-select" class="btn-clear">✕</button>
+            </div>
+            <input type="text" id="select-steps" placeholder="e.g. down,O" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:5px 8px;color:#c8cad0;font-size:12px;font-family:'Cascadia Code','JetBrains Mono',Consolas,monospace;" />
+          </div>
           <div id="select-pad" style="display:flex;flex-direction:column;gap:3px;">
             <div style="display:flex;justify-content:center;">
               <button class="pad-btn" data-step="up">↑</button>
@@ -631,12 +633,14 @@
       <div class="separator"></div>
 
       <div class="form-group level-only">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <label>Fight steps</label>
-          <button type="button" id="btn-clear-fight" class="btn-clear">✕</button>
-        </div>
         <div style="display:flex;gap:6px;align-items:flex-start;">
-          <textarea id="fight" rows="3" placeholder="e.g. left 2,O,wait,O" style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:5px 8px;color:#c8cad0;font-size:12px;font-family:'Cascadia Code','JetBrains Mono',Consolas,monospace;resize:vertical;transition:all 0.2s;"></textarea>
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <label>Fight steps</label>
+              <button type="button" id="btn-clear-fight" class="btn-clear">✕</button>
+            </div>
+            <textarea id="fight" rows="3" placeholder="e.g. left 2,O,wait,O" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:5px 8px;color:#c8cad0;font-size:12px;font-family:'Cascadia Code','JetBrains Mono',Consolas,monospace;resize:vertical;transition:all 0.2s;"></textarea>
+          </div>
           <div id="fight-pad" style="display:flex;flex-direction:column;gap:3px;">
             <div style="display:flex;gap:3px;justify-content:center;">
               <button class="pad-btn" data-step="attack" style="width:auto;padding:0 5px;font-size:11px;">A</button>
