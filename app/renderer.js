@@ -101,6 +101,14 @@ document.getElementById('fight-pad').addEventListener('click', (e) => {
   fightInput.scrollTop = fightInput.scrollHeight
 })
 
+const selectStepsInput = document.getElementById('select-steps')
+document.getElementById('select-pad').addEventListener('click', (e) => {
+  const btn = e.target.closest('.pad-btn')
+  if (!btn) return
+  const step = btn.dataset.step
+  selectStepsInput.value = selectStepsInput.value ? selectStepsInput.value.trimEnd() + ',' + step : step
+})
+
 window.api.getLastRandom().then(value => {
   if (value) showRandomSuggestion(value)
 })

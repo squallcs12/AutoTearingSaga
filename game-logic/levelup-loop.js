@@ -294,6 +294,9 @@ async function phase1FindRandomSteps(PlayingPage, saveScreenshot, checkLevelUpgr
 
   // Baseline fight: record init stat before any RNG manipulation
   if (selectSteps.length) await performSteps(PlayingPage, selectSteps);
+  await PlayingPage.pressTriangle();
+  await saveScreenshot('before-fight.png');
+  await PlayingPage.pressX();
   await performFightWithRetry(PlayingPage, battle, isBoss);
   const { isGood: initGood, statIncreased: initStat } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName, PlayingPage.lastLevelUpResult);
   console.log('[levelup] initStat:', JSON.stringify(initStat));

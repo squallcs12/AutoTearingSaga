@@ -171,45 +171,40 @@ const checkIsGoodLevelUp = async (filePath, required) => {
   return { isGood, statIncreased };
 };
 
-const checkIsLevelUpByPath = async (filePath) => {
+const checkIsLevelUpByPath = async (filePath, signal) => {
+  if (signal?.aborted) return false;
   const { image, s } = await cropGameArea(sharp(filePath));
+  if (signal?.aborted) return false;
   const panelPipeline = await extractLevelUpPanel(image, s);
+  if (signal?.aborted) return false;
   const panelBuf = await panelPipeline.toBuffer();
+  if (signal?.aborted) return false;
   return checkIsLevelUp(sharp(panelBuf), s);
 };
 
 const checkLevelUpgrade = async (required, saveScreenshot, characterName, initialPath = null) => {
   const total = 14;
   const paths = initialPath ? [initialPath] : [];
-  let latestLevelUpIdx = -1;
-  let prevCheckPromise = null;
 
-  if (initialPath) {
-    prevCheckPromise = checkIsLevelUpByPath(initialPath).then(isLevelUp => isLevelUp ? 0 : null);
-  }
-
+  // Take all screenshots first without any processing in between
   for (let i = 2; i <= total; i++) {
-    if (prevCheckPromise !== null) {
-      const result = await prevCheckPromise;
-      prevCheckPromise = null;
-      if (result !== null) {
-        latestLevelUpIdx = result;
-      } else if (latestLevelUpIdx !== -1) {
-        // Panel appeared and is now gone — skip remaining screenshots
-        break;
-      }
-    }
-
-    const filePath = await saveScreenshot(`level-up-${i}.png`);
-    const idx = paths.push(filePath) - 1;
-    // Fire off level-up check concurrently with next screenshot
-    prevCheckPromise = checkIsLevelUpByPath(filePath).then(isLevelUp => isLevelUp ? idx : null);
+    paths.push(await saveScreenshot(`level-up-${i}.png`));
   }
 
-  // Await the last pending check
-  if (prevCheckPromise !== null) {
-    const result = await prevCheckPromise;
-    if (result !== null) latestLevelUpIdx = result;
+  // Fire all checks concurrently, then await each in order and stop early
+  const controller = new AbortController();
+  const checks = paths.map((p, idx) => checkIsLevelUpByPath(p, controller.signal).then(isLevelUp => isLevelUp ? idx : null));
+
+  let latestLevelUpIdx = -1;
+  for (const check of checks) {
+    const result = await check;
+    if (result !== null) {
+      latestLevelUpIdx = result;
+    } else if (latestLevelUpIdx !== -1) {
+      // Panel appeared and is now gone — abort remaining checks
+      controller.abort();
+      break;
+    }
   }
 
   if (latestLevelUpIdx === -1) {
@@ -246,7 +241,53 @@ const waitLevelUp = async (playing, { sleepMs = 500 } = {}) => {
   return false;
 };
 
-module.exports = { checkIsGoodLevelUp, statSummary, checkGoodCondition, checkIsLevelUp, extractLevelUpPanel, checkLevelUpgrade, waitLevelUp };
+// Stat value box positions in normalized 1080x810 game area space
+const statBoxes = [
+  { stat: 'str',   x: 195, y: 349, w: 48, h: 40 },
+  { stat: 'skill', x: 195, y: 397, w: 48, h: 40 },
+  { stat: 'spd',   x: 195, y: 445, w: 48, h: 40 },
+  { stat: 'def',   x: 195, y: 493, w: 48, h: 40 },
+  { stat: 'mag',   x: 380, y: 349, w: 48, h: 40 },
+  { stat: 'luck',  x: 380, y: 397, w: 48, h: 40 },
+  { stat: 'mst',   x: 380, y: 445, w: 48, h: 40 },
+  { stat: 'hp',    x: 373, y: 150, w: 65, h: 40 },
+  { stat: 'move',  x: 360, y: 228, w: 70, h: 40 },
+];
+
+const WHITE_THRESHOLD = 10;
+const DIFF_THRESHOLD = 20;
+
+const detectStatChanges = async (beforePath, afterPath) => {
+  const [before, after] = await Promise.all([
+    sharp(beforePath).raw().toBuffer({ resolveWithObject: true }),
+    sharp(afterPath).raw().toBuffer({ resolveWithObject: true }),
+  ]);
+  const { width, height, channels } = before.info;
+
+  const diff = Buffer.alloc(width * height);
+  for (let i = 0; i < diff.length; i++) {
+    for (let c = 0; c < channels; c++) {
+      if (Math.abs(before.data[i * channels + c] - after.data[i * channels + c]) > DIFF_THRESHOLD) {
+        diff[i] = 255;
+        break;
+      }
+    }
+  }
+
+  const increased = {};
+  for (const b of statBoxes) {
+    let white = 0;
+    for (let row = b.y; row < b.y + b.h; row++) {
+      for (let col = b.x; col < b.x + b.w; col++) {
+        if (diff[row * width + col] === 255) white++;
+      }
+    }
+    if (white >= WHITE_THRESHOLD) increased[b.stat] = 1;
+  }
+  return increased;
+};
+
+module.exports = { checkIsGoodLevelUp, statSummary, checkGoodCondition, checkIsLevelUp, extractLevelUpPanel, checkLevelUpgrade, waitLevelUp, detectStatChanges };
 
 if (debug) {
   (async () => {

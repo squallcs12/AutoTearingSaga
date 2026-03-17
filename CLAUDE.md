@@ -162,3 +162,22 @@ Saved to `game-logic/characters/faces/<name>.png`
 #### Growth
 
 Per-character stat growth data stored in `game-logic/characters/growth/<name>.json`
+
+#### Stat Value Positions (Character Status Screen)
+
+Detected via background subtraction (before/after diff) in normalized 1080x810 game area space.
+Row spacing: ~48px. Left column x=200, right column x=380.
+
+| Stat     | x   | y   | w  | h  |
+|----------|-----|-----|----|----|
+| Strength | 195 | 349 | 48 | 40 |
+| Skill    | 195 | 397 | 48 | 40 |
+| Speed    | 195 | 445 | 48 | 40 |
+| Defense  | 195 | 493 | 48 | 40 |
+| Magic    | 380 | 349 | 48 | 40 |
+| Luck     | 380 | 397 | 48 | 40 |
+| Mastery  | 380 | 445 | 48 | 40 |
+| Hp       | 373 | 150 | 65 | 40 |
+| Mv       | 360 | 228 | 70 | 40 |
+
+White pixel threshold ≥10 in diff indicates stat increased.

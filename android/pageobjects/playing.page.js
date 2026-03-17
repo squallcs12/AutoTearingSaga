@@ -114,11 +114,13 @@ class PlayingPage extends Page {
   }
 
   async pressSquare() {
-    await sleep(500);
+    await this.buttonSquare.touchAction({action: 'tap', x: 10, y:10});
+    await sleep(1000);
   }
 
   async pressTriangle() {
-    await sleep(500);
+    await this.buttonTriangle.touchAction({action: 'tap', x: 10, y:10});
+    await sleep(1000);
   }
 
 
