@@ -14,7 +14,7 @@ async function detectCharacter(saveScreenshot) {
   const facePath = path.join(FACES_DIR, `${detectedName}.png`);
   if (process.env.CHAR_NAME && !fs.existsSync(facePath)) {
     console.log(`[levelup] saving face image for ${detectedName}`);
-    await saveFaceFromScreenshot('tmp/current-char-raw.png', facePath);
+    await saveFaceFromScreenshot(charPath, facePath);
   }
 
   const goodCondition = getGoodCondition(detectedName);
