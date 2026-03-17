@@ -243,6 +243,8 @@ function updateVisibility() {
   document.querySelectorAll('.emulator-only').forEach(el => {
     el.style.display = platform === 'emu' ? '' : 'none'
   })
+  const btnAvdInline = document.getElementById('btn-avd')
+  if (btnAvdInline) btnAvdInline.classList.toggle('visible', platform === 'emu')
 }
 
 document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener('change', updateVisibility))
@@ -299,7 +301,6 @@ const btnAvd = document.getElementById('btn-avd')
 btnAvd.addEventListener('click', async () => {
   btnAvd.disabled = true
   btnAvd.classList.add('booting')
-  btnAvd.textContent = 'Launching...'
   output.textContent = ''
   outputDot.classList.add('active')
   setStatus('Launching emulator...', 'running')
@@ -309,7 +310,6 @@ btnAvd.addEventListener('click', async () => {
 window.api.onAvdReady(() => {
   btnAvd.disabled = false
   btnAvd.classList.remove('booting')
-  btnAvd.textContent = 'Launch AVD'
   outputDot.classList.remove('active')
   setStatus('AVD ready', 'success')
 })

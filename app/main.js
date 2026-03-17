@@ -1,10 +1,32 @@
-const { app, BrowserWindow, ipcMain, screen, nativeImage } = require('electron/main')
+const { app, BrowserWindow, ipcMain, screen, nativeImage, shell } = require('electron/main')
 
+const APP_ID = 'com.autotearingsaga.app'
 app.setName('AutoTearingSaga')
-app.setAppUserModelId('com.autotearingsaga.app')
+app.setAppUserModelId(APP_ID)
 const path = require('node:path')
 const { spawn, execSync } = require('node:child_process')
 const fs = require('node:fs')
+
+// Ensure desktop shortcut points to electron.exe (not .cmd) with AppUserModelId set,
+// so Windows allows pinning the app to the taskbar.
+function ensureDesktopShortcut() {
+  if (process.platform !== 'win32') return
+  const desktopDir = path.join(app.getPath('home'), 'OneDrive', 'Desktop')
+  if (!fs.existsSync(desktopDir)) return
+  const lnkPath = path.join(desktopDir, 'AutoTearingSaga.lnk')
+  const electronExe = path.join(__dirname, '..', 'node_modules', 'electron', 'dist', 'electron.exe')
+  if (!fs.existsSync(electronExe)) return
+  const details = {
+    target: electronExe,
+    args: 'app/main.js',
+    cwd: path.join(__dirname, '..'),
+    icon: path.join(__dirname, 'icon.ico'),
+    iconIndex: 0,
+    appUserModelId: APP_ID,
+    description: 'AutoTearingSaga'
+  }
+  shell.writeShortcutLink(lnkPath, 'replace', details)
+}
 
 // Move the emulator window next to the app window
 function bringEmulatorBeside(win, { activate = false } = {}) {
@@ -107,6 +129,7 @@ const createWindow = () => {
 }
 
 app.whenReady().then(() => {
+  ensureDesktopShortcut()
   ipcMain.handle('get-last-random', () => loadLastRandom()?.value || null)
   ipcMain.handle('get-last-options', () => loadLastOptions())
   ipcMain.handle('save-last-options', (_, data) => saveLastOptions(data))
