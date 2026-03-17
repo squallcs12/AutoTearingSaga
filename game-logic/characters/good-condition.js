@@ -23,6 +23,20 @@ const getGoodCondition = (character, tierOverride) => {
     cond.count = Math.max(1, cond.count - 1);
   }
 
+  // Require the stat with the highest growth rate
+  const statKeys = ['str', 'mag', 'skill', 'spd', 'luck', 'mst', 'def'];
+  let maxStat = null;
+  let maxRate = 0;
+  for (const key of statKeys) {
+    if (g[key] > maxRate) {
+      maxRate = g[key];
+      maxStat = key;
+    }
+  }
+  if (maxStat) {
+    cond[maxStat] = 1;
+  }
+
   return [cond];
 };
 
