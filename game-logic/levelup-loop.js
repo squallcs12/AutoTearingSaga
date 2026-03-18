@@ -99,7 +99,6 @@ function detectHighRepeatRate(history, windowSize = 30, threshold = 0.6) {
 }
 
 async function saveGoodResult(PlayingPage) {
-  await PlayingPage.perform('save');
   await PlayingPage.perform('save1');
 }
 
