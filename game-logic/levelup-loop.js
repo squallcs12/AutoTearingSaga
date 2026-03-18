@@ -384,6 +384,11 @@ async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, ba
       }
     }
 
+    if (statIncreased.count >= 6 && statIncreased.count <= 8) {
+      console.log(`[levelup] exceptional result (count=${statIncreased.count}), saving to slot ${statIncreased.count}...`);
+      await PlayingPage.perform(`save${statIncreased.count}`);
+    }
+
     if (savedSlot4 && turn >= savedSlot4Turn + 20) {
       console.log(`[levelup] tried 20 turns after good result, accepting slot 4`);
       break;

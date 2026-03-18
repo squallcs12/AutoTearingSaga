@@ -38,6 +38,12 @@ function addPerform(cls) {
         case 'save2':      await this.quicksave(2);    break;
         case 'save3':      await this.quicksave(3);    break;
         case 'save4':      await this.quicksave(4);    break;
+        case 'save5':      await this.quicksave(5);    break;
+        case 'save6':      await this.quicksave(6);    break;
+        case 'save7':      await this.quicksave(7);    break;
+        case 'save8':      await this.quicksave(8);    break;
+        case 'save9':      await this.quicksave(9);    break;
+        case 'save10':     await this.quicksave(10);   break;
         case 'confirm':       await this.spamO();      break;
         case 'boss':          await this.finishBoss(); break;
         case 'finish':        await this.finish();     break;
