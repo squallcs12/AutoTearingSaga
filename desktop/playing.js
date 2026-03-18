@@ -63,8 +63,8 @@ class PlayingDesktop {
     }
   }
 
-  async finish()     { await sleep(6000); }
-  async finishBoss() { await sleep(12000); }
+  async finish()     {}
+  async finishBoss() {}
 
   async saveScreenshot(filename) {
     const destPath = await takeScreenshot(filename);

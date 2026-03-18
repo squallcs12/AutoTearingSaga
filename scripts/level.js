@@ -11,7 +11,9 @@ const nameIdx = args.indexOf('-name');
 const nameOverride = nameIdx !== -1 ? args[nameIdx + 1] : null;
 const randomIdx = args.indexOf('--random');
 const randomOverride = randomIdx !== -1 ? args[randomIdx + 1] : null;
-const positional = args.filter((a, i) => a !== '-v' && a !== '--skip' && a !== '-name' && a !== '--random' && (skipIdx === -1 || i !== skipIdx + 1) && (nameIdx === -1 || i !== nameIdx + 1) && (randomIdx === -1 || i !== randomIdx + 1));
+const platformIdx = args.indexOf('--platform');
+const platform = platformIdx !== -1 ? args[platformIdx + 1] : 'emu';
+const positional = args.filter((a, i) => a !== '-v' && a !== '--skip' && a !== '-name' && a !== '--random' && a !== '--platform' && (skipIdx === -1 || i !== skipIdx + 1) && (nameIdx === -1 || i !== nameIdx + 1) && (randomIdx === -1 || i !== randomIdx + 1) && (platformIdx === -1 || i !== platformIdx + 1));
 const tierOverride = TIERS.includes(positional[0]) ? positional[0] : null;
 const N = parseInt(tierOverride ? (positional[1] || '4') : (positional[0] || '4'), 10);
 const filteredEnv = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('npm_config_')));
@@ -30,7 +32,8 @@ const stdio = verbose ? 'inherit' : ['ignore', logFd, logFd];
 
 for (let i = 0; i < N; i++) {
   try {
-    execSync('npx wdio --spec android/specs/levelup.e2e.js', { stdio, env });
+    const cmd = platform === 'bluestack' ? 'node bluestack/levelup.js' : 'npx wdio --spec android/specs/levelup.e2e.js';
+    execSync(cmd, { stdio, env });
     if (logFd) fs.closeSync(logFd);
     execSync('node scripts/notify.js success', { stdio: 'inherit' });
     process.exit(0);

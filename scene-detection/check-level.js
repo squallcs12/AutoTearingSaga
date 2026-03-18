@@ -1,6 +1,5 @@
 const sharp = require('sharp');
 const { sleep, statOrder } = require('../utils');
-const { cropGameArea } = require('./calib');
 sharp.cache(false);
 
 const debug = false;
@@ -107,13 +106,12 @@ const findTotalStatIncrease = async (newImage, startIdx, s = 1) => {
 };
 
 const checkIsGoodLevelUpImg = async (filePath, startStat) => {
-  const { image, s } = await cropGameArea(sharp(filePath));
-  const panelPipeline = await extractLevelUpPanel(image, s);
+  const panelPipeline = await extractLevelUpPanel(sharp(filePath));
   // Materialize to buffer so subsequent .extract() calls work on the cropped panel,
   // not the original image (Sharp chains extracts against the source, not the prior extract)
   const panelBuf = await panelPipeline.toBuffer();
   if (debug) await sharp(panelBuf).png().toFile(`crop-level-up-${i}.png`);
-  return findTotalStatIncrease(sharp(panelBuf), startStat, s);
+  return findTotalStatIncrease(sharp(panelBuf), startStat);
 };
 
 const getStatIncreased = async (filePath, { expectMove = false } = {}) => {
@@ -173,13 +171,11 @@ const checkIsGoodLevelUp = async (filePath, required) => {
 
 const checkIsLevelUpByPath = async (filePath, signal) => {
   if (signal?.aborted) return false;
-  const { image, s } = await cropGameArea(sharp(filePath));
-  if (signal?.aborted) return false;
-  const panelPipeline = await extractLevelUpPanel(image, s);
+  const panelPipeline = await extractLevelUpPanel(sharp(filePath));
   if (signal?.aborted) return false;
   const panelBuf = await panelPipeline.toBuffer();
   if (signal?.aborted) return false;
-  return checkIsLevelUp(sharp(panelBuf), s);
+  return checkIsLevelUp(sharp(panelBuf));
 };
 
 const checkLevelUpgrade = async (required, saveScreenshot, characterName, initialPath = null, playing, beforeFightPath) => {
@@ -229,9 +225,8 @@ const waitLevelUp = async (playing, { sleepMs = 500 } = {}) => {
   for (let i = 0; Date.now() - start < timeoutMs; i++) {
     const screenshotPath = await playing.saveScreenshot('current.png');
     await playing.pressO();
-    const { image, s } = await cropGameArea(sharp(screenshotPath));
-    const panelBuf = await (await extractLevelUpPanel(image, s)).toBuffer();
-    if (await checkIsLevelUp(sharp(panelBuf), s)) {
+    const panelBuf = await (await extractLevelUpPanel(sharp(screenshotPath))).toBuffer();
+    if (await checkIsLevelUp(sharp(panelBuf))) {
       console.log(`[waitLevelUp] detected at i=${i} +${Date.now() - start}ms`);
       const suffix = path.basename(screenshotPath, '.png').replace(/^current/, '');
       const levelUpPath = path.join(path.dirname(screenshotPath), `level-up-1${suffix}.png`);
@@ -261,13 +256,9 @@ const WHITE_THRESHOLD = 10;
 const DIFF_THRESHOLD = 20;
 
 const detectStatChanges = async (beforePath, afterPath) => {
-  const [beforeGame, afterGame] = await Promise.all([
-    cropGameArea(sharp(beforePath)),
-    cropGameArea(sharp(afterPath)),
-  ]);
   const [before, after] = await Promise.all([
-    beforeGame.image.raw().toBuffer({ resolveWithObject: true }),
-    afterGame.image.raw().toBuffer({ resolveWithObject: true }),
+    sharp(beforePath).raw().toBuffer({ resolveWithObject: true }),
+    sharp(afterPath).raw().toBuffer({ resolveWithObject: true }),
   ]);
   const { width, height, channels } = before.info;
 

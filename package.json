@@ -22,7 +22,7 @@
         "arena": "node scripts/arena.js",
         "desktop-level": "node desktop/levelup.js",
         "desktop-arena": "node desktop/arena.js",
-        "bluestack-level": "node scripts/bluestack-level.js",
+        "bluestack-level": "node scripts/level.js --platform bluestack",
         "bluestack-arena": "node bluestack/arena.js",
         "pull": "node scripts/pull.js",
         "push": "node scripts/push.js",

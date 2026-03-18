@@ -434,7 +434,10 @@ async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, ba
   }
 }
 
-async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, fight, isBoss) {
+async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade) {
+  const { fight: configFight, isBoss: configIsBoss } = require('../config');
+  const fight = process.env.FIGHT_OVERRIDE || configFight;
+  const isBoss = process.env.IS_BOSS ? process.env.IS_BOSS === '1' : configIsBoss;
   const { battle, selectSteps, revertSelectSteps, logFile, detectedName, goodCondition } = await setupRun(PlayingPage, saveScreenshot, fight);
 
   const phase1Result = await phase1FindRandomSteps(

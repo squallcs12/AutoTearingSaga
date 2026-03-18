@@ -2,15 +2,13 @@ const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const sharp = require('sharp');
-
 const { sleep, debugCopyScreenshot } = require('../utils');
+const { extractGameArea } = require('../game-logic/identify-character');
 
-const DEVICE = 'emulator-5554';
+const DEVICE = 'localhost:5555';
 const PROCESS_NAME = 'HD-Player';
 
 // Game area: 4:3 centered in 1920x1080 landscape → 1440x1080 at x=240
-const GAME_AREA = { left: 240, top: 0, width: 1440, height: 1080 };
 
 // --- PostMessage key sender (same as desktop/common.js, targeting BlueStacks) ---
 
@@ -58,11 +56,15 @@ function Get-LParam([uint32]$vk, [bool]$keyUp) {
     else        { return [IntPtr]($ext -bor ($scan -shl 16) -bor 1) }
 }
 
-function Send-VK($targets, [uint32]$vk, [bool]$shift) {
+function Send-VK($targets, [uint32]$vk, [bool]$shift, [bool]$ctrl) {
     foreach ($h in $targets) {
         # Trick window into thinking it is focused
         [WinApi]::SendMessage($h, $WM_ACTIVATE, [IntPtr]$WA_ACTIVE, [IntPtr]::Zero) | Out-Null
         [WinApi]::SendMessage($h, $WM_SETFOCUS, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
+        if ($ctrl) {
+            $cs = [WinApi]::MapVirtualKey(0x11, 0)
+            [WinApi]::PostMessage($h, $WM_KEYDOWN, [IntPtr]0x11, [IntPtr](($cs -shl 16) -bor 1)) | Out-Null
+        }
         if ($shift) {
             $ss = [WinApi]::MapVirtualKey(0x10, 0)
             [WinApi]::PostMessage($h, $WM_KEYDOWN, [IntPtr]0x10, [IntPtr](($ss -shl 16) -bor 1)) | Out-Null
@@ -73,6 +75,10 @@ function Send-VK($targets, [uint32]$vk, [bool]$shift) {
         if ($shift) {
             $ss = [WinApi]::MapVirtualKey(0x10, 0)
             [WinApi]::PostMessage($h, $WM_KEYUP, [IntPtr]0x10, [IntPtr](($ss -shl 16) -bor 0xC0000001)) | Out-Null
+        }
+        if ($ctrl) {
+            $cs = [WinApi]::MapVirtualKey(0x11, 0)
+            [WinApi]::PostMessage($h, $WM_KEYUP, [IntPtr]0x11, [IntPtr](($cs -shl 16) -bor 0xC0000001)) | Out-Null
         }
     }
 }
@@ -94,10 +100,12 @@ while ($true) {
     $line = [Console]::ReadLine()
     if ($null -eq $line -or $line -eq 'EXIT') { break }
     $shift = $false
+    $ctrl  = $false
     $key   = $line.ToLower().Trim()
+    if ($key.StartsWith('ctrl+')) { $ctrl = $true; $key = $key.Substring(5) }
     if ($key.StartsWith('shift+')) { $shift = $true; $key = $key.Substring(6) }
     if ($keyMap.ContainsKey($key)) {
-        Send-VK $targets $keyMap[$key] $shift
+        Send-VK $targets $keyMap[$key] $shift $ctrl
     } else {
         Write-Host "[keysender] unknown key: $key"
     }
@@ -129,13 +137,11 @@ async function takeScreenshot(filename) {
   const destPath = path.join('tmp', filename);
   const rawPath = destPath + '.raw.png';
   execSync(`adb -s ${DEVICE} exec-out screencap -p > "${rawPath}"`);
-  // Crop to game area (4:3) so check-level.js coordinates work correctly
-  await sharp(rawPath)
-    .extract(GAME_AREA)
-    .toFile(destPath);
+  await (await extractGameArea(rawPath)).toFile(destPath);
   fs.unlinkSync(rawPath);
   debugCopyScreenshot(destPath);
   await sleep(1000);
+  return destPath;
 }
 
 // --- adb tap/swipe for virtual controller ---

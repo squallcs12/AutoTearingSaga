@@ -13,11 +13,18 @@ const KEYS = {
   down:      'down',
   left:      'left',
   right:     'right',
-  quickSave: 'f4',
-  quickLoad: 'shift+f4',
+  quickSave: 'f12',
+  quickLoad: 'shift+f12',
   saveSlot1: 'f1', loadSlot1: 'shift+f1',
   saveSlot2: 'f2', loadSlot2: 'shift+f2',
   saveSlot3: 'f3', loadSlot3: 'shift+f3',
+  saveSlot4: 'f4', loadSlot4: 'shift+f4',
+  saveSlot5: 'f5', loadSlot5: 'shift+f5',
+  saveSlot6: 'f6', loadSlot6: 'shift+f6',
+  saveSlot7: 'f7', loadSlot7: 'shift+f7',
+  saveSlot8: 'f8', loadSlot8: 'shift+f8',
+  saveSlot9: 'f9', loadSlot9: 'shift+f9',
+  saveSlot10: 'f10', loadSlot10: 'shift+f10',
 };
 
 class PlayingBluestack {
@@ -61,8 +68,8 @@ class PlayingBluestack {
     }
   }
 
-  async finish()     { await sleep(6000); }
-  async finishBoss() { await sleep(12000); }
+  async finish()     { }
+  async finishBoss() {  }
 
   async saveScreenshot(filename) {
     await takeScreenshot(filename);
