@@ -19,16 +19,27 @@ fs.writeFileSync(PS_SCRIPT_PATH, `
 Add-Type @"
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 public class WinApi {
     [DllImport("user32.dll")]
     public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll")]
+    public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll")]
     public static extern uint MapVirtualKey(uint uCode, uint uMapType);
+    public delegate bool EnumCallback(IntPtr hWnd, IntPtr lParam);
+    [DllImport("user32.dll")]
+    public static extern bool EnumChildWindows(IntPtr hWndParent, EnumCallback cb, IntPtr lParam);
+    [DllImport("user32.dll", CharSet=CharSet.Auto)]
+    public static extern int GetClassName(IntPtr hWnd, StringBuilder sb, int max);
 }
 "@
 
-$WM_KEYDOWN = 0x0100
-$WM_KEYUP   = 0x0101
+$WM_KEYDOWN    = 0x0100
+$WM_KEYUP      = 0x0101
+$WM_SETFOCUS   = 0x0007
+$WM_ACTIVATE   = 0x0006
+$WA_ACTIVE     = 1
 
 $keyMap = @{
     'c'    = 0x43; 'x'    = 0x58; 'z'    = 0x5A; 's'    = 0x53;
@@ -47,23 +58,37 @@ function Get-LParam([uint32]$vk, [bool]$keyUp) {
     else        { return [IntPtr]($ext -bor ($scan -shl 16) -bor 1) }
 }
 
-function Send-VK($hwnd, [uint32]$vk, [bool]$shift) {
-    if ($shift) {
-        $ss = [WinApi]::MapVirtualKey(0x10, 0)
-        [WinApi]::PostMessage($hwnd, $WM_KEYDOWN, [IntPtr]0x10, [IntPtr](($ss -shl 16) -bor 1)) | Out-Null
-    }
-    [WinApi]::PostMessage($hwnd, $WM_KEYDOWN, [IntPtr]$vk, (Get-LParam $vk $false)) | Out-Null
-    Start-Sleep -Milliseconds 50
-    [WinApi]::PostMessage($hwnd, $WM_KEYUP, [IntPtr]$vk, (Get-LParam $vk $true)) | Out-Null
-    if ($shift) {
-        $ss = [WinApi]::MapVirtualKey(0x10, 0)
-        [WinApi]::PostMessage($hwnd, $WM_KEYUP, [IntPtr]0x10, [IntPtr](($ss -shl 16) -bor 0xC0000001)) | Out-Null
+function Send-VK($targets, [uint32]$vk, [bool]$shift) {
+    foreach ($h in $targets) {
+        # Trick window into thinking it is focused
+        [WinApi]::SendMessage($h, $WM_ACTIVATE, [IntPtr]$WA_ACTIVE, [IntPtr]::Zero) | Out-Null
+        [WinApi]::SendMessage($h, $WM_SETFOCUS, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
+        if ($shift) {
+            $ss = [WinApi]::MapVirtualKey(0x10, 0)
+            [WinApi]::PostMessage($h, $WM_KEYDOWN, [IntPtr]0x10, [IntPtr](($ss -shl 16) -bor 1)) | Out-Null
+        }
+        [WinApi]::PostMessage($h, $WM_KEYDOWN, [IntPtr]$vk, (Get-LParam $vk $false)) | Out-Null
+        Start-Sleep -Milliseconds 50
+        [WinApi]::PostMessage($h, $WM_KEYUP, [IntPtr]$vk, (Get-LParam $vk $true)) | Out-Null
+        if ($shift) {
+            $ss = [WinApi]::MapVirtualKey(0x10, 0)
+            [WinApi]::PostMessage($h, $WM_KEYUP, [IntPtr]0x10, [IntPtr](($ss -shl 16) -bor 0xC0000001)) | Out-Null
+        }
     }
 }
 
 $proc = Get-Process -Name "${PROCESS_NAME}" | Select-Object -First 1
-$hwnd = $proc.MainWindowHandle
-Write-Host "[keysender] hwnd=$hwnd"
+$mainHwnd = $proc.MainWindowHandle
+
+# Collect all target windows: main + all children
+$targets = @($mainHwnd)
+$cb = [WinApi+EnumCallback]{
+    param($h, $l)
+    $script:targets += $h
+    return $true
+}
+[WinApi]::EnumChildWindows($mainHwnd, $cb, [IntPtr]::Zero)
+Write-Host "[keysender] targets: $($targets -join ', ')"
 
 while ($true) {
     $line = [Console]::ReadLine()
@@ -72,7 +97,7 @@ while ($true) {
     $key   = $line.ToLower().Trim()
     if ($key.StartsWith('shift+')) { $shift = $true; $key = $key.Substring(6) }
     if ($keyMap.ContainsKey($key)) {
-        Send-VK $hwnd $keyMap[$key] $shift
+        Send-VK $targets $keyMap[$key] $shift
     } else {
         Write-Host "[keysender] unknown key: $key"
     }

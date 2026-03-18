@@ -1,6 +1,6 @@
 const fs = require('fs');
 const { waitLevelUp } = require('../scene-detection/check-level');
-const { sleep, sendKey, takeScreenshot, adbMove } = require('./common');
+const { sleep, sendKey, takeScreenshot } = require('./common');
 const { addPerform } = require('../shared/perform');
 const { extractGameArea } = require('../game-logic/identify-character');
 
@@ -9,6 +9,10 @@ const KEYS = {
   cross:     'x',
   square:    'z',
   triangle:  's',
+  up:        'up',
+  down:      'down',
+  left:      'left',
+  right:     'right',
   quickSave: 'f4',
   quickLoad: 'shift+f4',
   saveSlot1: 'f1', loadSlot1: 'shift+f1',
@@ -17,14 +21,14 @@ const KEYS = {
 };
 
 class PlayingBluestack {
-  async moveUp()        { adbMove('up');         await sleep(1000); }
-  async moveDown()      { adbMove('down');       await sleep(1000); }
-  async moveLeft()      { adbMove('left');       await sleep(1000); }
-  async moveRight()     { adbMove('right');      await sleep(1000); }
-  async moveUpLeft()    { adbMove('up-left');    await sleep(1000); }
-  async moveUpRight()   { adbMove('up-right');   await sleep(1000); }
-  async moveDownLeft()  { adbMove('down-left');  await sleep(1000); }
-  async moveDownRight() { adbMove('down-right'); await sleep(1000); }
+  async moveUp()        { sendKey(KEYS.up);    await sleep(1000); }
+  async moveDown()      { sendKey(KEYS.down);  await sleep(1000); }
+  async moveLeft()      { sendKey(KEYS.left);  await sleep(1000); }
+  async moveRight()     { sendKey(KEYS.right); await sleep(1000); }
+  async moveUpLeft()    { sendKey(KEYS.up);    await sleep(1000); }
+  async moveUpRight()   { sendKey(KEYS.up);    await sleep(1000); }
+  async moveDownLeft()  { sendKey(KEYS.down);  await sleep(1000); }
+  async moveDownRight() { sendKey(KEYS.down);  await sleep(1000); }
 
   async pressO()        { sendKey(KEYS.circle);   await sleep(1000); }
   async pressX()        { sendKey(KEYS.cross);    await sleep(1000); }

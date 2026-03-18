@@ -236,7 +236,7 @@ function updateVisibility() {
   document.querySelectorAll('.arena-only').forEach(el => {
     el.style.display = mode === 'arena' ? '' : 'none'
   })
-  const isAndroid = platform === 'emu' || platform === 'phone'
+  const isAndroid = platform === 'emu' || platform === 'phone' || platform === 'bluestack'
   document.querySelectorAll('.android-only').forEach(el => {
     el.style.display = isAndroid ? '' : 'none'
   })

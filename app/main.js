@@ -241,6 +241,9 @@ app.whenReady().then(() => {
       if (options.skip > 0) {
         args.push('--skip', String(options.skip))
       }
+    } else if (platform === 'bluestack') {
+      const script = mode === 'level' ? 'bluestack/levelup.js' : 'bluestack/arena.js'
+      args.push(script)
     } else {
       const script = mode === 'level' ? 'desktop/levelup.js' : 'desktop/arena.js'
       args.push(script)

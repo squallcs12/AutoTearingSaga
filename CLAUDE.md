@@ -39,6 +39,12 @@ node restore-phone.js
 yarn bluestack-level
 ```
 
+## BlueStacks Notes
+
+- **Never use ADB input commands** (`adb shell input keyevent`, `adb shell input tap/swipe`) for BlueStacks. ADB input does not work reliably with BlueStacks.
+- Use **PostMessage key sending** via PowerShell (targets `HD-Player` window) for all keyboard input. See `bluestack/common.js`.
+- ADB is only used for **screenshots** (`adb exec-out screencap`), not for input.
+
 ## Prerequisites
 
 Before running, ensure:
