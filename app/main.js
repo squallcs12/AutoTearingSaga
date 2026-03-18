@@ -1,4 +1,5 @@
-const { app, BrowserWindow, ipcMain, screen, nativeImage, shell } = require('electron/main')
+const { app, BrowserWindow, ipcMain, screen, nativeImage, shell, powerSaveBlocker } = require('electron/main')
+
 
 const APP_ID = 'com.autotearingsaga.app'
 app.setName('AutoTearingSaga')
@@ -67,6 +68,7 @@ Get-Process | Where-Object { $_.MainWindowTitle -match 'Android Emulator' } | Fo
 }
 
 let runningProcess = null
+let powerBlockerId = null
 const PROJECT_ROOT = path.join(__dirname, '..')
 const BOUNDS_FILE = path.join(__dirname, '.window-bounds.json')
 const LAST_RANDOM_FILE = path.join(__dirname, '.last-random.json')
@@ -104,7 +106,8 @@ const createWindow = () => {
     minHeight: 600,
     icon: path.join(__dirname, 'icon.png'),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      backgroundThrottling: false
     }
   })
 
@@ -267,6 +270,8 @@ app.whenReady().then(() => {
       stdio: ['ignore', 'pipe', 'pipe']
     })
 
+    powerBlockerId = powerSaveBlocker.start('prevent-app-suspension')
+
     runningProcess.stdout.on('data', (data) => {
       win.webContents.send('command-output', data.toString())
     })
@@ -277,6 +282,7 @@ app.whenReady().then(() => {
 
     runningProcess.on('close', (code) => {
       runningProcess = null
+      if (powerBlockerId != null) { powerSaveBlocker.stop(powerBlockerId); powerBlockerId = null }
       win.webContents.send('command-done', code)
     })
 
