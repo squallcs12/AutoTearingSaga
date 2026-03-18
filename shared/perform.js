@@ -6,6 +6,7 @@
 
 const { sleep } = require('../utils');
 const { isAttackMenu } = require('../scene-detection/check-attack');
+const { isStaffMenu } = require('../scene-detection/check-staff');
 
 class AttackMenuNotFound extends Error {
   constructor() { super('Attack menu not detected after pressing O'); this.name = 'AttackMenuNotFound'; }
@@ -48,6 +49,14 @@ function addPerform(cls) {
           if (!await isAttackMenu(screenshotPath)) {
             throw new AttackMenuNotFound();
           }
+          await this.pressO();
+          break;
+        case 'staff':
+          const staffScreenshotPath = await this.saveScreenshot('current.png');
+          if (!await isStaffMenu(staffScreenshotPath)) {
+            throw new AttackMenuNotFound();
+          }
+          await this.moveDown();
           await this.pressO();
           break;
         case 'reload':  await this.reload(0); break;
