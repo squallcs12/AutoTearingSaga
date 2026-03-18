@@ -19,8 +19,8 @@ const refLeftPromise  = loadRef('col-left-half.png');
 const refRightPromise = loadRef('col-right-half.png');
 
 // Positions of label columns relative to panel origin (panelStart)
-const labelLeft  = { x: 420 - 140, y: 270 - 227 }; // (280, 43)
-const labelRight = { x: 700 - 140, y: 270 - 227 }; // (560, 43)
+const labelLeft  = { x: 420 - 390, y: 260 - 254 }; // (30, 6)
+const labelRight = { x: 700 - 390, y: 260 - 254 }; // (310, 6)
 
 const matchRegion = async (panelImage, ref, pos, s) => {
   const left   = Math.round(pos.x * s);
@@ -50,14 +50,43 @@ const checkIsLevelUp = async (panelImage, s = 1) => {
   return scoreL >= MATCH_THRESHOLD && scoreR >= MATCH_THRESHOLD;
 };
 
-// avd
-const panelStart = [140, 227];
-const panelStop  = [920, 657];
+// Combined: check if level-up panel AND detect which stats increased via green pixels
+const checkLevelUpAndStats = async (filePath) => {
+  const panelPipeline = await extractLevelUpPanel(sharp(filePath));
+  const panelBuf = await panelPipeline.toBuffer();
+  const panelImage = sharp(panelBuf);
+  const isLevelUp = await checkIsLevelUp(panelImage.clone());
+  if (!isLevelUp) return { isLevelUp: false, statIncreased: null };
 
-// stat regions
-const statBegin  = [420, 270];
-const stat2Begin = [700];
-const statSize   = [200, 30];
+  const increase = {};
+  for (const st of statOrder) increase[st] = 0;
+  const x1 = statBegin[0]  - panelStart[0];
+  const x2 = stat2Begin[0] - panelStart[0];
+  const y0 = statBegin[1]  - panelStart[1];
+  const dh = statHeight;
+  const sw = statSize[0];
+  const sh = statSize[1];
+
+  for (let i = 0; i < 5; i++) {
+    const statImage = panelImage.clone().extract({ left: x1, top: y0 + i * dh, width: sw, height: sh });
+    if (await hasIncrease(statImage)) increase[statOrder[i]] = 1;
+  }
+  for (let i = 0; i < 4; i++) {
+    const statImage = panelImage.clone().extract({ left: x2, top: y0 + i * dh, width: sw, height: sh });
+    if (await hasIncrease(statImage)) increase[statOrder[i + 5]] = 1;
+  }
+  increase.count = Object.values(increase).reduce((a, b) => a + b, 0);
+  return { isLevelUp: true, statIncreased: increase };
+};
+
+// avd
+const panelStart = [390, 254];
+const panelStop  = [920, 484];
+
+// stat regions (green arrow detection — shifted 150px right, 50px wide)
+const statBegin  = [570, 270];
+const stat2Begin = [850];
+const statSize   = [50, 30];
 const statHeight = 40;
 
 const extractLevelUpPanel = async (image, s = 1) => {
@@ -285,7 +314,7 @@ const detectStatChanges = async (beforePath, afterPath) => {
   return increased;
 };
 
-module.exports = { checkIsGoodLevelUp, statSummary, checkGoodCondition, checkIsLevelUp, extractLevelUpPanel, checkLevelUpgrade, waitLevelUp, detectStatChanges };
+module.exports = { checkIsGoodLevelUp, statSummary, checkGoodCondition, checkIsLevelUp, checkLevelUpAndStats, extractLevelUpPanel, checkLevelUpgrade, waitLevelUp, detectStatChanges };
 
 if (debug) {
   (async () => {
