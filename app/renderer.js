@@ -425,6 +425,24 @@ window.api.onOutput((data) => {
     if (count >= summaryTargetCount - 1) addSummaryRow(turnLabel, count, statNames)
   }
 
+  // Parse slot 4 save events and mark the corresponding summary row
+  const slot4Match = data.match(/\[levelup\] (?:good|better) result at turn (\d+).*(?:saving to|updating) slot 4/)
+  if (slot4Match) {
+    const t = slot4Match[1]
+    // Remove badge from any previous slot4 row
+    summary.querySelectorAll('.summary-slot4').forEach(el => el.remove())
+    // Find the row for this turn and add the badge
+    for (const row of summary.querySelectorAll('.summary-row')) {
+      if (row.querySelector('.summary-turn')?.textContent === `turn=${t}`) {
+        const badge = document.createElement('span')
+        badge.className = 'summary-slot4'
+        badge.textContent = 'S4'
+        row.appendChild(badge)
+        break
+      }
+    }
+  }
+
   // If search highlights are active, clear them before appending (re-apply after)
   if (searchMarks.length > 0) clearSearchHighlights()
   output.textContent += prependTimestamps(data)

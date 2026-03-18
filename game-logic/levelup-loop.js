@@ -4,8 +4,6 @@ const { detectMovableGrid } = require('../scene-detection/check-movement');
 const { sleep, statOrder } = require('../utils');
 const { statLogLine, performSteps, initGame } = require('./shared');
 const { AttackMenuNotFound } = require('../shared/perform');
-const { checkGoodCondition } = require('../scene-detection/check-level');
-const { getGoodCondition, getNextTier } = require('./characters/good-condition');
 const parse = (str) => str.split(',').map(x => x.trim()).filter(x => x.length > 0);
 
 // Parse grid into tiles grouped by distance from C
@@ -331,6 +329,8 @@ async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, ba
   let prevStat = null;
   const statHistory = [];
   let savedSlot4 = false;
+  let savedSlot4Turn = 0;
+  let savedSlot4Count = 0;
 
 
   await PlayingPage.perform('reload');
@@ -364,35 +364,22 @@ async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, ba
     console.error(logLine.trim());
 
     if (isGood) {
-      // Check if result also meets +1 tier condition
-      const nextTier = getNextTier(detectedName);
-      if (nextTier) {
-        const plusOneCondition = getGoodCondition(detectedName, nextTier);
-        const isPlusOneTier = checkGoodCondition(statIncreased, plusOneCondition);
-        if (isPlusOneTier) {
-          console.log(`[levelup] result meets +1 tier (${nextTier}) condition, stopping!`);
-          await saveGoodResult(PlayingPage);
-          break;
-        }
-        // Save to slot 4 as fallback, then keep trying for +1 tier if early enough
-        if (!savedSlot4) {
-          await PlayingPage.perform('save4');
-          savedSlot4 = true;
-          if (turn >= 25) {
-            console.log(`[levelup] good result at turn ${turn} (>= 25), accepting without +1 tier check`);
-            break;
-          }
-          console.log(`[levelup] good result but not +1 tier (${nextTier}), saving to slot 4 and continuing (turn ${turn} < 25)...`);
-        }
-      } else {
-        // Already at S tier, no +1 tier to check
-        await saveGoodResult(PlayingPage);
-        break;
+      if (!savedSlot4) {
+        await PlayingPage.perform('save4');
+        savedSlot4 = true;
+        savedSlot4Turn = turn;
+        savedSlot4Count = statIncreased.count;
+        console.log(`[levelup] good result at turn ${turn} (count=${statIncreased.count}), saving to slot 4 and trying for 20 more turns...`);
+      } else if (statIncreased.count > savedSlot4Count) {
+        const prevCount = savedSlot4Count;
+        await PlayingPage.perform('save4');
+        savedSlot4Count = statIncreased.count;
+        console.log(`[levelup] better result at turn ${turn} (count=${statIncreased.count} > ${prevCount}), updating slot 4...`);
       }
     }
 
-    if (savedSlot4 && turn >= 25) {
-      console.log(`[levelup] reached turn ${turn} (>= 25), accepting slot 4 result`);
+    if (savedSlot4 && turn >= savedSlot4Turn + 20) {
+      console.log(`[levelup] tried 20 turns after good result, accepting slot 4`);
       break;
     }
 
