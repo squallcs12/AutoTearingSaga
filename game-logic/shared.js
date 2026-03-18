@@ -40,7 +40,7 @@ async function initGame(PlayingPage, saveScreenshot) {
   await PlayingPage.perform('O'); // select character
 
   const { detectedName, goodCondition, tier } = await detectCharacter(saveScreenshot);
-  console.log(`[loop] detected character: ${detectedName}${process.env.CHAR_NAME ? ' (override)' : ''}`);
+  console.log(`[levelup] detected character: ${detectedName}${process.env.CHAR_NAME ? ' (override)' : ''}`);
   return { detectedName, goodCondition, tier };
 }
 
