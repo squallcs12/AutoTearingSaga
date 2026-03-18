@@ -243,6 +243,13 @@ function updateVisibility() {
   document.querySelectorAll('.emulator-only').forEach(el => {
     el.style.display = platform === 'emu' ? '' : 'none'
   })
+  // Update emu pull/push buttons label based on platform
+  const showEmuBtn = platform === 'emu' || platform === 'bluestack' || platform === 'desktop'
+  btnPullEmu.style.display = showEmuBtn ? '' : 'none'
+  btnPushEmu.style.display = showEmuBtn ? '' : 'none'
+  const pullPushLabel = platform === 'bluestack' ? 'BlueStack' : platform === 'desktop' ? 'Desktop' : 'Emu'
+  btnPullEmu.textContent = `↓ Pull ${pullPushLabel}`
+  btnPushEmu.textContent = `↑ Push ${pullPushLabel}`
   const btnAvdInline = document.getElementById('btn-avd')
   if (btnAvdInline) btnAvdInline.classList.toggle('visible', platform === 'emu')
 }
@@ -361,8 +368,14 @@ async function runSync(direction, target) {
   }
 }
 
-btnPullEmu.addEventListener('click', () => runSync('pull', 'emulator'))
-btnPushEmu.addEventListener('click', () => runSync('push', 'emulator'))
+function getSyncTarget() {
+  const plat = document.querySelector('input[name="platform"]:checked').value
+  if (plat === 'bluestack') return 'bluestack'
+  if (plat === 'desktop') return 'desktop'
+  return 'emulator'
+}
+btnPullEmu.addEventListener('click', () => runSync('pull', getSyncTarget()))
+btnPushEmu.addEventListener('click', () => runSync('push', getSyncTarget()))
 btnPullPhone.addEventListener('click', () => runSync('pull', 'phone'))
 btnPushPhone.addEventListener('click', () => runSync('push', 'phone'))
 
@@ -453,7 +466,7 @@ window.api.onOutput((data) => {
 window.api.onDone(async (code) => {
   if (code === 0 && postRunState === null) {
     // Run succeeded — pull save from device
-    const pullTarget = runPlatform === 'phone' ? 'phone' : runPlatform === 'desktop' ? 'desktop' : 'emulator'
+    const pullTarget = runPlatform === 'phone' ? 'phone' : runPlatform === 'desktop' ? 'desktop' : runPlatform === 'bluestack' ? 'bluestack' : 'emulator'
     postRunState = 'pulling'
     setStatus(`Pulling save from ${pullTarget}...`, 'running')
     const result = await window.api.syncCommand({ direction: 'pull', target: pullTarget })
