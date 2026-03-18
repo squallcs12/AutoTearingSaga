@@ -354,10 +354,16 @@ app.whenReady().then(() => {
     const addProc = spawn('git', ['add', 'SLPS-03177_0.sav'], { cwd: PROJECT_ROOT })
     addProc.on('close', (addCode) => {
       if (addCode !== 0) { win.webContents.send('command-done', addCode); return }
-      runningProcess = spawn('git', ['commit', '-m', message], { cwd: PROJECT_ROOT, stdio: ['ignore', 'pipe', 'pipe'] })
-      runningProcess.stdout.on('data', (data) => win.webContents.send('command-output', data.toString()))
-      runningProcess.stderr.on('data', (data) => win.webContents.send('command-output', data.toString()))
-      runningProcess.on('close', (code) => { runningProcess = null; win.webContents.send('command-done', code) })
+      const commitProc = spawn('git', ['commit', '-m', message], { cwd: PROJECT_ROOT, stdio: ['ignore', 'pipe', 'pipe'] })
+      commitProc.stdout.on('data', (data) => win.webContents.send('command-output', data.toString()))
+      commitProc.stderr.on('data', (data) => win.webContents.send('command-output', data.toString()))
+      commitProc.on('close', (commitCode) => {
+        if (commitCode !== 0) { win.webContents.send('command-done', commitCode); return }
+        runningProcess = spawn('git', ['push'], { cwd: PROJECT_ROOT, stdio: ['ignore', 'pipe', 'pipe'] })
+        runningProcess.stdout.on('data', (data) => win.webContents.send('command-output', data.toString()))
+        runningProcess.stderr.on('data', (data) => win.webContents.send('command-output', data.toString()))
+        runningProcess.on('close', (code) => { runningProcess = null; win.webContents.send('command-done', code) })
+      })
     })
     return { started: true }
   })
