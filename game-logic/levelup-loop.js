@@ -280,6 +280,16 @@ async function setupRun(PlayingPage, saveScreenshot, fight) {
 
 // Phase 1: resolve which random steps to use.
 // Returns { workingRandomSteps, initStat } or null if baseline is already good.
+async function takeBeforeFightPicture(PlayingPage, saveScreenshot, selectSteps, revertSelectSteps) {
+  if (selectSteps.length) await performSteps(PlayingPage, selectSteps);
+  await PlayingPage.pressTriangle();
+  console.log('[levelup] taking baseline screenshot before fight...');
+  const beforeFightPath = await saveScreenshot('before-fight.png');
+  await PlayingPage.pressX();
+  if (revertSelectSteps.length) await performSteps(PlayingPage, revertSelectSteps);
+  return beforeFightPath;
+}
+
 async function phase1FindRandomSteps(PlayingPage, saveScreenshot, checkLevelUpgrade, battle, isBoss, goodCondition, detectedName, selectSteps = [], revertSelectSteps = []) {
   if (process.env.RANDOM_OVERRIDE) {
     const workingRandomSteps = process.env.RANDOM_OVERRIDE.split(',').map(s => s.trim()).filter(s => s.length > 0);
@@ -289,18 +299,14 @@ async function phase1FindRandomSteps(PlayingPage, saveScreenshot, checkLevelUpgr
       workingRandomSteps.push('O', 'X');
     }
     console.log('[levelup] using --random override:', workingRandomSteps.join(', '));
+    await takeBeforeFightPicture(PlayingPage, saveScreenshot, selectSteps, revertSelectSteps);
     return { workingRandomSteps, initStat: null };
   }
 
   const grid = await detectMoveableGrid(PlayingPage, saveScreenshot);
 
   // Baseline fight: record init stat before any RNG manipulation
-  if (selectSteps.length) await performSteps(PlayingPage, selectSteps);
-  await PlayingPage.pressTriangle();
-  console.log('[levelup] taking baseline screenshot before fight...');
-  const beforeFightPath = await saveScreenshot('before-fight.png');
-  await PlayingPage.pressX();
-  if (revertSelectSteps.length) await performSteps(PlayingPage, revertSelectSteps);
+  const beforeFightPath = await takeBeforeFightPicture(PlayingPage, saveScreenshot, selectSteps, revertSelectSteps);
   await performFightWithRetry(PlayingPage, battle, isBoss, { selectSteps });
   const { isGood: initGood, statIncreased: initStat } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName, PlayingPage.lastLevelUpResult, PlayingPage, beforeFightPath);
   console.log('[levelup] initStat:', JSON.stringify(initStat));
