@@ -209,6 +209,9 @@ const checkLevelUpgrade = async (required, saveScreenshot, characterName, initia
 
   console.log(`[checkLevelUpgrade] panel gone after ${i} screenshots`);
 
+  await playing.pressX();
+  await playing.pressX();
+  await playing.pressX();
   await playing.pressTriangle();
   const afterPath = await saveScreenshot('after-fight.png');
   await playing.pressX();
