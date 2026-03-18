@@ -299,6 +299,7 @@ async function phase1FindRandomSteps(PlayingPage, saveScreenshot, checkLevelUpgr
   // Baseline fight: record init stat before any RNG manipulation
   if (selectSteps.length) await performSteps(PlayingPage, selectSteps);
   await PlayingPage.pressTriangle();
+  console.log('[levelup] taking baseline screenshot before fight...');
   const beforeFightPath = await saveScreenshot('before-fight.png');
   await PlayingPage.pressX();
   if (revertSelectSteps.length) await performSteps(PlayingPage, revertSelectSteps);

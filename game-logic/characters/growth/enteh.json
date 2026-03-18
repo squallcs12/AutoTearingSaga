@@ -11,5 +11,8 @@
     "def": 5,
     "move": 0
   },
-  "tier": "C"
+  "tier": "C",
+  "goodCondition": [
+    {"mag": 1, "hp": 1, "count": 4}
+  ]
 }
