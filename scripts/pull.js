@@ -4,6 +4,8 @@ const target = process.argv[2];
 
 if (target === 'desktop') {
   require('./pull-desktop');
+} else if (target === 'bluestack') {
+  require('./pull-bluestack');
 } else {
   const env = { ...process.env };
   if (target) env.TARGET_DEVICE = target;
