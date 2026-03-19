@@ -148,6 +148,7 @@ function applyOptions(o) {
   if (o.fight) document.getElementById('fight').value = o.fight
   if (o.selectSteps) document.getElementById('select-steps').value = o.selectSteps
   document.getElementById('is-boss').checked = !!o.isBoss
+  if (o.statDetect) document.querySelector(`input[name="stat-detect"][value="${o.statDetect}"]`)?.click()
   document.getElementById('debug-mode').checked = !!o.debug
   if (o.levelsToGain) document.getElementById('levels-to-gain').value = o.levelsToGain
 }
