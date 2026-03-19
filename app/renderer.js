@@ -43,6 +43,35 @@ function showAlert(message) {
   btnOk.onclick = () => { dialog.close(); input.style.display = ''; btnCancel.style.display = '' }
 }
 
+function showJsonDialog(message, defaultValue = '') {
+  return new Promise(resolve => {
+    const dialog = document.getElementById('json-edit-dialog')
+    const msg = document.getElementById('json-edit-dialog-msg')
+    const input = document.getElementById('json-edit-dialog-input')
+    const btnOk = document.getElementById('json-edit-dialog-ok')
+    const btnCancel = document.getElementById('json-edit-dialog-cancel')
+    msg.textContent = message
+    input.value = defaultValue
+    dialog.showModal()
+    input.focus()
+    function cleanup(value) {
+      btnOk.removeEventListener('click', onOk)
+      btnCancel.removeEventListener('click', onCancel)
+      input.removeEventListener('keydown', onKey)
+      dialog.close()
+      resolve(value)
+    }
+    function onOk() { cleanup(input.value.trim()) }
+    function onCancel() { cleanup(null) }
+    function onKey(e) {
+      if (e.key === 'Escape') onCancel()
+    }
+    btnOk.addEventListener('click', onOk)
+    btnCancel.addEventListener('click', onCancel)
+    input.addEventListener('keydown', onKey)
+  })
+}
+
 const output = document.getElementById('output')
 const summary = document.getElementById('summary')
 const tabLog = document.getElementById('tab-log')
@@ -227,6 +256,29 @@ document.getElementById('btn-rename-char').addEventListener('click', async () =>
   }
 })
 
+document.getElementById('btn-edit-condition').addEventListener('click', async () => {
+  const name = charSelect.value
+  if (!name) return showAlert('Select a character first')
+  const result = await window.api.getGrowthJson({ character: name })
+  if (result.error) return showAlert('Error: ' + result.error)
+  const selectedTier = document.querySelector('input[name="tier"]:checked').value
+  const rawCondition = result.data.goodCondition
+  const fallback = rawCondition == null
+    ? await window.api.getGoodCondition({ character: name, tier: selectedTier === 'auto' ? null : selectedTier })
+    : null
+  const current = JSON.stringify({
+    tier: result.data.tier,
+    goodCondition: rawCondition ?? fallback ?? null
+  }, null, 2)
+  const newVal = await showJsonDialog(`tier & goodCondition for "${name}":`, current)
+  if (newVal === null) return
+  let parsed
+  try { parsed = JSON.parse(newVal) } catch (e) { return showAlert('Invalid JSON: ' + e.message) }
+  const saveResult = await window.api.setGoodCondition({ character: name, goodCondition: parsed.goodCondition, tier: parsed.tier })
+  if (saveResult.error) return showAlert('Save failed: ' + saveResult.error)
+  updateTierCondition()
+})
+
 // Show/hide fields based on mode and platform
 function updateVisibility() {
   const mode = document.querySelector('input[name="mode"]:checked').value
@@ -266,11 +318,11 @@ const tierConditionEl = document.getElementById('tier-condition')
 async function updateTierCondition() {
   const character = document.getElementById('char-name').value
   const tier = document.querySelector('input[name="tier"]:checked').value
-  if (!character || tier === 'auto') {
+  if (!character) {
     tierConditionEl.textContent = ''
     return
   }
-  const condition = await window.api.getGoodCondition({ character, tier })
+  const condition = await window.api.getGoodCondition({ character, tier: tier === 'auto' ? null : tier })
   tierConditionEl.textContent = condition ? formatCondition(condition) : ''
 }
 
@@ -350,6 +402,7 @@ btnRun.addEventListener('click', async () => {
   runPlatform = platform
   lastCharName = null
   lastStatLine = null
+  slot4StatLine = null
   setStatus(`Running: ${mode} (${platform})`, 'running')
 
   const result = await window.api.runCommand({ mode, platform, options })
@@ -407,6 +460,7 @@ let postRunState = null // null | 'pulling' | 'committing'
 let runPlatform = null
 let lastCharName = null
 let lastStatLine = null
+let slot4StatLine = null
 
 window.api.onOutput((data) => {
   const charMatch = data.match(/\[levelup\] detected character: (\w+)/)
@@ -444,6 +498,7 @@ window.api.onOutput((data) => {
   // Parse slot 4 save events and mark the corresponding summary row
   const slot4Match = data.match(/\[levelup\] (?:good|better) result at turn (\d+).*(?:saving to|updating) slot 4/)
   if (slot4Match) {
+    slot4StatLine = lastStatLine
     const t = slot4Match[1]
     // Remove badge from any previous slot4 row
     summary.querySelectorAll('.summary-slot4').forEach(el => el.remove())
@@ -481,7 +536,7 @@ window.api.onDone(async (code) => {
   } else if (code === 0 && postRunState === 'pulling') {
     // Pull succeeded — commit the save file
     const name = lastCharName ? lastCharName.charAt(0).toUpperCase() + lastCharName.slice(1) : 'Unknown'
-    const stats = lastStatLine || ''
+    const stats = slot4StatLine || lastStatLine || ''
     const message = `Level up ${name}: ${stats}`
     postRunState = 'committing'
     setStatus('Committing save...', 'running')

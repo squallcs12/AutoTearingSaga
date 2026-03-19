@@ -202,6 +202,28 @@ app.whenReady().then(() => {
     }
   })
 
+  ipcMain.handle('get-growth-json', (_, { character }) => {
+    const p = path.join(PROJECT_ROOT, 'game-logic', 'characters', 'growth', `${character}.json`)
+    try {
+      return { data: JSON.parse(fs.readFileSync(p, 'utf8')) }
+    } catch (e) {
+      return { error: e.message }
+    }
+  })
+
+  ipcMain.handle('set-good-condition', (_, { character, goodCondition, tier }) => {
+    const p = path.join(PROJECT_ROOT, 'game-logic', 'characters', 'growth', `${character}.json`)
+    try {
+      const data = JSON.parse(fs.readFileSync(p, 'utf8'))
+      data.goodCondition = goodCondition
+      if (tier !== undefined) data.tier = tier
+      fs.writeFileSync(p, JSON.stringify(data, null, 2) + '\n')
+      return { success: true }
+    } catch (e) {
+      return { error: e.message }
+    }
+  })
+
   ipcMain.handle('run-command', (event, { mode, platform, options }) => {
     if (runningProcess) {
       return { error: 'A command is already running' }

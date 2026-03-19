@@ -551,7 +551,10 @@
       </div>
 
       <div class="form-group">
-        <label>Tier <span id="tier-condition" style="font-weight:normal;opacity:0.7;font-size:0.85em;margin-left:6px"></span></label>
+        <div style="display:flex;align-items:center">
+          <label style="margin:0">Tier <span id="tier-condition" style="font-weight:normal;font-size:0.85em;margin-left:4px"></span></label>
+          <button id="btn-edit-condition" type="button" class="btn-icon" title="Edit goodCondition" style="margin-left:auto;font-size:0.8em;padding:1px 5px">✏</button>
+        </div>
         <div class="radio-group">
           <input type="radio" name="tier" id="tier-auto" value="auto" checked />
           <label for="tier-auto">Auto</label>
@@ -725,6 +728,15 @@
       <div id="output"></div>
       <div id="summary"></div>
     </div>
+
+    <dialog id="json-edit-dialog" style="background:#1a1d2e;color:#c8cad0;border:1px solid #333;border-radius:8px;padding:16px;min-width:360px">
+      <p id="json-edit-dialog-msg" style="margin-bottom:10px"></p>
+      <textarea id="json-edit-dialog-input" rows="8" style="width:100%;padding:6px 8px;margin-bottom:12px;background:#0c0e1a;color:#c8cad0;border:1px solid #444;border-radius:4px;font-family:monospace;font-size:0.9em;resize:vertical;box-sizing:border-box"></textarea>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="json-edit-dialog-cancel" type="button" style="padding:4px 12px;background:#333;color:#c8cad0;border:none;border-radius:4px;cursor:pointer">Cancel</button>
+        <button id="json-edit-dialog-ok" type="button" style="padding:4px 12px;background:#4a6cf7;color:#fff;border:none;border-radius:4px;cursor:pointer">Save</button>
+      </div>
+    </dialog>
 
     <dialog id="input-dialog" style="background:#1a1d2e;color:#c8cad0;border:1px solid #333;border-radius:8px;padding:16px;min-width:280px">
       <p id="input-dialog-msg" style="margin-bottom:10px"></p>
