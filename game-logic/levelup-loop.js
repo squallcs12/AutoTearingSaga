@@ -392,6 +392,8 @@ async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, ba
 
     if (savedSlot4 && turn >= savedSlot4Turn + 20) {
       console.log(`[levelup] tried 20 turns after good result, accepting slot 4`);
+      await PlayingPage.perform('reload4');
+      await PlayingPage.perform('save');
       break;
     }
 
