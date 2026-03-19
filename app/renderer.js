@@ -253,7 +253,7 @@ function updateVisibility() {
   btnPullEmu.textContent = `↓ Pull ${pullPushLabel}`
   btnPushEmu.textContent = `↑ Push ${pullPushLabel}`
   const btnAvdInline = document.getElementById('btn-avd')
-  if (btnAvdInline) btnAvdInline.classList.toggle('visible', platform === 'emu')
+  if (btnAvdInline) btnAvdInline.disabled = platform !== 'emu'
 }
 
 document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener('change', updateVisibility))
