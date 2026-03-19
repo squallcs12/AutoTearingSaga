@@ -298,14 +298,16 @@ async function phase1FindRandomSteps(PlayingPage, saveScreenshot, checkLevelUpgr
       workingRandomSteps.push('O', 'X');
     }
     console.log('[levelup] using --random override:', workingRandomSteps.join(', '));
-    await takeBeforeFightPicture(PlayingPage, saveScreenshot, selectSteps, revertSelectSteps);
+    if (process.env.STAT_DETECT !== 'panel') {
+      await takeBeforeFightPicture(PlayingPage, saveScreenshot, selectSteps, revertSelectSteps);
+    }
     return { workingRandomSteps, initStat: null };
   }
 
   const grid = await detectMoveableGrid(PlayingPage, saveScreenshot);
 
   // Baseline fight: record init stat before any RNG manipulation
-  const beforeFightPath = await takeBeforeFightPicture(PlayingPage, saveScreenshot, selectSteps, revertSelectSteps);
+  const beforeFightPath = process.env.STAT_DETECT === 'panel' ? null : await takeBeforeFightPicture(PlayingPage, saveScreenshot, selectSteps, revertSelectSteps);
   await performFightWithRetry(PlayingPage, battle, isBoss, { selectSteps });
   const { isGood: initGood, statIncreased: initStat } = await checkLevelUpgrade(goodCondition, saveScreenshot, detectedName, PlayingPage.lastLevelUpResult, PlayingPage, beforeFightPath);
   console.log('[levelup] initStat:', JSON.stringify(initStat));
@@ -438,7 +440,14 @@ async function phase2FarmLoop(PlayingPage, saveScreenshot, checkLevelUpgrade, ba
   }
 }
 
-async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade) {
+async function levelupLoop(PlayingPage, saveScreenshot, checkLevelUpgrade_) {
+  const usePanel = process.env.STAT_DETECT === 'panel';
+  if (usePanel) {
+    const { checkLevelUpgradePanel } = require('../scene-detection/check-level');
+    checkLevelUpgrade_ = checkLevelUpgradePanel;
+    console.log('[levelup] using panel-based stat detection');
+  }
+  const checkLevelUpgrade = checkLevelUpgrade_;
   const { fight: configFight, isBoss: configIsBoss } = require('../config');
   const fight = process.env.FIGHT_OVERRIDE || configFight;
   const isBoss = process.env.IS_BOSS ? process.env.IS_BOSS === '1' : configIsBoss;

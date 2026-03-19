@@ -220,6 +220,7 @@ app.whenReady().then(() => {
     if (options.fight) env.FIGHT_OVERRIDE = options.fight
     if (options.selectSteps) env.SELECT_STEPS = options.selectSteps
     if (options.isBoss) env.IS_BOSS = '1'
+    if (options.statDetect === 'panel') env.STAT_DETECT = 'panel'
     if (options.debug) env.__DEBUG__ = '1'
 
     if (options.emulatorSpeed) env.EMULATOR_SPEED = String(options.emulatorSpeed)
@@ -255,7 +256,7 @@ app.whenReady().then(() => {
     }
 
     // Log the command so the user can reproduce it manually
-    const envPrefix = ['CHAR_NAME', 'SKIP_COUNT', 'TIER_OVERRIDE', 'RANDOM_OVERRIDE', 'FIGHT_OVERRIDE', 'SELECT_STEPS', 'IS_BOSS', 'LEVELS_TO_GAIN', 'TARGET_DEVICE', '__DEBUG__', 'EMULATOR_SPEED']
+    const envPrefix = ['CHAR_NAME', 'SKIP_COUNT', 'TIER_OVERRIDE', 'RANDOM_OVERRIDE', 'FIGHT_OVERRIDE', 'SELECT_STEPS', 'IS_BOSS', 'STAT_DETECT', 'LEVELS_TO_GAIN', 'TARGET_DEVICE', '__DEBUG__', 'EMULATOR_SPEED']
       .filter(k => env[k]).map(k => `${k}=${env[k]}`).join(' ')
     const cmdLine = `${envPrefix ? envPrefix + ' ' : ''}node ${args.join(' ')}`
     const win2 = BrowserWindow.fromWebContents(event.sender)

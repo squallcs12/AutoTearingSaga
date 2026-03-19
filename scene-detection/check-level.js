@@ -248,6 +248,47 @@ const checkLevelUpgrade = async (required, saveScreenshot, characterName, initia
   return { isGood, statIncreased };
 };
 
+// Panel-based stat detection: read green arrows directly from level-up screenshots
+const checkLevelUpgradePanel = async (required, saveScreenshot, characterName, initialPath = null, playing, beforeFightPath) => {
+  const total = 14;
+  let bestStat = null;
+
+  const checkFile = async (filePath) => {
+    const result = await checkLevelUpAndStats(filePath);
+    if (result.isLevelUp && result.statIncreased && result.statIncreased.count > (bestStat?.count || 0)) {
+      bestStat = result.statIncreased;
+    }
+    return result.isLevelUp;
+  };
+
+  let seenPanel = false;
+  let i = 1;
+  if (initialPath) {
+    if (await checkFile(initialPath)) seenPanel = true;
+    else i = total + 1;
+  }
+
+  for (; i <= total; i++) {
+    const p = await saveScreenshot(`level-up-${i + 1}.png`);
+    if (await checkFile(p)) {
+      seenPanel = true;
+    } else if (seenPanel) {
+      break;
+    }
+  }
+
+  if (!seenPanel || !bestStat) {
+    console.error('[checkLevelUpgradePanel] No level-up panel detected');
+    return { isGood: false, statIncreased: { count: 0 } };
+  }
+
+  console.log(`[checkLevelUpgradePanel] panel gone after ${i} screenshots`);
+  console.error(statSummary(bestStat));
+  const isGood = checkGoodCondition(bestStat, required);
+  if (isGood) console.error('Goooooooooooooodddddddddddddddddd');
+  return { isGood, statIncreased: bestStat };
+};
+
 const waitLevelUp = async (playing, { sleepMs = 500 } = {}) => {
   const timeoutMs = parseInt(process.env.WAIT_LEVEL_UP_TIMEOUT || '15000', 10);
   const start = Date.now();
@@ -314,7 +355,7 @@ const detectStatChanges = async (beforePath, afterPath) => {
   return increased;
 };
 
-module.exports = { checkIsGoodLevelUp, statSummary, checkGoodCondition, checkIsLevelUp, checkLevelUpAndStats, extractLevelUpPanel, checkLevelUpgrade, waitLevelUp, detectStatChanges };
+module.exports = { checkIsGoodLevelUp, statSummary, checkGoodCondition, checkIsLevelUp, checkLevelUpAndStats, extractLevelUpPanel, checkLevelUpgrade, checkLevelUpgradePanel, waitLevelUp, detectStatChanges };
 
 if (debug) {
   (async () => {

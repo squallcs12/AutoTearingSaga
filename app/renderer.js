@@ -128,6 +128,7 @@ function collectOptions() {
     fight: document.getElementById('fight').value,
     selectSteps: document.getElementById('select-steps').value,
     isBoss: document.getElementById('is-boss').checked,
+    statDetect: document.querySelector('input[name="stat-detect"]:checked').value,
     debug: document.getElementById('debug-mode').checked,
     levelsToGain: document.getElementById('levels-to-gain').value,
   }
@@ -335,6 +336,7 @@ btnRun.addEventListener('click', async () => {
     fight: mode === 'level' ? (document.getElementById('fight').value.trim() || null) : null,
     selectSteps: mode === 'level' ? (document.getElementById('select-steps').value.trim() || null) : null,
     isBoss: mode === 'level' ? document.getElementById('is-boss').checked : false,
+    statDetect: document.querySelector('input[name="stat-detect"]:checked').value,
     debug: document.getElementById('debug-mode').checked,
 
     emulatorSpeed: parseInt(document.getElementById('emulator-speed').value, 10) || null,
